@@ -27,3 +27,32 @@ The layout of the package is as:
 ```
 
 
+.
+├── LICENSE
+├── MANIFEST.in
+├── nsls2tools
+│   ├── common
+│   │   ├── __init__.py
+│   │   └── ipynb
+│   │       ├── animation.py
+│   │       ├── info.py
+│   │       ├── __init__.py
+│   │       └── nbviewer.py
+│   ├── csx1
+│   │   ├── analysis
+│   │   │   └── __init__.py
+│   │   ├── bluesky
+│   │   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   └── ophyd
+│   │       └── __init__.py
+│   ├── __init__.py
+│   ├── six
+│   │   └── __init__.py
+│   └── _version.py
+├── README.md
+├── setup.cfg
+├── setup.py
+└── versioneer.py
+
+8 directories, 18 files
