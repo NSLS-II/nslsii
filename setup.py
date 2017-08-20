@@ -4,7 +4,7 @@ import versioneer
 import setuptools
 
 setuptools.setup(
-	name='nsls-ii-tools',
+	name='nsls2tools',
     version=versioneer.get_version(),
 	cmdclass=versioneer.get_cmdclass(),
     license="BSD (3-clause)",
