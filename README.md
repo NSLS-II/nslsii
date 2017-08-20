@@ -13,23 +13,6 @@ The layout of the package is as:
 .
 ├── LICENSE
 ├── MANIFEST.in
-├── nsls-ii-tools
-│   ├── common
-│   │   └── __init__.py
-│   ├── csx-1
-│   │   └── __init__.py
-│   ├── __init__.py
-│   └── _version.py
-├── README.md
-├── setup.cfg
-├── setup.py
-└── versioneer.py
-```
-
-
-.
-├── LICENSE
-├── MANIFEST.in
 ├── nsls2tools
 │   ├── common
 │   │   ├── __init__.py
@@ -54,5 +37,9 @@ The layout of the package is as:
 ├── setup.cfg
 ├── setup.py
 └── versioneer.py
+```
 
-8 directories, 18 files
+Code should be separated into code which is specific to a beamline (Such as CSX-1) and 
+code which is common. Within these modules (directories) there should be sub modules
+for each use, such as `ipynb` for ipython notebook utilities and `bluesky` for bluesky plans
+and config. 
