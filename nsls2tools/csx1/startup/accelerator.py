@@ -4,51 +4,31 @@ from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmCpt
 
 # Undulator
+                        'SR:C23-ID:G1A{EPU:1-Ax:Gap}-Mtr.STOP'
 
-class GapMotor1(PVPositionerPC):
+class EPU(Device):
+
+class EPUMotor(PVPositionerPC):
     readback = Cpt(EpicsSignalRO, 'Pos-I')
     setpoint = Cpt(EpicsSignal, 'Pos-SP')
     stop_signal = FmCpt(EpicsSignal,
-                        'SR:C23-ID:G1A{EPU:1-Ax:Gap}-Mtr.STOP', add_prefix=())
+                        '{self._stop_prefix}{self._stop_suffix}-Mtr.STOP',
+                        add_prefix=())
     stop_value = 1
 
+    def __init__(self, suffix=None, *args, epu_prefix=None, **kwargs):
+        self._stop_suffix = suffix
+        self._stop_prefix = epu_prefix
+        super().__init__(suffix, *args, epu_prefix=epu_prefix, **kwargs)
 
-class PhaseMotor1(PVPositionerPC):
-    readback = Cpt(EpicsSignalRO, 'Pos-I')
-    setpoint = Cpt(EpicsSignal, 'Pos-SP')
-    stop_signal = FmCpt(EpicsSignal,
+
                         'SR:C23-ID:G1A{EPU:1-Ax:Phase}-Mtr.STOP', add_prefix=())
-    stop_value = 1
 
+class EPU(Device):
+    gap = FmCpt(EPUMotor, '-Ax:Gap}')
+    phase = FmCpt(EPUMotor, '-Ax:Phase}')
 
-class GapMotor2(PVPositionerPC):
-    readback = Cpt(EpicsSignalRO, 'Pos-I')
-    setpoint = Cpt(EpicsSignal, 'Pos-SP')
-    stop_signal = FmCpt(EpicsSignal,
-                        'SR:C23-ID:G1A{EPU:2-Ax:Gap}-Mtr.STOP', add_prefix=())
-    stop_value = 1
-
-
-class PhaseMotor2(PVPositionerPC):
-    readback = Cpt(EpicsSignalRO, 'Pos-I')
-    setpoint = Cpt(EpicsSignal, 'Pos-SP')
-    stop_signal = FmCpt(EpicsSignal,
-                        'SR:C23-ID:G1A{EPU:2-Ax:Phase}-Mtr.STOP', add_prefix=())
-
-    stop_value = 1
-
-
-class EPU1(Device):
-    gap = Cpt(GapMotor1, '-Ax:Gap}')
-    phase = Cpt(PhaseMotor1, '-Ax:Phase}')
-
-
-class EPU2(Device):
-    gap = Cpt(GapMotor2, '-Ax:Gap}')
-    phase = Cpt(PhaseMotor2, '-Ax:Phase}')
-
-
-epu1 = EPU1('XF:23ID-ID{EPU:1', name='epu1')
-epu2 = EPU2('XF:23ID-ID{EPU:2', name='epu2')
+epu1 = EPU('XF:23ID-ID{EPU:1', epu_prefix='SR:C23-ID:G1A{EPU:1', name='epu1')
+epu2 = EPU('XF:23ID-ID{EPU:2', epu_prefix='SR:C23-ID:G1A{EPU:2', name='epu2')
 
 
