@@ -1,29 +1,23 @@
 from ophyd.device import Device
 
-class EPSOpenCloseDevice(Device):
+class EPSTwoStateDevice(Device):
 	# @tcaswell, the names don't need to be fixed. These commands run
     # when the record is processed, you could as easily poke .PROC
-    open_cmd = Cpt(EpicsSignal, 'Cmd:Opn-Cmd', string=True)
-    open_val = 'Open'
-
-    close_cmd = Cpt(EpicsSignal, 'Cmd:Cls-Cmd', string=True)
-    close_val = 'Not Open'
+    state1_cmd = Cpt(EpicsSignal, 'Cmd:Opn-Cmd', string=True)
+    state2_cmd = Cpt(EpicsSignal, 'Cmd:Cls-Cmd', string=True)
 
     status = Cpt(EpicsSignalRO, 'Pos-Sts', string=True)
-    fail_to_close = Cpt(EpicsSignalRO, 'Sts:FailCls-Sts', string=True)
-    fail_to_open = Cpt(EpicsSignalRO, 'Sts:FailOpn-Sts', string=True)
-    # user facing commands
-    open_str = 'Open'
-    close_str = 'Close'
+    fail_to_state2 = Cpt(EpicsSignalRO, 'Sts:FailCls-Sts', string=True)
+    fail_to_state1 = Cpt(EpicsSignalRO, 'Sts:FailOpn-Sts', string=True)
 
     def set(self, val):
         if self._set_st is not None:
             raise RuntimeError('trying to set while a set is in progress')
 
-        cmd_map = {self.open_str: self.open_cmd,
-                   self.close_str: self.close_cmd}
-        target_map = {self.open_str: self.open_val,
-                      self.close_str: self.close_val}
+        cmd_map = {self.state1_str: self.state1_cmd,
+                   self.state2_str: self.state2_cmd}
+        target_map = {self.state1_str: self.state1_val,
+                      self.state2_str: self.state2_val}
 
         cmd_sig = cmd_map[val]
         target_val = target_map[val]
@@ -62,8 +56,14 @@ class EPSOpenCloseDevice(Device):
 
         return st
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, state1='Open', state2='Closed',
+                 cmd_str1='Open', cmd_str2='Close', **kwargs):
         super().__init__(*args, **kwargs)
         self._set_st = None
         self.read_attrs = ['status']
+
+        state1_str = cmd_str1
+        state2_str = cmd_str2
+        state1_val = state1
+        state2_val = state2
 
