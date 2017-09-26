@@ -4,31 +4,38 @@ from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmCpt
 
 # Undulator
-                        'SR:C23-ID:G1A{EPU:1-Ax:Gap}-Mtr.STOP'
+# EPU1 positions for commissioning
 
-class EPU(Device):
 
 class EPUMotor(PVPositionerPC):
     readback = Cpt(EpicsSignalRO, 'Pos-I')
     setpoint = Cpt(EpicsSignal, 'Pos-SP')
     stop_signal = FmCpt(EpicsSignal,
-                        '{self._stop_prefix}{self._stop_suffix}-Mtr.STOP',
-                        add_prefix=())
+                        '{self._stop_prefix}{self._stop_suffix}-Mtr.STOP')
     stop_value = 1
 
-    def __init__(self, suffix=None, *args, epu_prefix=None, **kwargs):
-        self._stop_suffix = suffix
-        self._stop_prefix = epu_prefix
-        super().__init__(suffix, *args, epu_prefix=epu_prefix, **kwargs)
+    def __init__(self, *args, parent=None, stop_suffix=None, **kwargs):
+        self._stop_suffix = stop_suffix
+        self._stop_prefix = parent._epu_prefix
+        super().__init__(*args, parent=parent, **kwargs)
 
-
-                        'SR:C23-ID:G1A{EPU:1-Ax:Phase}-Mtr.STOP', add_prefix=())
 
 class EPU(Device):
-    gap = FmCpt(EPUMotor, '-Ax:Gap}')
-    phase = FmCpt(EPUMotor, '-Ax:Phase}')
+    gap = Cpt(EPUMotor, '-Ax:Gap}', stop_suffix='-Ax:Gap}')
+    phase = Cpt(EPUMotor, '-Ax:Phase}', stop_suffix='-Ax:Phase}')
+    x_off = FmCpt(EpicsSignalRO,'{self._ai_prefix}:FPGA:x_mm-I')
+    x_ang = FmCpt(EpicsSignalRO,'{self._ai_prefix}:FPGA:x_mrad-I')
+    y_off = FmCpt(EpicsSignalRO,'{self._ai_prefix}:FPGA:y_mm-I')
+    y_ang = FmCpt(EpicsSignalRO,'{self._ai_prefix}:FPGA:y_mrad-I')
 
-epu1 = EPU('XF:23ID-ID{EPU:1', epu_prefix='SR:C23-ID:G1A{EPU:1', name='epu1')
-epu2 = EPU('XF:23ID-ID{EPU:2', epu_prefix='SR:C23-ID:G1A{EPU:2', name='epu2')
+    def __init__(self, *args, ai_prefix=None, epu_prefix=None, **kwargs):
+        self._ai_prefix = ai_prefix
+        self._epu_prefix = epu_prefix
+        super().__init__(*args, **kwargs)
+
+epu1 = EPU('XF:23ID-ID{EPU:1', epu_prefix='SR:C23-ID:G1A{EPU:1',
+           ai_prefix='SR:C31-{AI}23', name='epu1')
+epu2 = EPU('XF:23ID-ID{EPU:2', epu_prefix='SR:C23-ID:G1A{EPU:2',
+           ai_prefix='SR:C31-{AI}23-2', name='epu2')
 
 
