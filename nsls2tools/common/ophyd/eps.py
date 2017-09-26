@@ -1,7 +1,7 @@
 from ophyd.device import Device
 
 class EPSTwoStateDevice(Device):
-	# @tcaswell, the names don't need to be fixed. These commands run
+    # @tcaswell, the names don't need to be fixed. These commands run
     # when the record is processed, you could as easily poke .PROC
     state1_cmd = Cpt(EpicsSignal, 'Cmd:Opn-Cmd', string=True)
     state2_cmd = Cpt(EpicsSignal, 'Cmd:Cls-Cmd', string=True)

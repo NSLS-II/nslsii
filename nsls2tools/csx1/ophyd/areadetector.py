@@ -1,14 +1,17 @@
 from ophyd import (EpicsScaler, EpicsSignal, EpicsSignalRO, Device,
                    SingleTrigger, HDF5Plugin, ImagePlugin, StatsPlugin,
                    ROIPlugin, TransformPlugin)
+
 from ophyd.areadetector.cam import AreaDetectorCam
 from ophyd.areadetector.detectors import DetectorBase
 from ophyd.areadetector.filestore_mixins import FileStoreHDF5IterativeWrite
 from ophyd.areadetector import ADComponent, EpicsSignalWithRBV
 from ophyd.areadetector.plugins import PluginBase, ProcessPlugin
 from ophyd import Component as Cpt
-from ophyd.device FormattedComponent as FCpt
+from ophyd.device import FormattedComponent as FCpt
 from ophyd import AreaDetector
+
+from .devices import DelayGenerator
 
 class StandardCam(SingleTrigger, AreaDetector):
     stats1 = Cpt(StatsPlugin, 'Stats1:')
@@ -32,7 +35,7 @@ class HDF5PluginSWMR(HDF5Plugin):
     swrm_mode = Cpt(EpicsSignalWithRBV, 'SWMRMode')
     swmr_supported = Cpt(EpicsSignalRO, 'SWMRSupported_RBV')
     swmr_cb_counter = Cpt(EpicsSignalRO, 'SWMRCbCounter_RBV')
-    _default_configuration_attrs = (HDF5Plugiun._default_configuration_attrs +
+    _default_configuration_attrs = (HDF5Plugin._default_configuration_attrs +
                                     ('swmr_active', 'swrm_mode',
                                      'swmr_supported'))
 
@@ -105,7 +108,7 @@ class ProductionCamStandard(SingleTrigger, ProductionCamBase):
                suffix='HDF1:',
                write_path_template='/GPFS/xf23id/xf23id1/fccd_data/%Y/%m/%d/',
                root='/GPFS/xf23id/xf23id1/',
-               reg=db.reg)
+               reg=None)  # placeholder to be set on instance as obj.hdf5.reg
 
     def stop(self):
         self.hdf5.capture.put(0)

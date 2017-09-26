@@ -1,3 +1,12 @@
+from bluesky.magics import BlueskyMagics
+
+from .startup import sd
+from .detectors import *
+from .endstation import *
+from .accelerator import *
+from .optics import *
+from .tardis import *
+
 # interactive use
 sd.monitors = []  # a list of signals to monitor concurrently
 sd.flyers = []  # a list of "flyable" devices
@@ -5,18 +14,14 @@ sd.flyers = []  # a list of "flyable" devices
 sd.baseline = [theta, delta, gamma,
                sx, say, saz, cryoangle,
                sy, sz,
-               temp, #uw_temp,
-               temp_sp,
-               pgm_en,
                epu1, epu2,
                slt1, slt2, slt3,
                m1a, m3a,
-               mono_tempa, mono_tempb,  grt1_temp, grt2_temp,
                nanop, tardis]
 
-dets = [sclr] #TODO decide if this is permanent
+#temp and mono temp pgm
 
-pgm_en.readback.name = 'energy'
+#pgm_en.readback.name = 'energy'
 
 sclr.names.read_attrs=['name1','name2','name3','name4','name5','name6']  # TODO  WHAT IS THIS??? - Dan Allan
 sclr.channels.read_attrs=['chan1','chan2','chan3','chan4','chan5','chan6']
@@ -29,8 +34,8 @@ def relabel_fig(fig, new_label):
 fccd.hints = {'fields': ['fccd_stats1_total']}
 dif_beam.hints = {'fields' : ['dif_beam_stats3_total','dif_beam_stats1_total']}
 
-# This was imported in 00-startup.py
-#  used to generate the list: [thing.name for thing in get_all_positioners()]
+# This was imported in 00-startup.py #  used to generate the list: [thing.name for thing in get_all_positioners()]
+
 BlueskyMagics.positioners = [
  cryoangle,
  delta,
@@ -54,18 +59,6 @@ BlueskyMagics.positioners = [
  m1a.pit,
  m1a.yaw,
  m1a.rol,
- m1b1.z,
- m1b1.y,
- m1b1.x,
- m1b1.pit,
- m1b1.yaw,
- m1b1.rol,
- m1b2.z,
- m1b2.y,
- m1b2.x,
- m1b2.pit,
- m1b2.yaw,
- m1b2.rol,
  m3a.x,
  m3a.pit,
  m3a.bdr,
@@ -77,7 +70,6 @@ BlueskyMagics.positioners = [
  nanop.bx,
  nanop.by,
  nanop.bz,
- pgm_en,
  say,
  saz,
  slt1.xg,
@@ -92,8 +84,6 @@ BlueskyMagics.positioners = [
  slt3.y,
  sm.curr,
  sm.volt,
- ssh_in,   #leave for now but decide base on below.
-# ssh_out,  #TODO decide if need tehse and fix the class to one device
  sx,
  sy,
  sz,
@@ -106,9 +96,6 @@ BlueskyMagics.positioners = [
   tardis.phi,
   tardis.delta,
   tardis.gamma,
- temp_sp,
  theta,
-# yag_cube_in,  #TODO decide if need these and fix the class to one device
-# yag_cube_out
  ]
 

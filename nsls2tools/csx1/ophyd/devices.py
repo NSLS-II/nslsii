@@ -4,7 +4,7 @@ from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmtCpt
 from ophyd import DynamicDeviceComponent as DDC
 from ophyd import (EpicsMCA, EpicsDXP)
-from ophyd import DeviceStatus
+from ophyd import DeviceStatus, OrderedDict
 
 # Mirrors
 
@@ -48,22 +48,17 @@ class PGM(Device):
     x = Cpt(EpicsMotor, '-Ax:MirX}Mtr')
     grt_pit = Cpt(EpicsMotor, '-Ax:GrtP}Mtr')
     grt_x = Cpt(EpicsMotor, '-Ax:GrtX}Mtr')
-    tempa = Cpt(EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:A}T-I',
-                            name='mono_tempa')
-
-    tempb = EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:B}T-I',
-                            name='mono_tempb')
-
-    tempc = EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:C}T-I', name='mono_tempc')
-
-    tempd = EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:D}T-I', name='mono_tempd')
+    #tempa = Cpt(EpicsSignalRO, 'XF:23ID1-OP{TCtrl:1-Chan:A}T-I')
+    #tempb = Cpt(EpicsSignalRO, 'XF:23ID1-OP{TCtrl:1-Chan:B}T-I')
+    #tempc = EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:C}T-I', name='mono_tempc')
+    #tempd = EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:D}T-I', name='mono_tempd')
 
 
-    grt1_temp = EpicsSignalRO('XF:23ID1-OP{Mon-Grt:1}T-I',
-                            name='grt1_temp')
+    #grt1_temp = EpicsSignalRO('XF:23ID1-OP{Mon-Grt:1}T-I',
+    #                        name='grt1_temp')
 
-    grt2_temp = EpicsSignalRO('XF:23ID1-OP{Mon-Grt:2}T-I',
-                            name='grt2_temp')
+    #grt2_temp = EpicsSignalRO('XF:23ID1-OP{Mon-Grt:2}T-I',
+    #                        name='grt2_temp')
 
 
 class SlitsGapCenter(Device):
@@ -311,62 +306,4 @@ class DelayGenerator(Device):
     G = Cpt(DelayGeneratorChan, '-Chan:G}DO:Dly')
     H = Cpt(DelayGeneratorChan, '-Chan:H}DO:Dly')
 
-
-def _mcs_fields(cls, attr_base, pv_base, nrange, field, **kwargs):
-    defn = OrderedDict()
-    for i in nrange:
-        attr = '{}_{}'.format(attr_base, i)
-        suffix = '{}{}{}'.format(pv_base, i, field)
-        defn[attr] = (cls, suffix, kwargs)
-
-    return defn
-
-
-class StruckSIS3820MCS(Device):
-    _default_configuration_attrs = ('input_mode', 'output_mode',
-                                    'output_polarity', 'channel_advance',
-                                    'count_on_start', 'max_channels')
-    _default_read_attrs = ('wfrm',)
-
-    erase_start = Cpt(EpicsSignal, 'EraseStart')
-    erase_all = Cpt(EpicsSignal, 'EraseAll')
-    start_all = Cpt(EpicsSignal, 'StartAll')
-    stop_all = Cpt(EpicsSignal, 'StopAll')
-    acquiring = Cpt(EpicsSignalRO, 'Acquiring')
-
-    input_mode = Cpt(EpicsSignal, 'InputMode')
-    output_mode = Cpt(EpicsSignal, 'OutputMode')
-    output_polarity = Cpt(EpicsSignal, 'OutputPolarity')
-
-    channel_advance = Cpt(EpicsSignal, 'ChannelAdvance')
-    count_on_start = Cpt(EpicsSignal, 'CountOnStart')
-    acquire_mode = Cpt(EpicsSignal, 'AcquireMode')
-
-    max_channels = Cpt(EpicsSignalRO, 'MaxChannels')
-
-    read_all = Cpt(EpicsSignal, 'ReadAll')
-    n_use_all = Cpt(EpicsSignal, 'NUseAll')
-
-    current_channel = Cpt(EpicsSignalRO, 'CurrentChannel')
-
-    wfrm = DDC(_mcs_fields(EpicsSignalRO,
-                           'wfrm', 'Wfrm:', range(1, 33), ''))
-    wfrm_proc = DDC(_mcs_fields(EpicsSignal,
-                                'wfrm_proc', 'Wfrm:', range(1, 33), '.PROC',
-                                put_complete=True))
-
-    def trigger(self):
-        self.input_mode.put(3) # Set to using 0 = advance 3 = inhibit
-        self.acquire_mode.put(0) # Set MCS Mode
-        self.count_on_start.put(0) # Start collecting only when triggered
-        self.channel_advance.put(1) # External Triggers
-        self.erase_start.put(1) # Engage .....
-        super().trigger()
-
-    def read(self):
-        # Here we stop and poke the proc fields
-        self.stop_all.put(1)
-        for sn in self.wfrm_proc.signal_names:
-            getattr(self.wfrm_proc, sn).put(1)
-        super().read()
 

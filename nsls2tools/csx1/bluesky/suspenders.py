@@ -5,6 +5,8 @@ from bluesky.suspenders import (SuspendBoolHigh,
                                 SuspendInBand,
                                 SuspendOutBand)
 
+from ophyd import EpicsSignal
+
 ## Enable this line for standard GU operation
 print('\n\nEnabling ring current suspender with 200 mA threshold and 120 s recovery time\n\n')
 ring_suspender = SuspendFloor(EpicsSignal('XF:23ID-SR{}I-I'), 200, sleep=120)

@@ -1,36 +1,45 @@
 from ophyd import Device
-from ophyd.device import Component as C
-from ophyd.device import DynamicDeviceComponent as DDC
-from ophyd import EpicsSignal, EpicsSignalRO
+from ophyd.device import Component as Cpt
+from ophyd.device import DynamicDeviceComponent as DDCpt
+from ophyd import EpicsSignal, EpicsSignalRO, OrderedDict
+
+def _scaler_fields(attr_base, field_base, range_, **kwargs):
+    defn = OrderedDict()
+    for i in range_:
+        attr = '{attr}{i}'.format(attr=attr_base, i=i)
+        suffix = '{field}{i}'.format(field=field_base, i=i)
+        defn[attr] = (EpicsSignalRO, suffix, kwargs)
+
+    return defn
 
 class PrototypeEpicsScaler(Device):
     '''SynApps Scaler Record interface'''
 
     # tigger + trigger mode
-    count = C(EpicsSignal, '.CNT', trigger_value=1)
-    count_mode = C(EpicsSignal, '.CONT', string=True)
+    count = Cpt(EpicsSignal, '.CNT', trigger_value=1)
+    count_mode = Cpt(EpicsSignal, '.CONT', string=True)
 
     # delay from triggering to starting counting
-    delay = C(EpicsSignal, '.DLY')
-    auto_count_delay = C(EpicsSignal, '.DLY1')
+    delay = Cpt(EpicsSignal, '.DLY')
+    auto_count_delay = Cpt(EpicsSignal, '.DLY1')
 
     # the data
-    channels = DDC(_scaler_fields('chan', '.S', range(1, 33)))
-    names = DDC(_scaler_fields('name', '.NM', range(1, 33)))
+    channels = DDCpt(_scaler_fields('chan', '.S', range(1, 33)))
+    names = DDCpt(_scaler_fields('name', '.NM', range(1, 33)))
 
-    time = C(EpicsSignal, '.T')
-    freq = C(EpicsSignal, '.FREQ')
+    time = Cpt(EpicsSignal, '.T')
+    freq = Cpt(EpicsSignal, '.FREQ')
 
-    preset_time = C(EpicsSignal, '.TP')
-    auto_count_time = C(EpicsSignal, '.TP1')
+    preset_time = Cpt(EpicsSignal, '.TP')
+    auto_count_time = Cpt(EpicsSignal, '.TP1')
 
-    presets = DDC(_scaler_fields('preset', '.PR', range(1, 33)))
-    gates = DDC(_scaler_fields('gate', '.G', range(1, 33)))
+    presets = DDCpt(_scaler_fields('preset', '.PR', range(1, 33)))
+    gates = DDCpt(_scaler_fields('gate', '.G', range(1, 33)))
 
-    update_rate = C(EpicsSignal, '.RATE')
-    auto_count_update_rate = C(EpicsSignal, '.RAT1')
+    update_rate = Cpt(EpicsSignal, '.RATE')
+    auto_count_update_rate = Cpt(EpicsSignal, '.RAT1')
 
-    egu = C(EpicsSignal, '.EGU')
+    egu = Cpt(EpicsSignal, '.EGU')
 
     def __init__(self, prefix, *, read_attrs=None, configuration_attrs=None,
                  name=None, parent=None, **kwargs):
@@ -49,4 +58,62 @@ class PrototypeEpicsScaler(Device):
 
         self.stage_sigs.update([(self.count_mode, 0)])
 
+
+def _mcs_fields(cls, attr_base, pv_base, nrange, field, **kwargs):
+    defn = OrderedDict()
+    for i in nrange:
+        attr = '{}_{}'.format(attr_base, i)
+        suffix = '{}{}{}'.format(pv_base, i, field)
+        defn[attr] = (cls, suffix, kwargs)
+
+    return defn
+
+
+class StruckSIS3820MCS(Device):
+    _default_configuration_attrs = ('input_mode', 'output_mode',
+                                    'output_polarity', 'channel_advance',
+                                    'count_on_start', 'max_channels')
+    _default_read_attrs = ('wfrm',)
+
+    erase_start = Cpt(EpicsSignal, 'EraseStart')
+    erase_all = Cpt(EpicsSignal, 'EraseAll')
+    start_all = Cpt(EpicsSignal, 'StartAll')
+    stop_all = Cpt(EpicsSignal, 'StopAll')
+    acquiring = Cpt(EpicsSignalRO, 'Acquiring')
+
+    input_mode = Cpt(EpicsSignal, 'InputMode')
+    output_mode = Cpt(EpicsSignal, 'OutputMode')
+    output_polarity = Cpt(EpicsSignal, 'OutputPolarity')
+
+    channel_advance = Cpt(EpicsSignal, 'ChannelAdvance')
+    count_on_start = Cpt(EpicsSignal, 'CountOnStart')
+    acquire_mode = Cpt(EpicsSignal, 'AcquireMode')
+
+    max_channels = Cpt(EpicsSignalRO, 'MaxChannels')
+
+    read_all = Cpt(EpicsSignal, 'ReadAll')
+    n_use_all = Cpt(EpicsSignal, 'NUseAll')
+
+    current_channel = Cpt(EpicsSignalRO, 'CurrentChannel')
+
+    wfrm = DDCpt(_mcs_fields(EpicsSignalRO,
+                           'wfrm', 'Wfrm:', range(1, 33), ''))
+    wfrm_proc = DDCpt(_mcs_fields(EpicsSignal,
+                                'wfrm_proc', 'Wfrm:', range(1, 33), '.PROC',
+                                put_complete=True))
+
+    def trigger(self):
+        self.input_mode.put(3) # Set to using 0 = advance 3 = inhibit
+        self.acquire_mode.put(0) # Set MCS Mode
+        self.count_on_start.put(0) # Start collecting only when triggered
+        self.channel_advance.put(1) # External Triggers
+        self.erase_start.put(1) # Engage .....
+        super().trigger()
+
+    def read(self):
+        # Here we stop and poke the proc fields
+        self.stop_all.put(1)
+        for sn in self.wfrm_proc.signal_names:
+            getattr(self.wfrm_proc, sn).put(1)
+        super().read()
 

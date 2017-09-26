@@ -1,5 +1,4 @@
 from .startup import *
-from ..ophyd.devices import *
 from .accelerator import *
 from .optics import *
 from .endstation import *

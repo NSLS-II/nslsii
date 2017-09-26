@@ -3,19 +3,16 @@ from ophyd import (EpicsMotor, PVPositioner, PVPositionerPC,
 from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmtCpt
 
+from ..ophyd.devices import (Mirror, PGM, MotorMirror,
+                             SlitsGapCenter, SlitsXY, PID)
+
 # M1A, M1B1, M1B2
 
 m1a = Mirror('XF:23IDA-OP:1{Mir:1', name='m1a')
 
-# Add m1a feedback control
-m1a_feedback = EpicsSignal('XF:23ID1-OP{FBck}Sts:FB-Sel', name= 'm1a_feedback')
-
 # VLS-PGM
 
-_pgm = PGM('XF:23ID1-OP{Mono', name='pgm')
-#pgm_en = PGMEnergy('XF:23ID1-OP{Mono', name='pgm_en')
-pgm_en = _pgm.energy
-pgm_en.name = 'pgm_en'
+pgm = PGM('XF:23ID1-OP{Mono', name='pgm')
 
 # M3A Mirror
 
