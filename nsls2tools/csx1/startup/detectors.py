@@ -19,8 +19,6 @@ def _setup_stats(cam_in):
         getattr(cam_in, k).read_attrs = ['total']
 
 
-# Ring current
-
 # TODO Make this a Device so it can be used by bluesky.
 ring_curr = EpicsSignalRO('XF:23ID-SR{}I-I', name='ring_curr')
 
@@ -30,8 +28,6 @@ diag6_monitor = EpicsSignal('XF:23ID1-BI{Diag:6-Cam:1}Stats1:Total_RBV',
 
 
 diag6_pid_threshold = EpicsSignal('XF:23ID1-BI{Diag:6-Cam:1}Stats1:CentroidThreshold',name =  'diag6_pid_threshold')
-
-#
 
 fccd_temp = EpicsSignalRO('XF:23ID1-ES{TCtrl:2-Chan:A}T:C-I', name='fccd_temp')
 
