@@ -3,10 +3,6 @@ from ophyd import (PVPositioner, PVPositionerPC, Device,
 from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmCpt
 
-# Undulator
-# EPU1 positions for commissioning
-
-
 class EPUMotor(PVPositionerPC):
     readback = Cpt(EpicsSignalRO, 'Pos-I')
     setpoint = Cpt(EpicsSignal, 'Pos-SP')
@@ -15,10 +11,9 @@ class EPUMotor(PVPositionerPC):
     stop_value = 1
 
     def __init__(self, *args, parent=None, stop_suffix=None, **kwargs):
-        self._stop_suffix = stop_suffix
         self._stop_prefix = parent._epu_prefix
+        self._stop_suffix = stop_suffix
         super().__init__(*args, parent=parent, **kwargs)
-
 
 class EPU(Device):
     gap = Cpt(EPUMotor, '-Ax:Gap}', stop_suffix='-Ax:Gap}')

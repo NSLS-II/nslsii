@@ -33,7 +33,6 @@ diag6_pid_threshold = EpicsSignal('XF:23ID1-BI{Diag:6-Cam:1}Stats1:CentroidThres
 
 #
 
-# FCCD sensor temperature
 fccd_temp = EpicsSignalRO('XF:23ID1-ES{TCtrl:2-Chan:A}T:C-I', name='fccd_temp')
 
 # Utility water temperature after mixing valve
@@ -41,28 +40,8 @@ fccd_temp = EpicsSignalRO('XF:23ID1-ES{TCtrl:2-Chan:A}T:C-I', name='fccd_temp')
 
 
 # Calculated BPMs for combined EPUs
-angX = EpicsSignalRO('XF:23ID-ID{BPM}Val:AngleXS-I', name='angX')
-angY = EpicsSignalRO('XF:23ID-ID{BPM}Val:AngleYS-I', name='angY')
-
-# EPU1 positions for commissioning
-epu1_x_off = EpicsSignalRO('SR:C31-{AI}23:FPGA:x_mm-I', name='epu1_x_off')
-
-epu1_x_ang = EpicsSignalRO('SR:C31-{AI}23:FPGA:x_mrad-I', name='epu1_x_ang')
-
-epu1_y_off = EpicsSignalRO('SR:C31-{AI}23:FPGA:y_mm-I', name='epu1_y_off')
-
-epu1_y_ang = EpicsSignalRO('SR:C31-{AI}23:FPGA:y_mrad-I', name='epu1_y_ang')
-
-
-# EPU2 positions for commissioning
-epu2_x_off = EpicsSignalRO('SR:C31-{AI}23-2:FPGA:x_mm-I', name='epu2_x_off')
-
-epu2_x_ang = EpicsSignalRO('SR:C31-{AI}23-2:FPGA:x_mrad-I', name='epu2_x_ang')
-
-epu2_y_off = EpicsSignalRO('SR:C31-{AI}23-2:FPGA:y_mm-I', name='epu2_y_off')
-
-epu2_y_ang = EpicsSignalRO('SR:C31-{AI}23-2:FPGA:y_mrad-I', name='epu2_y_ang')
-
+#angX = EpicsSignalRO('XF:23ID-ID{BPM}Val:AngleXS-I', name='angX')
+#angY = EpicsSignalRO('XF:23ID-ID{BPM}Val:AngleYS-I', name='angY')
 
 # CSX-1 Scalar
 
