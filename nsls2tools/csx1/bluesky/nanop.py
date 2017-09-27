@@ -1,3 +1,7 @@
+import numpy as np
+from cycler import cycler
+import bluesky.plans as bp
+
 ### additional generic scans for nanopositioners.
 ### ZP suffix in plan name is indicative of 4 motor parameters until the epics pseudo motor is made, then the generic non-ZP scan should be used.
 
@@ -45,7 +49,7 @@ def spiral_continuous(detectors, x_motor, y_motor, x_start, y_start, npts, probe
     bz_init = y_start
 
     for i in range(0,npts):
-        R = np.sqrt(i/pi)
+        R = np.sqrt(i/np.pi)
         T = 2*i/(R+0.0000001) #this is to get the first point to be the center
         bx = (overlap*probe_size*R * np.cos(T))  + bx_init
         bz = (overlap*probe_size*R * np.sin(T))  + bz_init
@@ -84,8 +88,8 @@ def spiral_continuous(detectors, x_motor, y_motor, x_start, y_start, npts, probe
         _md['hints'].update({'dimensions': dimensions})
     _md.update(md or {})
 
-    cont_sp_plan = scan_nd(detectors, motor_pos, per_step=per_step, md=_md)
-    reset_plan = mv(x_motor, x_start, y_motor, y_start)
+    cont_sp_plan = bp.scan_nd(detectors, motor_pos, per_step=per_step, md=_md)
+    reset_plan = bp.mv(x_motor, x_start, y_motor, y_start)
 
     #TODO do i need this or can i remove it? # currently breaks the plan
     #cont_sp_plan.detectors = detectors # - leftover from spiral and try to get it to see if this is for config
