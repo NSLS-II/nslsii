@@ -1,4 +1,3 @@
-
 from ophyd import (EpicsScaler, EpicsSignal, EpicsSignalRO, Device,
                    SingleTrigger, HDF5Plugin, ImagePlugin, StatsPlugin,
                    ROIPlugin, TransformPlugin)
@@ -128,22 +127,36 @@ class ProductionCamStandard(SingleTrigger, ProductionCamBase):
 class TriggeredCamExposure(Device):
     def __init__(self, *args, **kwargs):
         self._exposure = (0, 0)
+        self._Tc = 0.005
+        self._To = 0.005
         super().__init__(*args, **kwargs)
 
     def set(self, exp):
         # Exposure time = 0
         # Cycle time = 1
 
-        Efccd = exp[0] + self._Tc + self._To
-        aa = 0
-        bb = Efccd - self._Tc + aa
-        cc = self._To
-        dd = exp[0]
-        ee = 0
-        ff = 0.0001 # Channel Advance
-        gg = self._To
-        hh = self._To + exp[0]
+        self._exposure = exp
 
+        Efccd = exp[0] + self._Tc + self._To
+        # To = start of FastCCD Exposure
+        aa = 0                     # Shutter open
+        bb = Efccd - self._Tc + aa # Shutter close
+        cc = self._To              #diag6 gate start
+        dd = exp[0]                # diag6 gate stop
+        ee = 0                     # Channel Adv Start
+        ff = 0.0001                # Channel Adv Stop
+        gg = self._To              # MCS Count Gate Start
+        hh = self._To + exp[0]     # MCS Count Gate Stop
+
+        self.parent.dg1.A.set(aa)
+        self.parent.dg1.B.set(bb)
+        self.parent.dg1.C.set(cc)
+        self.parent.dg1.D.set(dd)
+        self.parent.dg1.E.set(ee)
+        self.parent.dg1.F.set(ff)
+        self.parent.dg1.G.set(gg)
+        self.parent.dg1.H.set(hh)
+        self.parent.cam.acquire_time.set(Efccd)
 
     def get(self):
         return self._exposure

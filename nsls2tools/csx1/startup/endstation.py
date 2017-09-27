@@ -4,6 +4,7 @@ from ophyd import Component as Cpt
 
 from ..ophyd.optics import (SamplePosVirtualMotor, Cryoangle,
                              Nanopositioner)
+
 from ..ophyd.lakeshore import Lakeshore336
 
 
@@ -33,12 +34,8 @@ nanop = Nanopositioner('XF:23ID1-ES{Dif:Lens', name='nanop')
 es_diag1_y = EpicsMotor('XF:23ID1-ES{Diag:1-Ax:Y}Mtr', name='es_diag1_y')
 eta = EpicsMotor('XF:23ID1-ES{Diag:1-Ax:Eta}Mtr', name='eta')
 
-
 # Lakeshore 336 Temp Controller
 
-temp_sp = Lakeshore336('XF:23ID1-ES{TCtrl:1-Out:1}', name='temp_sp')
+stemp = Lakeshore336('XF:23ID1-ES{TCtrl:1', name='stemp')
 
-# Current-Voltage meter, driven in current mode
-
-#sm = VIMeter('XF:23ID1-ES{K2611:1}', name='sm')
 

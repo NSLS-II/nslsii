@@ -14,28 +14,28 @@ class M3AMirror(Device):
 
 
 class PGMEnergy(PVPositionerPC):
-    readback = Cpt(EpicsSignalRO, '}Enrgy-I')
-    setpoint = Cpt(EpicsSignal, '}Enrgy-SP', limits=(200,2200))
-    stop_signal = Cpt(EpicsSignal, '}Cmd:Stop-Cmd')
+    readback = Cpt(EpicsSignalRO, 'o}Enrgy-I')
+    setpoint = Cpt(EpicsSignal, 'o}Enrgy-SP', limits=(200,2200))
+    stop_signal = Cpt(EpicsSignal, 'o}Cmd:Stop-Cmd')
     stop_value = 1
 
 
 class PGM(Device):
     energy = Cpt(PGMEnergy, '')
-    mir_pit = Cpt(EpicsMotor, '-Ax:MirP}Mtr')
-    mir_x = Cpt(EpicsMotor, '-Ax:MirX}Mtr')
-    grt_pit = Cpt(EpicsMotor, '-Ax:GrtP}Mtr')
-    grt_x = Cpt(EpicsMotor, '-Ax:GrtX}Mtr')
+    mir_pit = Cpt(EpicsMotor, 'o-Ax:MirP}Mtr')
+    mir_x = Cpt(EpicsMotor, 'o-Ax:MirX}Mtr')
+    grt_pit = Cpt(EpicsMotor, 'o-Ax:GrtP}Mtr')
+    grt_x = Cpt(EpicsMotor, 'o-Ax:GrtX}Mtr')
 
     mir_temp_in = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:A}}T-I')
     grt_temp_in = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:B}}T-I')
     mir_temp_out = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:C}}T-I')
     grt_temp_out = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:D}}T-I')
 
-    grt1_temp = Cpt(EpicsSignalRO, 'Grt:1}T-I')
-    grt2_temp = Cpt(EpicsSignalRO, 'Grt:2}T-I')
-    grt3_temp = Cpt(EpicsSignalRO, 'Grt:3}T-I')
-    grt4_temp = Cpt(EpicsSignalRO, 'Grt:4}T-I')
+    grt1_temp = Cpt(EpicsSignalRO, '-Grt:1}T-I')
+    grt2_temp = Cpt(EpicsSignalRO, '-Grt:2}T-I')
+    grt3_temp = Cpt(EpicsSignalRO, '-Grt:3}T-I')
+    grt4_temp = Cpt(EpicsSignalRO, '-Grt:4}T-I')
 
     def __init__(self, *args, temp_pv=None, **kwargs):
         self._temp_pv = temp_pv

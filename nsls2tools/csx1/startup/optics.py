@@ -15,7 +15,7 @@ m1a = FMBHexapodMirror('XF:23IDA-OP:1{Mir:1', name='m1a')
 
 # VLS-PGM
 
-pgm = PGM('XF:23ID1-OP{Mono',
+pgm = PGM('XF:23ID1-OP{Mon',
           temp_pv='XF:23ID1-OP{TCtrl:1', name='pgm')
 
 # M3A Mirror
