@@ -3,20 +3,24 @@ from ophyd import (EpicsMotor, PVPositioner, PVPositionerPC,
 from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmtCpt
 
-from ..ophyd.devices import (Mirror, PGM, MotorMirror,
-                             SlitsGapCenter, SlitsXY, PID)
+from ...common.ophyd.optics import (FMBHexapodMirror, SlitsGapCenter,
+                                    SlitsXY)
+from ...common.ophyd.eps import EPSTwoStateDevice
+
+from ..ophyd.devices import (PGM, M3AMirror, PID)
 
 # M1A, M1B1, M1B2
 
-m1a = Mirror('XF:23IDA-OP:1{Mir:1', name='m1a')
+m1a = FMBHexapodMirror('XF:23IDA-OP:1{Mir:1', name='m1a')
 
 # VLS-PGM
 
-pgm = PGM('XF:23ID1-OP{Mono', name='pgm')
+pgm = PGM('XF:23ID1-OP{Mono',
+          temp_pv='XF:23ID1-OP{TCtrl:1', name='pgm')
 
 # M3A Mirror
 
-m3a = MotorMirror('XF:23ID1-OP{Mir:3',  name='m3a')
+m3a = M3AMirror('XF:23ID1-OP{Mir:3',  name='m3a')
 
 # Slits
 
@@ -33,17 +37,25 @@ diag6_y = EpicsMotor('XF:23ID1-BI{Diag:6-Ax:Y}Mtr', name='diag6_y')
 
 # Setpoint for PID loop
 
-diag6_pid = PID('XF:23ID', name='diag6_pid')
+diag6_pid = PID('XF:23ID1-OP{FBck}', name='diag6_pid')
 
 ## FCCD slow shutter
-#ssh_in = LinearActIn('XF:23IDA-EPS{DP:1-Sh:1}', name='ssh_in')
-#ssh_out = LinearActOut('XF:23IDA-EPS{DP:1-Sh:1}', name='ssh_out')
-#
-## Diags Diffractometer Cube
-#yag_cube_in = LinearActIn('XF:23ID1-ES{Dif-FS}', name='yag_cube_in')
-#yag_cube_out = LinearActOut('XF:23ID1-ES{Dif-FS}', name='yag_cube_out')
-#flux_in = LinearActIn('XF:23ID1-ES{Dif-Abs}', name='flux_in')
-#flux_out = LinearActOut('XF:23ID1-ES{Dif-Abs}', name='flux_out')
+
+inout = EPSTwoStateDevice('XF:23IDA-EPS{DP:1-Sh:1}',
+                          state1='Inserted', state2='Not Inserted',
+                          cmd_str1='In', cmd_str2='Out',
+                          nm_str1='In', nm_str2='Out',
+                          name='inout')
+
+dif_fs = EPSTwoStateDevice('XF:23ID1-ES{Dif-FS}', name='dif_fs',
+                           state1='Inserted', state2='Not Inserted',
+                           cmd_str1='In', cmd_str2='Out',
+                           nm_str1='In', nm_str2='Out')
+
+dif_diode = EPSTwoStateDevice('XF:23ID1-ES{Dif-Abs}', name='dif_diode',
+                              state1='Inserted', state2='Not Inserted',
+                              cmd_str1='In', cmd_str2='Out',
+                              nm_str1='In', nm_str2='Out')
 
 
 

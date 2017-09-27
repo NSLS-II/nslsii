@@ -1,3 +1,4 @@
+
 from ophyd import (EpicsScaler, EpicsSignal, EpicsSignalRO, Device,
                    SingleTrigger, HDF5Plugin, ImagePlugin, StatsPlugin,
                    ROIPlugin, TransformPlugin)
@@ -12,6 +13,7 @@ from ophyd.device import FormattedComponent as FCpt
 from ophyd import AreaDetector
 
 from .devices import DelayGenerator
+from .scaler import StruckSIS3820MCS
 
 class StandardCam(SingleTrigger, AreaDetector):
     stats1 = Cpt(StatsPlugin, 'Stats1:')
@@ -32,7 +34,7 @@ class NoStatsCam(SingleTrigger, AreaDetector):
 
 class HDF5PluginSWMR(HDF5Plugin):
     swmr_active = Cpt(EpicsSignalRO, 'SWMRActive_RBV')
-    swrm_mode = Cpt(EpicsSignalWithRBV, 'SWMRMode')
+    swmr_mode = Cpt(EpicsSignalWithRBV, 'SWMRMode')
     swmr_supported = Cpt(EpicsSignalRO, 'SWMRSupported_RBV')
     swmr_cb_counter = Cpt(EpicsSignalRO, 'SWMRCbCounter_RBV')
     _default_configuration_attrs = (HDF5Plugin._default_configuration_attrs +
@@ -126,11 +128,19 @@ class ProductionCamStandard(SingleTrigger, ProductionCamBase):
 class ProductionCamTriggered(ProductionCamStandard):
     dg2 = FCpt(DelayGenerator, '{self._dg2_prefix}')
     dg1 = FCpt(DelayGenerator, '{self._dg1_prefix}')
+    mcs = FCpt(StruckSIS3820MCS, '{self._mcs_prefix}')
 
-    def __init__(self, *args, dg1_prefix=None, dg2_prefix=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args, dg1_prefix=None, dg2_prefix=None,
+                 mcs_prefix=None, **kwargs):
         self._dg1_prefix = dg1_prefix
         self._dg2_prefix = dg2_prefix
+        self._mcs_prefix = mcs_prefix
+        super().__init__(*args, **kwargs)
 
     def trigger(self):
+        self.mcs.trigger()
         return super().trigger()
+
+    def read(self):
+        self.mcs.read()
+        return super().read()

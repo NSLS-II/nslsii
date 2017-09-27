@@ -103,12 +103,11 @@ class StruckSIS3820MCS(Device):
                                 put_complete=True))
 
     def trigger(self):
-        self.input_mode.put(3) # Set to using 0 = advance 3 = inhibit
-        self.acquire_mode.put(0) # Set MCS Mode
-        self.count_on_start.put(0) # Start collecting only when triggered
-        self.channel_advance.put(1) # External Triggers
-        self.erase_start.put(1) # Engage .....
-        super().trigger()
+#        if self._staged != Staged.yes:
+#            raise RuntimeError("This detector is not ready to trigger "
+#                               "call the stage() method before triggering")
+#
+        self.erase_start.put(1, wait=False)
 
     def read(self):
         # Here we stop and poke the proc fields
@@ -116,4 +115,11 @@ class StruckSIS3820MCS(Device):
         for sn in self.wfrm_proc.signal_names:
             getattr(self.wfrm_proc, sn).put(1)
         super().read()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.stage_sigs['input_mode'] = 3
+        self.stage_sigs['acquire_mode'] = 0
+        self.stage_sigs['count_on_start'] = 1
+        self.stage_sigs['channel_advance'] = 1
 

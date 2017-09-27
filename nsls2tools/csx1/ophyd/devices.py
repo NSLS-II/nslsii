@@ -8,27 +8,7 @@ from ophyd import DeviceStatus, OrderedDict
 
 # Mirrors
 
-class MirrorAxis(PVPositioner):
-    readback = Cpt(EpicsSignalRO, 'Mtr_MON')
-    setpoint = Cpt(EpicsSignal, 'Mtr_POS_SP')
-    actuate = FmtCpt(EpicsSignal, '{self.parent.prefix}}}MOVE_CMD.PROC')
-    actual_value = 1
-    stop_signal = FmtCpt(EpicsSignal, '{self.parent.prefix}}}STOP_CMD.PROC')
-    stop_value = 1
-    done = FmtCpt(EpicsSignalRO, '{self.parent.prefix}}}BUSY_STS')
-    done_value = 0
-
-
-class Mirror(Device):
-    z = Cpt(MirrorAxis, '-Ax:Z}')
-    y = Cpt(MirrorAxis, '-Ax:Y}')
-    x = Cpt(MirrorAxis, '-Ax:X}')
-    pit = Cpt(MirrorAxis, '-Ax:Pit}')
-    yaw = Cpt(MirrorAxis, '-Ax:Yaw}')
-    rol = Cpt(MirrorAxis, '-Ax:Rol}')
-
-
-class MotorMirror(Device):
+class M3AMirror(Device):
     "a mirror with EpicsMotors, used for M3A"
     x = Cpt(EpicsMotor, '-Ax:XAvg}Mtr')
     pit = Cpt(EpicsMotor, '-Ax:P}Mtr')
@@ -44,56 +24,34 @@ class PGMEnergy(PVPositionerPC):
 
 class PGM(Device):
     energy = Cpt(PGMEnergy, '')
-    pit = Cpt(EpicsMotor, '-Ax:MirP}Mtr')
-    x = Cpt(EpicsMotor, '-Ax:MirX}Mtr')
+    mir_pit = Cpt(EpicsMotor, '-Ax:MirP}Mtr')
+    mir_x = Cpt(EpicsMotor, '-Ax:MirX}Mtr')
     grt_pit = Cpt(EpicsMotor, '-Ax:GrtP}Mtr')
     grt_x = Cpt(EpicsMotor, '-Ax:GrtX}Mtr')
-    #tempa = Cpt(EpicsSignalRO, 'XF:23ID1-OP{TCtrl:1-Chan:A}T-I')
-    #tempb = Cpt(EpicsSignalRO, 'XF:23ID1-OP{TCtrl:1-Chan:B}T-I')
-    #tempc = EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:C}T-I', name='mono_tempc')
-    #tempd = EpicsSignalRO('XF:23ID1-OP{TCtrl:1-Chan:D}T-I', name='mono_tempd')
 
+    mir_temp_in = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:A}}T-I')
+    grt_temp_in = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:B}}T-I')
+    mir_temp_out = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:C}}T-I')
+    grt_temp_out = FmtCpt(EpicsSignalRO, '{self._temp_pv}-Chan:D}}T-I')
 
-    #grt1_temp = EpicsSignalRO('XF:23ID1-OP{Mon-Grt:1}T-I',
-    #                        name='grt1_temp')
+    grt1_temp = Cpt(EpicsSignalRO, 'Grt:1}T-I')
+    grt2_temp = Cpt(EpicsSignalRO, 'Grt:2}T-I')
+    grt3_temp = Cpt(EpicsSignalRO, 'Grt:3}T-I')
+    grt4_temp = Cpt(EpicsSignalRO, 'Grt:4}T-I')
 
-    #grt2_temp = EpicsSignalRO('XF:23ID1-OP{Mon-Grt:2}T-I',
-    #                        name='grt2_temp')
-
-
-class SlitsGapCenter(Device):
-    xg = Cpt(EpicsMotor, '-Ax:XGap}Mtr')
-    xc = Cpt(EpicsMotor, '-Ax:XCtr}Mtr')
-    yg = Cpt(EpicsMotor, '-Ax:YGap}Mtr')
-    yc = Cpt(EpicsMotor, '-Ax:YCtr}Mtr')
-
-
-class SlitsXY(Device):
-    x = Cpt(EpicsMotor, '-Ax:X}Mtr', name='x')
-    y = Cpt(EpicsMotor, '-Ax:Y}Mtr', name='y')
+    def __init__(self, *args, temp_pv=None, **kwargs):
+        self._temp_pv = temp_pv
+        super().__init__(*args, **kwargs)
 
 
 class PID(PVPositioner):
-
-    ## Calculation side
-    #XF:23ID1-OP{FBck}PID.VAL
-    #readback = Cpt(EpicsSignalRO, '{FBck}PID-RB')
-    #readback = Cpt(EpicsSignalRO, '1-BI{Diag:6-Cam:1}Stats1:CentroidX_RBV')
-    readback = Cpt(EpicsSignal, '1-OP{FBck}PID.VAL')
-    #setpoint = Cpt(EpicsSignal, '{FBck}PID-SP')
-    setpoint = Cpt(EpicsSignal, '1-OP{FBck}PID.VAL')
-
-    ## Movement side
-    #XF:23IDA-OP:1{Mir:1}MOVE_CMD.PROC
-    #actuate = Cpt(EpicsSignal, '{Mir:1B}MOVE_CMD.PROC')
-    actuate = Cpt(EpicsSignal, 'A-OP:1{Mir:1}MOVE_CMD.PROC')
-    actuate_value = 1  #was actual_value but this is not a valid argument
-    #stop_signal= Cpt(EpicsSignal, ':2{Mir:1B}STOP_CMD.PROC')
-    stop_signal= Cpt(EpicsSignal, 'A-OP:1{Mir:1}STOP_CMD.PROC')
-    stop_value = 1
-    #done = Cpt(EpicsSignalRO, ':2{Mir:1B}BUSY_STS')
-    done = Cpt(EpicsSignalRO, 'A-OP:1{Mir:1}SYSTEM_STS')
+    readback = Cpt(EpicsSignalRO, 'PID-RB')
+    setpoint = Cpt(EpicsSignal, 'PID-SP')
+    done = Cpt(EpicsSignalRO, 'PID:Busy-Sts')
     done_value = 0
+
+    output = Cpt(EpicsSignalRO, 'PID.OVAL')
+    enable = Cpt(EpicsSignal, 'Sts:FB-Sel')
 
 
 class SamplePosVirtualMotor(PVPositionerPC):
@@ -239,57 +197,6 @@ class Lakeshore336Picky(Device):
 
         return self._done_sts
 
-# Current-Voltage meter, driven in current mode
-
-class VIMeterVirtualMotorCurr(PVPositionerPC):
-    readback = Cpt(EpicsSignalRO, 'Val:RB-I')
-    #setpoint = Cpt(EpicsSignal, 'Val:SP-I')
-    setpoint = EpicsSignal('XF:23ID1-ES{K2611:1}Val:RB-I','XF:23ID1-ES{K2611:1}Val:SP-I')
-    stop_value = 1
-
-class VIMeterVirtualMotorVolt(PVPositionerPC):
-    readback = Cpt(EpicsSignalRO, 'Val:RB-E')
-    setpoint = Cpt(EpicsSignal, 'Val:SP-E')
-    stop_value = 1
-
-
-class VIMeter(Device):
-    curr = Cpt(VIMeterVirtualMotorCurr, '')
-    volt = Cpt(VIMeterVirtualMotorVolt, '')
-    ohm = Cpt(EpicsSignalRO, 'Val:RB-R')
-    #ohm = Cpt(VIMeterVirtualMotorOhm, '')
-
-# Vortex MCA - saturn dxp and not Xpress3
-
-class Vortex(Device):
-    mca = Cpt(EpicsMCA, 'mca1')
-    vortex = Cpt(EpicsDXP, 'dxp1:')
-
-    @property
-    def trigger_signals(self):
-        return [self.mca.erase_start]
-
-class LinearActOut(PVPositioner):
-    readback = Cpt(EpicsSignalRO, 'Pos-Sts')
-    setpoint = Cpt(EpicsSignal, 'Cmd:Out-Cmd')
-    done = Cpt(EpicsSignalRO, 'Sw:OutLim-Sts')
-    done_val = 0 # for some reason this is how the logic .  limit activated and logic turns to 0
-
-    #def set(self, val):  # this suggestion from tom does not fix already out issue
-    #    if self.done.get() == self.done_val:
-    #        return DeviceStatus(self, done=True, success=True)
-    #    return super().set(val)
-
-class LinearActIn(PVPositioner):
-    readback = Cpt(EpicsSignalRO, 'Pos-Sts')
-    setpoint = Cpt(EpicsSignal, 'Cmd:In-Cmd')
-    done = Cpt(EpicsSignalRO, 'Sw:InLim-Sts')
-    done_val = 0  #for some reason this logic is backwards. need to fix this.
-
-    #def set(self, val):    # and here, this suggestion from tom commpletely breaks it.
-    #    if self.done.get() == self.done_val:
-    #        return DeviceStatus(self, done=True, success=True)
-    #    return super().set(val)
 
 class DelayGeneratorChan(EpicsSignal):
     def __init__(self, prefix, **kwargs):
@@ -305,5 +212,35 @@ class DelayGenerator(Device):
     F = Cpt(DelayGeneratorChan, '-Chan:F}DO:Dly')
     G = Cpt(DelayGeneratorChan, '-Chan:G}DO:Dly')
     H = Cpt(DelayGeneratorChan, '-Chan:H}DO:Dly')
+
+# Current-Voltage meter, driven in current mode
+
+#class VIMeterVirtualMotorCurr(PVPositionerPC):
+#    readback = Cpt(EpicsSignalRO, 'Val:RB-I')
+#    #setpoint = Cpt(EpicsSignal, 'Val:SP-I')
+#    setpoint = EpicsSignal('XF:23ID1-ES{K2611:1}Val:RB-I','XF:23ID1-ES{K2611:1}Val:SP-I')
+#    stop_value = 1
+#
+#class VIMeterVirtualMotorVolt(PVPositionerPC):
+#    readback = Cpt(EpicsSignalRO, 'Val:RB-E')
+#    setpoint = Cpt(EpicsSignal, 'Val:SP-E')
+#    stop_value = 1
+#
+#
+#class VIMeter(Device):
+#    curr = Cpt(VIMeterVirtualMotorCurr, '')
+#    volt = Cpt(VIMeterVirtualMotorVolt, '')
+#    ohm = Cpt(EpicsSignalRO, 'Val:RB-R')
+#    #ohm = Cpt(VIMeterVirtualMotorOhm, '')
+#
+## Vortex MCA - saturn dxp and not Xpress3
+#
+#class Vortex(Device):
+#    mca = Cpt(EpicsMCA, 'mca1')
+#    vortex = Cpt(EpicsDXP, 'dxp1:')
+#
+#    @property
+#    def trigger_signals(self):
+#        return [self.mca.erase_start]
 
 

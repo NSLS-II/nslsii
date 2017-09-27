@@ -3,8 +3,7 @@ from ophyd import (PVPositioner, EpicsMotor, EpicsSignal, EpicsSignalRO,
 from ophyd import Component as Cpt
 
 from ..ophyd.devices import (SamplePosVirtualMotor, Cryoangle,
-                             Nanopositioner, Lakeshore336,
-                             VIMeter)
+                             Nanopositioner, Lakeshore336)
 
 
 # Diffo angles
@@ -40,5 +39,5 @@ temp_sp = Lakeshore336('XF:23ID1-ES{TCtrl:1-Out:1}', name='temp_sp')
 
 # Current-Voltage meter, driven in current mode
 
-sm = VIMeter('XF:23ID1-ES{K2611:1}', name='sm')
+#sm = VIMeter('XF:23ID1-ES{K2611:1}', name='sm')
 

@@ -34,6 +34,7 @@ from bluesky.callbacks.best_effort import BestEffortCallback
 bec = BestEffortCallback()
 RE.subscribe(bec)
 peaks = bec.peaks  # just as alias for less typing
+bec.disable_baseline()
 
 # At the end of every run, verify that files were saved and
 # print a confirmation message.

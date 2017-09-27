@@ -14,7 +14,8 @@ import bluesky.plans as bp
 
 from ..ophyd.scaler import PrototypeEpicsScaler, StruckSIS3820MCS
 from ..ophyd.areadetector import (StandardCam, NoStatsCam,
-                                  ProductionCamStandard)
+                                  ProductionCamStandard,
+                                  ProductionCamTriggered)
 from ..startup import db
 
 def _setup_stats(cam_in):
@@ -58,10 +59,14 @@ _setup_stats(dif_beam)
 # FastCCD
 #
 
-fccd = ProductionCamStandard('XF:23ID1-ES{FCCD}', name='fccd')
-fccd.read_attrs = ['hdf5']
+fccd = ProductionCamTriggered('XF:23ID1-ES{FCCD}',
+                              dg1_prefix='XF:23ID1-ES{Dly:1',
+                              dg2_prefix='XF:23ID1-ES{Dly:2',
+                              mcs_prefix='XF:23ID1-ES{Sclr:1}',
+                              name='fccd')
+fccd.read_attrs = ['hdf5','mcs.wfrm']
 fccd.hdf5.read_attrs = []
-fccd.hdf5.reg = db.reg
+fccd.hdf5._reg = db.reg
 fccd.configuration_attrs = ['cam.acquire_time',
                             'cam.acquire_period',
                             'cam.image_mode',

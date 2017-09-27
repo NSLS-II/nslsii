@@ -82,8 +82,6 @@ BlueskyMagics.positioners = [
  slt2.yc,
  slt3.x,
  slt3.y,
- sm.curr,
- sm.volt,
  sx,
  sy,
  sz,

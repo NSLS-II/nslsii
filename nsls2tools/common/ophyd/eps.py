@@ -1,14 +1,21 @@
-from ophyd.device import Device
+from ophyd import Device, EpicsSignal, EpicsSignalRO
+from ophyd.device import Component as Cpt
+from ophyd.device import FormattedComponent as FmtCpt
+from ophyd.device import DeviceStatus
 
 class EPSTwoStateDevice(Device):
     # @tcaswell, the names don't need to be fixed. These commands run
     # when the record is processed, you could as easily poke .PROC
-    state1_cmd = Cpt(EpicsSignal, 'Cmd:Opn-Cmd', string=True)
-    state2_cmd = Cpt(EpicsSignal, 'Cmd:Cls-Cmd', string=True)
+    state1_cmd = FmtCpt(EpicsSignal, '{self.prefix}Cmd:{self._state1_nm}-Cmd',
+                        string=True)
+    state2_cmd = FmtCpt(EpicsSignal, '{self.prefix}Cmd:{self._state2_nm}-Cmd',
+                        string=True)
 
     status = Cpt(EpicsSignalRO, 'Pos-Sts', string=True)
-    fail_to_state2 = Cpt(EpicsSignalRO, 'Sts:FailCls-Sts', string=True)
-    fail_to_state1 = Cpt(EpicsSignalRO, 'Sts:FailOpn-Sts', string=True)
+    fail_to_state2 = FmtCpt(EpicsSignalRO, '{self.prefix}Sts:Fail{self._state2_nm}-Sts',
+                            string=True)
+    fail_to_state1 = FmtCpt(EpicsSignalRO, '{self.prefix}Sts:Fail{self._state1_nm}-Sts',
+                            string=True)
 
     def set(self, val):
         if self._set_st is not None:
@@ -57,13 +64,17 @@ class EPSTwoStateDevice(Device):
         return st
 
     def __init__(self, *args, state1='Open', state2='Closed',
-                 cmd_str1='Open', cmd_str2='Close', **kwargs):
-        super().__init__(*args, **kwargs)
+                 cmd_str1='Open', cmd_str2='Close',
+                 nm_str1='Opn', nm_str2='Cls', **kwargs):
         self._set_st = None
         self.read_attrs = ['status']
 
-        state1_str = cmd_str1
-        state2_str = cmd_str2
-        state1_val = state1
-        state2_val = state2
+        self.state1_str = cmd_str1
+        self.state2_str = cmd_str2
+        self.state1_val = state1
+        self.state2_val = state2
 
+        self._state1_nm = nm_str1
+        self._state2_nm = nm_str2
+
+        super().__init__(*args, **kwargs)
