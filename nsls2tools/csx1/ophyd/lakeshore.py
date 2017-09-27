@@ -1,19 +1,22 @@
+from collections import deque
+
 from ophyd import (EpicsMotor, PVPositioner, PVPositionerPC,
                    EpicsSignal, EpicsSignalRO, Device)
 from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmtCpt
 from ophyd import DynamicDeviceComponent as DDC
-from ophyd import (EpicsMCA, EpicsDXP)
 from ophyd import DeviceStatus, OrderedDict
 
-class Lakeshore336(PVPositioner):
+
+class Lakeshore336Setpoint(PVPositioner):
     readback = Cpt(EpicsSignalRO, 'T-RB')
     setpoint = Cpt(EpicsSignal, 'T-SP')
     done = Cpt(EpicsSignalRO, 'Sts:Ramp-Sts')
     ramp_enabled = Cpt(EpicsSignal, 'Enbl:Ramp-Sel')
     done_value = 0
 
-class LakeshoreChannel(Device):
+
+class Lakeshore336Channel(Device):
     T = Cpt(EpicsSignalRO, 'T-I')
     V = Cpt(EpicsSignalRO, 'Val:Sens-I')
     status = Cpt(EpicsSignalRO, 'T-Sts')
@@ -23,7 +26,25 @@ class LakeshoreChannel(Device):
             read_attrs = ['T']
         super().__init__(*args, read_attrs=read_attrs, **kwargs)
 
-from collections import deque
+
+def _temp_fields(chans, **kwargs):
+    defn = OrderedDict()
+    for c in chans:
+        suffix = '-Chan:{}}}'.format(c)
+        defn[c] = (Lakeshore336Channel, suffix, kwargs)
+
+    return defn
+
+
+class Lakeshore336(Device):
+    temp = DDC(_temp_fields(['A','B','C','D']))
+    ctrl1 = Cpt(Lakeshore336Setpoint, '-Out:1}')
+    ctrl2 = Cpt(Lakeshore336Setpoint, '-Out:2}')
+
+
+class Lakeshore336Ext(Lakeshore336):
+    temp = DDC(_temp_fields(['A','B','C','D','E','F','G', 'H']))
+
 
 class Lakeshore336Picky(Device):
     setpoint = Cpt(EpicsSignal, read_pv='-Out:1}T-RB', write_pv='-Out:1}T-SP',
@@ -35,8 +56,8 @@ class Lakeshore336Picky(Device):
                     write_pv='-Out:1}Val:Ramp-SP',
                     add_prefix=('read_pv', 'write_pv'))
 
-    chanA = Cpt(LakeshoreChannel, '-Chan:A}')
-    chanB = Cpt(LakeshoreChannel, '-Chan:B}')
+    chanA = Cpt(Lakeshore336Channel, '-Chan:A}')
+    chanB = Cpt(Lakeshore336Channel, '-Chan:B}')
 
     def __init__(self, *args, timeout=60*60*30, target='chanA', **kwargs):
         # do the base stuff
