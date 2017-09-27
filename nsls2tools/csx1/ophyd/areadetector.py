@@ -125,10 +125,35 @@ class ProductionCamStandard(SingleTrigger, ProductionCamBase):
         return super().resume()
 
 
+class TriggeredCamExposure(Device):
+    def __init__(self, *args, **kwargs):
+        self._exposure = (0, 0)
+        super().__init__(*args, **kwargs)
+
+    def set(self, exp):
+        # Exposure time = 0
+        # Cycle time = 1
+
+        Efccd = exp[0] + self._Tc + self._To
+        aa = 0
+        bb = Efccd - self._Tc + aa
+        cc = self._To
+        dd = exp[0]
+        ee = 0
+        ff = 0.0001 # Channel Advance
+        gg = self._To
+        hh = self._To + exp[0]
+
+
+    def get(self):
+        return self._exposure
+
+
 class ProductionCamTriggered(ProductionCamStandard):
     dg2 = FCpt(DelayGenerator, '{self._dg2_prefix}')
     dg1 = FCpt(DelayGenerator, '{self._dg1_prefix}')
     mcs = FCpt(StruckSIS3820MCS, '{self._mcs_prefix}')
+    exposure = Cpt(TriggeredCamExposure, '')
 
     def __init__(self, *args, dg1_prefix=None, dg2_prefix=None,
                  mcs_prefix=None, **kwargs):

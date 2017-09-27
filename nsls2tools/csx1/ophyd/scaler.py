@@ -78,14 +78,16 @@ class StruckSIS3820MCS(Device):
     erase_start = Cpt(EpicsSignal, 'EraseStart')
     erase_all = Cpt(EpicsSignal, 'EraseAll')
     start_all = Cpt(EpicsSignal, 'StartAll')
-    stop_all = Cpt(EpicsSignal, 'StopAll')
+    stop_all = Cpt(EpicsSignal, 'StopAll', put_complete=True)
     acquiring = Cpt(EpicsSignalRO, 'Acquiring')
 
     input_mode = Cpt(EpicsSignal, 'InputMode')
     output_mode = Cpt(EpicsSignal, 'OutputMode')
     output_polarity = Cpt(EpicsSignal, 'OutputPolarity')
 
-    channel_advance = Cpt(EpicsSignal, 'ChannelAdvance')
+    channel_advance = Cpt(EpicsSignal, 'ChannelAdvance',
+                          put_complete=True)
+
     count_on_start = Cpt(EpicsSignal, 'CountOnStart')
     acquire_mode = Cpt(EpicsSignal, 'AcquireMode')
 
@@ -103,18 +105,16 @@ class StruckSIS3820MCS(Device):
                                 put_complete=True))
 
     def trigger(self):
-#        if self._staged != Staged.yes:
-#            raise RuntimeError("This detector is not ready to trigger "
-#                               "call the stage() method before triggering")
-#
-        self.erase_start.put(1, wait=False)
+        self.erase_start.put(1)
+        return super().trigger()
 
     def read(self):
         # Here we stop and poke the proc fields
-        self.stop_all.put(1)
+        self.stop_all.put(1, wait=True)
+        self.channel_advance.put(1, wait=True)
         for sn in self.wfrm_proc.signal_names:
             getattr(self.wfrm_proc, sn).put(1)
-        super().read()
+        return super().read()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

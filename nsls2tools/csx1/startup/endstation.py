@@ -2,8 +2,9 @@ from ophyd import (PVPositioner, EpicsMotor, EpicsSignal, EpicsSignalRO,
                    PVPositionerPC, Device)
 from ophyd import Component as Cpt
 
-from ..ophyd.devices import (SamplePosVirtualMotor, Cryoangle,
-                             Nanopositioner, Lakeshore336)
+from ..ophyd.optics import (SamplePosVirtualMotor, Cryoangle,
+                             Nanopositioner)
+from ..ophyd.lakeshore import Lakeshore336
 
 
 # Diffo angles
