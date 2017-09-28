@@ -7,6 +7,7 @@ import bluesky.plans as bp
 
 def spiral_continuous(detectors, x_motor, y_motor, x_start, y_start, npts, probe_size, overlap=0.8 , *, tilt=0.0, per_step=None, md=None):
     '''Continuously increasing radius spiral scan, centered around (x_start, y_start)
+    which is generic regarding motors and detectors.
 
     Parameters
     ----------
@@ -38,6 +39,8 @@ def spiral_continuous(detectors, x_motor, y_motor, x_start, y_start, npts, probe
 
     '''
 
+
+    ##TODO clean up pattern args and _md.  Do not remove motors from _md.
     pattern_args = dict(x_motor=x_motor, y_motor=y_motor, x_start=x_start, y_start=y_start,
                         npts = npts, probe_size=probe_size, overlap=overlap, tilt=tilt)
     #cyc = plan_patterns.spiral(**pattern_args)# - leftover from spiral.
@@ -89,10 +92,9 @@ def spiral_continuous(detectors, x_motor, y_motor, x_start, y_start, npts, probe
     _md.update(md or {})
 
     cont_sp_plan = bp.scan_nd(detectors, motor_pos, per_step=per_step, md=_md)
+
     reset_plan = bp.mv(x_motor, x_start, y_motor, y_start)
 
-    #TODO do i need this or can i remove it? # currently breaks the plan
-    #cont_sp_plan.detectors = detectors # - leftover from spiral and try to get it to see if this is for config
 
     def plan_steps():
         yield from cont_sp_plan
