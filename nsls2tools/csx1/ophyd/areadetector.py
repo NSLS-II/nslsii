@@ -11,6 +11,8 @@ from ophyd import Component as Cpt
 from ophyd.device import FormattedComponent as FCpt
 from ophyd import AreaDetector
 
+from bluesky.examples import NullStatus
+
 from .devices import DelayGenerator
 from .scaler import StruckSIS3820MCS
 
@@ -91,17 +93,6 @@ class ProductionCamBase(DetectorBase):
         self.cam.acquire.put(0)
         super().pause()
 
-    def set_acquisition(self, acquire_time=None, acquire_period=None):
-        cam.acquire_time.put(acquire_time)
-        if acquire_period is None:
-            cam.acquire_period.put(acquire_period + self.readout_time)
-        else:
-            if acquire_preriod < (acquire_time + self.readout_time):
-                cam.acquire_period.put(acquire_period)
-            else:
-                raise RuntimeError("Acquire period must be greater than "
-                                   "acquire time plus readout time of "
-                                   "{} s".format(self.readout_time))
 
 class ProductionCamStandard(SingleTrigger, ProductionCamBase):
 
@@ -126,40 +117,58 @@ class ProductionCamStandard(SingleTrigger, ProductionCamBase):
 
 class TriggeredCamExposure(Device):
     def __init__(self, *args, **kwargs):
-        self._exposure = (0, 0)
-        self._Tc = 0.005
-        self._To = 0.005
+        self._Tc = 0.004
+        self._To = 0.0035
+        self._readout = 0.08
         super().__init__(*args, **kwargs)
 
     def set(self, exp):
         # Exposure time = 0
         # Cycle time = 1
 
-        self._exposure = exp
+        if exp[0] is not None:
+            Efccd = exp[0] + self._Tc + self._To
+            # To = start of FastCCD Exposure
+            aa = 0                     # Shutter open
+            bb = Efccd - self._Tc + aa # Shutter close
+            cc = self._To              # diag6 gate start
+            dd = exp[0]                # diag6 gate stop
+            ee = 0                     # Channel Adv Start
+            ff = 0.0001                # Channel Adv Stop
+            gg = self._To              # MCS Count Gate Start
+            hh = self._To + exp[0]     # MCS Count Gate Stop
 
-        Efccd = exp[0] + self._Tc + self._To
-        # To = start of FastCCD Exposure
-        aa = 0                     # Shutter open
-        bb = Efccd - self._Tc + aa # Shutter close
-        cc = self._To              #diag6 gate start
-        dd = exp[0]                # diag6 gate stop
-        ee = 0                     # Channel Adv Start
-        ff = 0.0001                # Channel Adv Stop
-        gg = self._To              # MCS Count Gate Start
-        hh = self._To + exp[0]     # MCS Count Gate Stop
+            # Set delay generator
+            self.parent.dg1.A.set(aa)
+            self.parent.dg1.B.set(bb)
+            self.parent.dg1.C.set(cc)
+            self.parent.dg1.D.set(dd)
+            self.parent.dg1.E.set(ee)
+            self.parent.dg1.F.set(ff)
+            self.parent.dg1.G.set(gg)
+            self.parent.dg1.H.set(hh)
+            self.parent.dg2.A.set(0)
+            self.parent.dg2.B.set(0.0005)
 
-        self.parent.dg1.A.set(aa)
-        self.parent.dg1.B.set(bb)
-        self.parent.dg1.C.set(cc)
-        self.parent.dg1.D.set(dd)
-        self.parent.dg1.E.set(ee)
-        self.parent.dg1.F.set(ff)
-        self.parent.dg1.G.set(gg)
-        self.parent.dg1.H.set(hh)
-        self.parent.cam.acquire_time.set(Efccd)
+            # Set AreaDetector
+            self.parent.cam.acquire_time.set(Efccd)
+
+        # Now do period
+        if exp[1] is not None:
+            if exp[1] < (Efccd + self._readout):
+                p = Efccd + self._readout
+            else:
+                p = exp[1]
+
+        self.parent.cam.acquire_period.set(p)
+
+        if exp[2] is not None:
+            self.parent.cam.num_images.set(exp[2])
+
+        return NullStatus()
 
     def get(self):
-        return self._exposure
+        return None
 
 
 class ProductionCamTriggered(ProductionCamStandard):

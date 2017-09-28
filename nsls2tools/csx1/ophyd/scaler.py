@@ -85,8 +85,9 @@ class StruckSIS3820MCS(Device):
     output_mode = Cpt(EpicsSignal, 'OutputMode')
     output_polarity = Cpt(EpicsSignal, 'OutputPolarity')
 
-    channel_advance = Cpt(EpicsSignal, 'ChannelAdvance',
-                          put_complete=True)
+    channel_advance = Cpt(EpicsSignal, 'ChannelAdvance')
+    soft_channel_advance = Cpt(EpicsSignal, 'SoftwareChannelAdvance',
+                               put_complete=True)
 
     count_on_start = Cpt(EpicsSignal, 'CountOnStart')
     acquire_mode = Cpt(EpicsSignal, 'AcquireMode')
@@ -110,16 +111,18 @@ class StruckSIS3820MCS(Device):
 
     def read(self):
         # Here we stop and poke the proc fields
+        self.soft_channel_advance.put(1, wait=True)
         self.stop_all.put(1, wait=True)
-        self.channel_advance.put(1, wait=True)
+
         for sn in self.wfrm_proc.signal_names:
             getattr(self.wfrm_proc, sn).put(1)
+
         return super().read()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.stage_sigs['input_mode'] = 3
         self.stage_sigs['acquire_mode'] = 0
-        self.stage_sigs['count_on_start'] = 1
+        self.stage_sigs['count_on_start'] = 0
         self.stage_sigs['channel_advance'] = 1
 
