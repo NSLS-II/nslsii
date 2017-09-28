@@ -12,8 +12,8 @@ from bluesky.examples import NullStatus
 from collections import OrderedDict
 import bluesky.plans as bp
 
-from ..ophyd.scaler import PrototypeEpicsScaler, StruckSIS3820MCS
-from ..ophyd.areadetector import (StandardCam, NoStatsCam,
+from ..devices.scaler import PrototypeEpicsScaler, StruckSIS3820MCS
+from ..devices.areadetector import (StandardCam, NoStatsCam,
                                   ProductionCamStandard,
                                   ProductionCamTriggered)
 from ..startup import db

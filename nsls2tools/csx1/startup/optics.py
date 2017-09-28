@@ -3,11 +3,11 @@ from ophyd import (EpicsMotor, PVPositioner, PVPositionerPC,
 from ophyd import Component as Cpt
 from ophyd import FormattedComponent as FmtCpt
 
-from ...common.ophyd.optics import (FMBHexapodMirror, SlitsGapCenter,
+from ...common.devices.optics import (FMBHexapodMirror, SlitsGapCenter,
                                     SlitsXY)
-from ...common.ophyd.eps import EPSTwoStateDevice
+from ...common.devices.eps import EPSTwoStateDevice
 
-from ..ophyd.optics import (PGM, M3AMirror, PID)
+from ..devices.optics import (PGM, M3AMirror, PID)
 
 # M1A, M1B1, M1B2
 

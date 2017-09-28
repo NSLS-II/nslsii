@@ -1,5 +1,5 @@
 from ophyd import EpicsSignalRO
-from ..ophyd.epu import EPU
+from ..devices.epu import EPU
 
 #
 # Ring Current for machine

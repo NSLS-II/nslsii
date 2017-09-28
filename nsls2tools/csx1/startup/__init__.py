@@ -4,8 +4,8 @@ from .optics import *
 from .endstation import *
 from .detectors import *
 #from ..bluesky.xpcs import *
-from ..bluesky.qplans import *
-from ..bluesky.suspenders import *
-from ..bluesky.nanop import *
+from ..plans.qplans import *
+from ..plans.suspenders import *
+from ..plans.nanop import *
 from .tardis import *
 from .settings import *
