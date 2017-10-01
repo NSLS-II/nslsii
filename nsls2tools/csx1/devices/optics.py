@@ -44,9 +44,10 @@ class PGM(Device):
 
 class PID(PVPositioner):
     readback = Cpt(EpicsSignalRO, 'PID-RB')
-    setpoint = Cpt(EpicsSignal, 'PID-SP')
-    done = Cpt(EpicsSignalRO, 'PID:Busy-Sts')
-    done_value = 0
+    setpoint = Cpt(EpicsSignal, 'PID-SP', put_complete=True)
+    #done = Cpt(EpicsSignalRO, 'PID:Busy-Sts')
+    #done_value = 0
+    put_complete = True
 
     output = Cpt(EpicsSignalRO, 'PID.OVAL')
     enable = Cpt(EpicsSignal, 'Sts:FB-Sel')
