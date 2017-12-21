@@ -3,9 +3,15 @@ __version__ = get_versions()['version']
 del get_versions
 
 
+def import_star(module, ns):
+    public = lambda name: not name.startswith('_')
+    ns.update({name: getattr(module, name)
+                        for name in dir(module) if public(name)})
+
+
 def configure_base(user_ns, broker_name, *,
-                   skip_bec=False, skip_context=False, skip_logging=False,
-                   skip_magics=False, skip_mpl=False, skip_pbar=False):
+                   bec=True, epics_context=True, magics=True, mpl=True,
+                   ophyd_logging=True, pbar=True):
     """
     Perform base setup and instantiation of important objects.
 
@@ -33,18 +39,21 @@ def configure_base(user_ns, broker_name, *,
         a namespace --- for example, ``get_ipython().user_ns``
     broker_name : string
         Name of databroker configuration.
-    skip_bec : boolean, optional
-        False by default. Skips BestEffortCallback.
-    skip_context : boolean, optional
-        False by default. Skips ``setup_ophyd()``.
-    skip_logging : boolean, optional
-        False by default. Skips ERROR-level log configuration for ophyd.
-    skip_magics : boolean, optional
-        False by default. Skips registration of custom IPython magics.
-    skip_mpl : boolean, optional
-        False by default. Skips matplotlib ``ion()`` at event-loop bridging.
-    skip_pbar : boolean, optional
-        False by default. Skips ProgressBarManager.
+    bec : boolean, optional
+        True by default. Set False to skip BestEffortCallback.
+    epics_context : boolean, optional
+        True by default. Set False to skip ``setup_ophyd()``.
+    magics : boolean, optional
+        True by default. Set False to skip registration of custom IPython
+        magics.
+    mpl : boolean, optional
+        True by default. Set False to skip matplotlib ``ion()`` at event-loop
+        bridging.
+    ophyd_logging : boolean, optional
+        True by default. Set False to skip ERROR-level log configuration for
+        ophyd.
+    pbar : boolean, optional
+        True by default. Set false to skip ProgressBarManager.
 
     Returns
     -------
@@ -80,27 +89,27 @@ def configure_base(user_ns, broker_name, *,
         ns['db'] = db
         RE.subscribe(db.insert)
     
-    if not skip_pbar:
+    if pbar:
         # Add a progress bar.
         from bluesky.utils import ProgressBarManager
         pbar_manager = ProgressBarManager()
         RE.waiting_hook = pbar_manager
         ns['pbar_manager'] = pbar_manager
     
-    if not skip_magics:
+    if magics:
         # Register bluesky IPython magics.
         from bluesky.magics import BlueskyMagics
         get_ipython().register_magics(BlueskyMagics)
     
-    if not skip_bec:
+    if bec:
         # Set up the BestEffortCallback.
         from bluesky.callbacks.best_effort import BestEffortCallback
-        bec = BestEffortCallback()
-        RE.subscribe(bec)
-        ns['bec'] = bec
-        ns['peaks'] = bec.peaks  # just as alias for less typing
+        _bec = BestEffortCallback()
+        RE.subscribe(_bec)
+        ns['bec'] = _bec
+        ns['peaks'] = _bec.peaks  # just as alias for less typing
     
-    if not skip_mpl:
+    if mpl:
         # Import matplotlib and put it in interactive mode.
         import matplotlib.pyplot as plt
         ns['plt'] = plt
@@ -110,12 +119,12 @@ def configure_base(user_ns, broker_name, *,
         from bluesky.utils import install_kicker
         install_kicker()
 
-    if not skip_context:
+    if epics_context:
         # Create a context in the underlying EPICS client.
         from ophyd import setup_ophyd
         setup_ophyd()
     
-    if not skip_logging:
+    if not ophyd_logging:
         # Turn on error-level logging, particularly useful for knowing when
         # pyepics callbacks fail.
         import logging
@@ -128,25 +137,20 @@ def configure_base(user_ns, broker_name, *,
     # some of the * imports are for 'back-compatibility' of a sort -- we have
     # taught BL staff to expect LiveTable and LivePlot etc. to be in their
     # namespace
-    def import_star(module):
-        public = lambda name: not name.startswith('_')
-        ns.update({name: getattr(module, name)
-                          for name in dir(module) if public(name)})
-
     import numpy as np
     ns['np'] = np
 
     import bluesky.callbacks
     ns['bc'] = bluesky.callbacks
-    import_star(bluesky.callbacks)
+    import_star(bluesky.callbacks, ns)
 
     import bluesky.plans
     ns['bp'] = bluesky.plans
-    import_star(bluesky.plans)
+    import_star(bluesky.plans, ns)
 
     import bluesky.plan_stubs
     ns['bps'] = bluesky.plan_stubs
-    import_star(bluesky.plan_stubs)
+    import_star(bluesky.plan_stubs, ns)
     # special-case the commonly-used mv / mvr and its aliases mov / movr4
     ns['mv'] = bluesky.plan_stubs.mv
     ns['mvr'] = bluesky.plan_stubs.mvr
@@ -157,24 +161,25 @@ def configure_base(user_ns, broker_name, *,
     ns['bpp'] = bluesky.preprocessors
 
     import bluesky.callbacks.broker
-    import_star(bluesky.callbacks.broker)
+    import_star(bluesky.callbacks.broker, ns)
 
     import bluesky.simulators
-    import_star(bluesky.simulators)
-
-    import pyOlog.ophyd_tools
-    import_star(pyOlog.ophyd_tools)
+    import_star(bluesky.simulators, ns)
 
     user_ns.update(ns)
     return list(ns)
 
 
-def configure_olog(user_ns, callback=None):
+def configure_olog(user_ns, *, callback=None, subscribe=True):
     """
     Setup a callback that publishes some metadata from the RunEngine to Olog.
 
-    The is expected to be run after :func:`configure_base`. It expects to find
-    an instance of RunEngine named ``RE`` in the user namespace.
+    Also, add the public contents of pyOlog.ophyd_tools to the namespace.
+
+    This is expected to be run after :func:`configure_base`. It expects to find
+    an instance of RunEngine named ``RE`` in the user namespace. Additionally,
+    if the user namespace contains the name ``logbook``, that is expected to be
+    an instance ``pyOlog.SimpleOlogClient``.
 
     Parameters
     ----------
@@ -183,6 +188,9 @@ def configure_olog(user_ns, callback=None):
     callback : callable, optional
         a hook for customizing the logbook_cb_factory; if None a default is
         used
+    subscribe : boolean, optional
+        True by default. Set to False to skip the subscription. (You still get
+        pyOlog.ophyd_tools.)
 
     Returns
     -------
@@ -207,47 +215,57 @@ def configure_olog(user_ns, callback=None):
 
     ns = {}  # We will update user_ns with this at the end.
 
-    from bluesky.callbacks.olog import logbook_cb_factory
-    from functools import partial
-    from pyOlog import SimpleOlogClient
-    import queue
-    import threading
-    from warnings import warn
-    
-    if callback is None:
-        LOGBOOKS = ['Data Acquisition']  # list of logbook names to publish to
-        simple_olog_client = SimpleOlogClient()
-        generic_logbook_func = simple_olog_client.log
-        configured_logbook_func = partial(generic_logbook_func,
-                                          logbooks=LOGBOOKS)
-        callback = logbook_cb_factory(configured_logbook_func)
-    
-    def submit_to_olog(queue, cb):
-        while True:
-            name, doc = queue.get()  # waits until document is available
+    if subscribe:
+        from bluesky.callbacks.olog import logbook_cb_factory
+        from functools import partial
+        from pyOlog import SimpleOlogClient
+        import queue
+        import threading
+        from warnings import warn
+
+        # This is for pyOlog.ophyd_tools.get_logbook, which simply looks for
+        # a variable called 'logbook' in the global IPython namespace.
+        if 'logbook' in user_ns:
+            simple_olog_client = user_ns['logbook']
+        else:
+            simple_olog_client = SimpleOlogClient()
+            ns['logbook'] = simple_olog_client
+
+        if callback is None:
+            # list of logbook names to publish to
+            LOGBOOKS = ('Data Acquisition',)
+            generic_logbook_func = simple_olog_client.log
+            configured_logbook_func = partial(generic_logbook_func,
+                                              logbooks=LOGBOOKS)
+            callback = logbook_cb_factory(configured_logbook_func)
+
+        def submit_to_olog(queue, cb):
+            while True:
+                name, doc = queue.get()  # waits until document is available
+                try:
+                    cb(name, doc)
+                except Exception as exc:
+                    warn('This olog is giving errors. This will not be logged.'
+                         'Error:' + str(exc))
+
+        olog_queue = queue.Queue(maxsize=100)
+        olog_thread = threading.Thread(target=submit_to_olog,
+                                       args=(olog_queue, callback),
+                                       daemon=True)
+
+        olog_thread.start()
+
+        def send_to_olog_queue(name, doc):
             try:
-                cb(name, doc)
-            except Exception as exc:
-                warn('This olog is giving errors. This will not be logged.'
-                        'Error:' + str(exc))
-    
-    olog_queue = queue.Queue(maxsize=100)
-    olog_thread = threading.Thread(target=submit_to_olog,
-                                   args=(olog_queue, callback),
-                                   daemon=True)
-    olog_thread.start()
-    
-    def send_to_olog_queue(name, doc):
-        try:
-            olog_queue.put((name, doc), block=False)
-        except queue.Full:
-            warn('The olog queue is full. This will not be logged.')
-    
-    RE = user_ns['RE']
-    RE.subscribe(send_to_olog_queue, 'start')
-    # This is for pyOlog.ophyd_tools.get_logbook, which simply looks for
-    # a variable called 'logbook' in the global IPython namespace.
-    ns['logbook'] = simple_olog_client
+                olog_queue.put((name, doc), block=False)
+            except queue.Full:
+                warn('The olog queue is full. This will not be logged.')
+
+        RE = user_ns['RE']
+        RE.subscribe(send_to_olog_queue, 'start')
+
+    import pyOlog.ophyd_tools
+    import_star(pyOlog.ophyd_tools, ns)
 
     user_ns.update(ns)
     return list(ns)
