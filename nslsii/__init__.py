@@ -215,22 +215,22 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     ns = {}  # We will update user_ns with this at the end.
 
+    from bluesky.callbacks.olog import logbook_cb_factory
+    from functools import partial
+    from pyOlog import SimpleOlogClient
+    import queue
+    import threading
+    from warnings import warn
+
+    # This is for pyOlog.ophyd_tools.get_logbook, which simply looks for
+    # a variable called 'logbook' in the global IPython namespace.
+    if 'logbook' in user_ns:
+        simple_olog_client = user_ns['logbook']
+    else:
+        simple_olog_client = SimpleOlogClient()
+        ns['logbook'] = simple_olog_client
+
     if subscribe:
-        from bluesky.callbacks.olog import logbook_cb_factory
-        from functools import partial
-        from pyOlog import SimpleOlogClient
-        import queue
-        import threading
-        from warnings import warn
-
-        # This is for pyOlog.ophyd_tools.get_logbook, which simply looks for
-        # a variable called 'logbook' in the global IPython namespace.
-        if 'logbook' in user_ns:
-            simple_olog_client = user_ns['logbook']
-        else:
-            simple_olog_client = SimpleOlogClient()
-            ns['logbook'] = simple_olog_client
-
         if callback is None:
             # list of logbook names to publish to
             LOGBOOKS = ('Data Acquisition',)
