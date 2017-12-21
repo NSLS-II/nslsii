@@ -1,2 +1,2 @@
 include versioneer.py
-include nsls2tools/_version.py
+include nslsii/_version.py
