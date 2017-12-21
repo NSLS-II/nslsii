@@ -3,7 +3,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 
-def configure_base(user_ns, broker_name,
+def configure_base(user_ns, broker_name, *,
                    skip_bec=False, skip_context=False, skip_logging=False,
                    skip_magics=False, skip_mpl=False, skip_pbar=False):
     """
