@@ -59,7 +59,7 @@ def configure_base(user_ns, broker_name, *,
     -------
     names : list
         list of names added to the namespace
-    
+
     Examples
     --------
     Configure IPython for CHX.
@@ -73,7 +73,7 @@ def configure_base(user_ns, broker_name, *,
     from bluesky.utils import get_history
     RE = RunEngine(get_history())
     ns['RE'] = RE
-    
+
     # Set up SupplementalData.
     # (This is a no-op until devices are added to it,
     # so there is no need to provide a 'skip_sd' switch.)
@@ -95,12 +95,12 @@ def configure_base(user_ns, broker_name, *,
         pbar_manager = ProgressBarManager()
         RE.waiting_hook = pbar_manager
         ns['pbar_manager'] = pbar_manager
-    
+
     if magics:
         # Register bluesky IPython magics.
         from bluesky.magics import BlueskyMagics
         get_ipython().register_magics(BlueskyMagics)
-    
+
     if bec:
         # Set up the BestEffortCallback.
         from bluesky.callbacks.best_effort import BestEffortCallback
@@ -108,13 +108,13 @@ def configure_base(user_ns, broker_name, *,
         RE.subscribe(_bec)
         ns['bec'] = _bec
         ns['peaks'] = _bec.peaks  # just as alias for less typing
-    
+
     if mpl:
         # Import matplotlib and put it in interactive mode.
         import matplotlib.pyplot as plt
         ns['plt'] = plt
         plt.ion()
-        
+
         # Make plots update live while scans run.
         from bluesky.utils import install_kicker
         install_kicker()
@@ -123,7 +123,7 @@ def configure_base(user_ns, broker_name, *,
         # Create a context in the underlying EPICS client.
         from ophyd import setup_ophyd
         setup_ophyd()
-    
+
     if not ophyd_logging:
         # Turn on error-level logging, particularly useful for knowing when
         # pyepics callbacks fail.
@@ -132,7 +132,7 @@ def configure_base(user_ns, broker_name, *,
         ch = logging.StreamHandler()
         ch.setLevel(logging.ERROR)
         ophyd.ophydobj.logger.addHandler(ch)
-    
+
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
     # taught BL staff to expect LiveTable and LivePlot etc. to be in their
