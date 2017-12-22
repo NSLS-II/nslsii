@@ -37,8 +37,8 @@ def configure_base(user_ns, broker_name, *,
     ----------
     user_ns: dict
         a namespace --- for example, ``get_ipython().user_ns``
-    broker_name : string
-        Name of databroker configuration.
+    broker_name : Union[str, Broker]
+        Name of databroker configuration or a Broker instance.
     bec : boolean, optional
         True by default. Set False to skip BestEffortCallback.
     epics_context : boolean, optional
@@ -82,13 +82,16 @@ def configure_base(user_ns, broker_name, *,
     RE.preprocessors.append(sd)
     ns['sd'] = sd
 
-    if broker_name:
+    if isinstance(broker_name, str):
         # Set up a Broker.
         from databroker import Broker
         db = Broker.named(broker_name)
         ns['db'] = db
-        RE.subscribe(db.insert)
-    
+    else:
+        db = broker_name
+
+    RE.subscribe(db.insert)
+
     if pbar:
         # Add a progress bar.
         from bluesky.utils import ProgressBarManager
