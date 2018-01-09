@@ -173,7 +173,9 @@ def configure_base(user_ns, broker_name, *,
     return list(ns)
 
 
-def configure_olog(user_ns, *, callback=None, subscribe=True):
+def configure_olog(user_ns, *, callback=None, subscribe=True,
+                   desc_template=None, long_template=None, desc_dispatch=None,
+                   long_dispatch=None):
     """
     Setup a callback that publishes some metadata from the RunEngine to Olog.
 
@@ -240,7 +242,11 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
             generic_logbook_func = simple_olog_client.log
             configured_logbook_func = partial(generic_logbook_func,
                                               logbooks=LOGBOOKS)
-            callback = logbook_cb_factory(configured_logbook_func)
+            callback = logbook_cb_factory(configured_logbook_func,
+                                          desc_template=desc_template,
+                                          long_template=long_template,
+                                          desc_dispatch=desc_dispatch,
+                                          long_dispatch=long_dispatch)
 
         def submit_to_olog(queue, cb):
             while True:
