@@ -71,8 +71,13 @@ def configure_base(user_ns, broker_name, *,
     # Set up a RunEngine and use metadata backed by a sqlite file.
     from bluesky import RunEngine
     from bluesky.utils import get_history
-    RE = RunEngine(get_history())
-    ns['RE'] = RE
+    # if RunEngine already defined grab it
+    # useful when users make their own custom RunEngine
+    if 'RE' in user_ns:
+        RE = user_ns['RE']
+    else:
+        RE = RunEngine(get_history())
+        ns['RE'] = RE
 
     # Set up SupplementalData.
     # (This is a no-op until devices are added to it,
