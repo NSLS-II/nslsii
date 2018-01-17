@@ -15,10 +15,15 @@ def configure_base(user_ns, broker_name, *,
     """
     Perform base setup and instantiation of important objects.
 
-    This factory function instantiates the following and adds them to the
-    namespace:
+    This factory function instantiates essential objects to data collection
+    environments at NSLS-II and adds them to the current namespace. In some
+    cases (documented below), it will check whether certain variables already
+    exist in the user name space, and will avoid creating them if so. The
+    following are added:
 
     * ``RE`` -- a RunEngine
+        This is created only if an ``RE`` instance does not currently exist in
+        the namespace.
     * ``db`` -- a Broker (from "databroker"), subscribe to ``RE``
     * ``bec`` -- a BestEffortCallback, subscribed to ``RE``
     * ``peaks`` -- an alias for ``bec.peaks``
@@ -71,8 +76,13 @@ def configure_base(user_ns, broker_name, *,
     # Set up a RunEngine and use metadata backed by a sqlite file.
     from bluesky import RunEngine
     from bluesky.utils import get_history
-    RE = RunEngine(get_history())
-    ns['RE'] = RE
+    # if RunEngine already defined grab it
+    # useful when users make their own custom RunEngine
+    if 'RE' in user_ns:
+        RE = user_ns['RE']
+    else:
+        RE = RunEngine(get_history())
+        ns['RE'] = RE
 
     # Set up SupplementalData.
     # (This is a no-op until devices are added to it,
