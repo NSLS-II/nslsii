@@ -25,7 +25,7 @@ class TriggerBase(BlueskyInterface):
         self._status = None
 
 
-class HxnModalSettings(Device):
+class ModalSettings(Device):
     mode = Cpt(Signal, value='internal',
                doc='Triggering mode (internal/external)')
     scan_type = Cpt(Signal, value='step',
@@ -38,8 +38,8 @@ class HxnModalSettings(Device):
                    doc='Detector instances which this one triggers')
 
 
-class HxnModalBase(Device):
-    mode_settings = Cpt(HxnModalSettings, '')
+class ModalBase(Device):
+    mode_settings = Cpt(ModalSettings, '')
     count_time = Cpt(Signal, value=1.0,
                      doc='Exposure/count time, as specified by bluesky')
 
@@ -79,7 +79,7 @@ class HxnModalBase(Device):
         super().unstage()
 
 
-class HxnModalTrigger(HxnModalBase, TriggerBase):
+class ModalTrigger(ModalBase, TriggerBase):
     def __init__(self, *args, image_name=None, **kwargs):
         super().__init__(*args, **kwargs)
         if image_name is None:

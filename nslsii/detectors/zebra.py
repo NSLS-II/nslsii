@@ -6,7 +6,7 @@ from ophyd import (Device, Component as Cpt, FormattedComponent as FC,
 from ophyd import (EpicsSignal, EpicsSignalRO, DeviceStatus)
 from ophyd.utils import set_and_wait
 
-from .trigger_mixins import HxnModalBase
+from .trigger_mixins import ModalBase
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +262,7 @@ class ZebraGate(Device):
         set_and_wait(self.input2.edge, int(edge2))
 
 
-class Zebra(HxnModalBase, Device):
+class Zebra(ModalBase, Device):
     soft_input1 = Cpt(EpicsSignal, 'SOFT_IN:B0')
     soft_input2 = Cpt(EpicsSignal, 'SOFT_IN:B1')
     soft_input3 = Cpt(EpicsSignal, 'SOFT_IN:B2')
@@ -323,92 +323,3 @@ class Zebra(HxnModalBase, Device):
         status = DeviceStatus(self)
         status._finished()
         return status
-
-
-class HxnZebra(Zebra):
-    def mode_internal(self):
-        super().mode_internal()
-
-        scan_type = self.mode_settings.scan_type.get()
-        # no concept of internal triggering for now
-        # raise ValueError('Unknown scan type for internal triggering: '
-        #                  '{}'.format(scan_type))
-
-    def mode_external(self):
-        super().mode_external()
-
-        scan_type = self.mode_settings.scan_type.get()
-        if scan_type == 'fly':
-            # PMAC motion script outputs 0 during exposure
-            # * Gate 1 - active low devices (low during exposure)
-            self.gate[1].input1.addr.put(ZebraAddresses.IN3_OC)
-            self.gate[1].input2.addr.put(ZebraAddresses.IN3_OC)
-            self.gate[1].set_input_edges(ZebraInputEdge.FALLING,
-                                         ZebraInputEdge.RISING)
-
-            # Output 1 - timepix (OR merlin, see below)
-            # self.output[1].ttl.addr.put(ZebraAddresses.GATE1)
-
-            # Output 2 - scaler 1 inhibit
-            self.output[2].ttl.addr.put(ZebraAddresses.GATE1)
-
-            # * Gate 2 - Active high (high during exposure)
-            self.gate[2].input1.addr.put(ZebraAddresses.IN3_OC)
-            self.gate[2].input2.addr.put(ZebraAddresses.IN3_OC)
-            self.gate[2].set_input_edges(ZebraInputEdge.RISING,
-                                         ZebraInputEdge.FALLING)
-
-            # Output 1 - merlin and dexela
-            self.output[1].ttl.addr.put(ZebraAddresses.GATE2)
-            # Output 3 - scaler 1 gate
-            self.output[3].ttl.addr.put(ZebraAddresses.GATE2)
-            # Output 4 - xspress 3
-            self.output[4].ttl.addr.put(ZebraAddresses.GATE2)
-
-            # Merlin LVDS
-            # self.output[1].lvds.put(ZebraAddresses.GATE2)
-
-        elif scan_type == 'step':
-            # Scaler triggers all detectors
-            # Scaler, output mode 1, LNE (output 5) connected to Zebra IN1_TTL
-            # Pulse 1 has pulse width set to the count_time
-
-            # OUT1_TTL Merlin / dexela
-            # OUT2_TTL Scaler 1 inhibit
-            #
-            # OUT3_TTL Scaler 1 gate
-            # OUT4_TTL Xspress3
-            self.pulse[1].input_addr.put(ZebraAddresses.IN1_TTL)
-
-            count_time = self.count_time.get()
-            if count_time is not None:
-                logger.debug('Step scan pulse-width is %s', count_time)
-                self.pulse[1].width.put(count_time)
-                self.pulse[1].time_units.put('s')
-
-            self.pulse[1].delay.put(0.0)
-            self.pulse[1].input_edge.put(ZebraInputEdge.FALLING)
-
-            # To be used in regular scaler mode, scaler 1 has to have
-            # inhibit cleared and counting enabled:
-            self.soft_input4.put(1)
-
-            # Timepix
-            # self.output[1].ttl.addr.put(ZebraAddresses.PULSE1)
-            # Merlin
-            self.output[1].ttl.addr.put(ZebraAddresses.PULSE1)
-            self.output[2].ttl.addr.put(ZebraAddresses.SOFT_IN4)
-
-            self.gate[2].input1.addr.put(ZebraAddresses.PULSE1)
-            self.gate[2].input2.addr.put(ZebraAddresses.PULSE1)
-            self.gate[2].set_input_edges(ZebraInputEdge.RISING,
-                                         ZebraInputEdge.FALLING)
-
-            self.output[3].ttl.addr.put(ZebraAddresses.SOFT_IN4)
-            self.output[4].ttl.addr.put(ZebraAddresses.GATE2)
-
-            # Merlin LVDS
-            self.output[1].lvds.addr.put(ZebraAddresses.PULSE1)
-        else:
-            raise ValueError('Unknown scan type for external triggering: '
-                             '{}'.format(scan_type))
