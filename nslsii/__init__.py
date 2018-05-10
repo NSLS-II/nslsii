@@ -179,6 +179,11 @@ def configure_base(user_ns, broker_name, *,
     import bluesky.simulators
     import_star(bluesky.simulators, ns)
 
+    from databroker.eventsource.archiver import *
+    for name in ArchiverReader.archiver_names():
+        aes = ArchiverReader.named(name)
+        db.add_event_source(aes)
+    
     user_ns.update(ns)
     return list(ns)
 
