@@ -10,7 +10,7 @@ def import_star(module, ns):
 
 
 def configure_base(user_ns, broker_name, *,
-                   bec=True, epics_context=True, magics=True, mpl=True,
+                   bec=True, epics_context=False, magics=True, mpl=True,
                    ophyd_logging=True, pbar=True):
     """
     Perform base setup and instantiation of important objects.
