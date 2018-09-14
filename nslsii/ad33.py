@@ -40,7 +40,7 @@ class CamV33Mixin(V33Mixin):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ensure_nonblocking()
+        self.stage_sigs['wait_for_plugins'] = 'Yes'
 
     def ensure_nonblocking(self):
         self.stage_sigs['wait_for_plugins'] = 'Yes'
