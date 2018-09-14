@@ -45,7 +45,7 @@ class CamV33Mixin(V33Mixin):
     def ensure_nonblocking(self):
         self.stage_sigs['wait_for_plugins'] = 'Yes'
         for c in self.parent.component_names:
-            cpt = getattr(self, c)
+            cpt = getattr(self.parent, c)
             if cpt is self:
                 continue
             if hasattr(cpt, 'ensure_nonblocking'):
