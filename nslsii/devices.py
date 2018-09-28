@@ -3,10 +3,30 @@ import datetime
 from ophyd import (Device, Component as Cpt,
                    EpicsSignal, EpicsSignalRO, DeviceStatus)
 
-_time_fmtstr = '%Y-%m-%d %H:%M:%S'
+
+class EpicsSignalOverridePrecRO(EpicsSignalRO):
+    def __init__(self, *args, precision=4, **kwargs):
+        self._precision = precision
+        super().__init__(*args, **kwargs)
+
+    @property
+    def precision(self):
+        return self._precision
+
+
+class EpicsSignalOverridePrec(EpicsSignal):
+    def __init__(self, *args, precision=4, **kwargs):
+        self._precision = precision
+        super().__init__(*args, **kwargs)
+
+    @property
+    def precision(self):
+        return self._precision
 
 
 class TwoButtonShutter(Device):
+    _time_fmtstr = '%Y-%m-%d %H:%M:%S'
+
     # TODO: this needs to be fixed in EPICS as these names make no sense
     # the value coming out of the PV does not match what is shown in CSS
     open_cmd = Cpt(EpicsSignal, 'Cmd:Opn-Cmd', string=True)
