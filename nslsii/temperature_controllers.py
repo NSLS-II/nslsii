@@ -72,8 +72,9 @@ class Eurotherm(EpicsSignalPositioner):
         def status_indicator(value):
             if abs(value - set_value) < self.tolerance:
                 sleep(self.equilibrium_time)
-                if abs(value - set_value) < self.tolerance:
+                if abs(self.position - set_value) < self.tolerance:
                     status._finished()
+                    self.position.clear_sub(status_indicator)
 
         # Start the move.
         self.put(set_value)
