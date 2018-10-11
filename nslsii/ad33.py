@@ -14,6 +14,7 @@ from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.trigger_mixins import TriggerBase, ADTriggerStatus
 from ophyd.device import DynamicDeviceComponent as DDC, Staged
 from ophyd.signal import (Signal, EpicsSignalRO, EpicsSignal)
+from ophyd.quadem import QuadEM
 
 import time as ttime
 
