@@ -13,8 +13,7 @@ from ophyd.areadetector.base import (ADBase, ADComponent as ADCpt, ad_group,
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.trigger_mixins import TriggerBase, ADTriggerStatus
 from ophyd.device import DynamicDeviceComponent as DDC, Staged
-from ophyd.signal import (Signal, EpicsSignalRO, EpicsSignal,
-                          EpicsSignalWithRBV)
+from ophyd.signal import (Signal, EpicsSignalRO, EpicsSignal)
 
 import time as ttime
 
@@ -233,7 +232,7 @@ class QuadEMPort(ADBase):
 
 class QuadEMV33(QuadEM):
     conf = Cpt(QuadEMPort, port_name="EM180")
-    em_range = Cpt(EpicsSignalWithRBV, "Range", string=True)
+    em_range = Cpt(SignalWithRBV, "Range", string=True)
 
     current1 = ADCpt(StatsPluginV33, 'Current1:')
     current2 = ADCpt(StatsPluginV33, 'Current2:')
