@@ -1,9 +1,8 @@
-from ophyd import DeviceStatus
-from ophyd.mixins import EpicsSignalPositioner
+from ophyd import DeviceStatus, Device, Component as Cpt, EpicsSignal, Signal
 from time import sleep
 
 
-class Eurotherm(EpicsSignalPositioner):
+class Eurotherm(Device):
     '''This class is used for integrating with Eurotherm controllers.
 
     Parameters
@@ -13,74 +12,54 @@ class Eurotherm(EpicsSignalPositioner):
     tolerance : float, optional.
         The range of temperature within which it can be considered constant.
         Default is 1.
-    equilibrium_time : float, optional.
+    EquilibriumTime : float, optional.
         The time (in seconds) that a temperature should be within `tolerance`
         for it to be considered at equilibrium. Default is 5 seconds.
-    timeout : float, optional.
+    Timeout : float, optional.
         The maximum time (in seconds) to wait for the temperature to reach
         equilibrium before raising a TimeOutError. Default is 30 seconds.
-    PV_read_suffix, PV_write_suffix : str, optional
-        The suffix for the readback and setpoint PV's respectively. Defaults
-        are `'-I'` and `'-SP'` respectively.
     '''
 
-    def __init__(self, PV_prefix, tolerance=1, equilibrium_time=5,
-                 timeout=30, PV_read_suffix='-I', PV_write_suffix='-SP',
-                 **kwargs):
-        self.read_pv = PV_prefix+PV_read_suffix
-        self.write_pv = PV_prefix+PV_write_suffix
-        super().__init__(read_pv=self.read_pv, write_pv=self.write_pv,
-                         tolerance=tolerance, **kwargs)
-        self._equilibrium_time = equilibrium_time
-        self._timeout = timeout
+    def __init__(self, PV_prefix, **kwargs):
+        super().__init__(PV_prefix, **kwargs)
 
     # Setup some new signals required for the moving indicator logic
-    # This approach mirrors that used for tolerance in ophyd/signal/Signal
-    @property
-    def equilibrium_time(self):
-        '''The time that a temperature should be within `tolerance` for it to
-        be considered at equilibrium.
-        '''
-        return self._equilibrium_time
+    equilibrium_time = Cpt(Signal, value=5)
+    timeout = Cpt(Signal, value=500)
+    tolerance = Cpt(Signal, value=1)
 
-    @equilibrium_time.setter
-    def equilibrium_time(self, equilibrium_time):
-        '''The setter for equilibrium_time
-        '''
-        self._equilibrium_time = equilibrium_time
+    #Add the readback and setpoint components
+    setpoint = Cpt(EpicsSignal, 'SP')
+    readback = Cpt(EpicsSignal, 'I')
 
-    @property
-    def timeout(self):
-        '''The maximum time to wait for the temperature to reach equilibrium
-        before raising an TimeOutError.
-        '''
-        return self._timeout
-
-    @timeout.setter
-    def timeout(self, timeout):
-        '''The setter for timeout
-        '''
-        self._timeout = timeout
-
-    # define the new set method with the new moving indicator logic
+    # define the new set method with the new moving indicator
     def set(self, value):
-        # define some required values
+        #define some required values
         set_value = value
-        status = DeviceStatus(self, timeout=self.timeout)
+        status = DeviceStatus(self, timeout=self.timeout.get())
+
+        initial_timestamp = None
 
         # set up the done moving indicator logic
-        def status_indicator(value):
-            if abs(value - set_value) < self.tolerance:
-                sleep(self.equilibrium_time)
-                if abs(self.position - set_value) < self.tolerance:
-                    status._finished()
-                    self.position.clear_sub(status_indicator)
+        def status_indicator(value, timestamp, **kwargs):
+            nonlocal initial_timestamp
+            if abs(value - set_value) < self.tolerance.get():
+                if initial_timestamp:
+                    if ((timestamp - initial_timestamp) >
+                                          self.equilibrium_time.get()):
+                        status._finished()
+                        self.readback.clear_sub(status_indicator)
+                else:
+                    initial_timestamp = timestamp
+            else:
+                inband = False
+                initial_timestamp = None
 
         # Start the move.
-        self.put(set_value)
+        self.setpoint.put(set_value)
 
         # subscribe to the read value to indicate the set is done.
-        self.position.subscribe(status_indicator)
+        self.readback.subscribe(status_indicator)
 
         # hand the status object back to the RE
         return status
