@@ -8,12 +8,13 @@ all of these names may change in the future.
 """
 
 from ophyd import Device, Component as Cpt
-from ophyd.areadetector.base import (ADComponent as ADCpt, ad_group,
+from ophyd.areadetector.base import (ADBase, ADComponent as ADCpt, ad_group,
                                      EpicsSignalWithRBV as SignalWithRBV)
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.trigger_mixins import TriggerBase, ADTriggerStatus
 from ophyd.device import DynamicDeviceComponent as DDC, Staged
-from ophyd.signal import (EpicsSignalRO, EpicsSignal)
+from ophyd.signal import (Signal, EpicsSignalRO, EpicsSignal,
+                          EpicsSignalWithRBV)
 
 import time as ttime
 
@@ -222,7 +223,18 @@ class StatsPluginV33(PluginBase):
     total = ADCpt(EpicsSignalRO, 'Total_RBV')
 
 
+class QuadEMPort(ADBase):
+    port_name = Cpt(Signal, value="")
+
+    def __init__(self, port_name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.port_name.put(port_name)
+
+
 class QuadEMV33(QuadEM):
+    conf = Cpt(QuadEMPort, port_name="EM180")
+    em_range = Cpt(EpicsSignalWithRBV, "Range", string=True)
+
     current1 = ADCpt(StatsPluginV33, 'Current1:')
     current2 = ADCpt(StatsPluginV33, 'Current2:')
     current3 = ADCpt(StatsPluginV33, 'Current3:')
