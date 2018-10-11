@@ -1,5 +1,4 @@
 from ophyd import DeviceStatus, Device, Component as Cpt, EpicsSignal, Signal
-from time import sleep
 
 
 class Eurotherm(Device):
@@ -28,31 +27,42 @@ class Eurotherm(Device):
     timeout = Cpt(Signal, value=500)
     tolerance = Cpt(Signal, value=1)
 
-    #Add the readback and setpoint components
+    # Add the readback and setpoint components
     setpoint = Cpt(EpicsSignal, 'SP')
     readback = Cpt(EpicsSignal, 'I')
 
+    _set_lock = False
+
     # define the new set method with the new moving indicator
     def set(self, value):
-        #define some required values
+        # check that a set is not in progress, and if not set the lock.
+        if self._set_lock:
+            raise Exception('attempting to set {}'.format(self.name) +
+                            'while a set is in progress'.format(self.name))
+        self._set_lock = True
+
+        # define some required values
         set_value = value
         status = DeviceStatus(self, timeout=self.timeout.get())
 
         initial_timestamp = None
 
+        # grab these values here to avoidmutliple calls.
+        equilibrium_time = self.equilibrium_time.get()
+        tolerance = self.tolerance.get()
+
         # set up the done moving indicator logic
         def status_indicator(value, timestamp, **kwargs):
             nonlocal initial_timestamp
-            if abs(value - set_value) < self.tolerance.get():
+            if abs(value - set_value) < tolerance:
                 if initial_timestamp:
-                    if ((timestamp - initial_timestamp) >
-                                          self.equilibrium_time.get()):
+                    if ((timestamp - initial_timestamp) > equilibrium_time):
                         status._finished()
+                        self._set_lock = False
                         self.readback.clear_sub(status_indicator)
                 else:
                     initial_timestamp = timestamp
             else:
-                inband = False
                 initial_timestamp = None
 
         # Start the move.
@@ -63,3 +73,9 @@ class Eurotherm(Device):
 
         # hand the status object back to the RE
         return status
+
+    def stop(self):
+        # overide the lock on any in progress sets
+        self._set_lock = False
+        # set the controller to the current value (best option we came up with)
+        self.set(self.readback.get())
