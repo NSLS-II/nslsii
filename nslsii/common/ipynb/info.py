@@ -3,10 +3,9 @@ import psutil
 import platform
 from IPython.display import HTML
 
+
 def get_sys_info():
     """Display info on system and output as nice HTML"""
-    spacer = "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>"
-
     html = '<h3>System Information for {}</h3>'.format(platform.node())
     html += '<table>'
 
@@ -30,6 +29,7 @@ def get_sys_info():
 
     html += '</table>'
     return HTML(html)
+
 
 def show_kernels():
     """Show all IPython Kernels on System"""
@@ -56,12 +56,12 @@ def show_kernels():
                 p = psutil.Process(pinfo['pid']).cpu_percent(0.1)
                 html += '<td>{}%</td>'.format(p)
                 html += '<td>{:.4} Mb</td>'.format(pinfo['memory_info'].vms /
-                                                1024**3)
-                html += '<td>{:.3}%</td>'.format(100 *pinfo['memory_info'].vms /
-                                                total_mem)
+                                                   1024**3)
+                html += '<td>{:.3}%</td>'.format(100 *
+                                                 pinfo['memory_info'].vms /
+                                                 total_mem)
                 html += '<td>{}</td>'.format(pinfo['status'])
                 html += '</tr>'
 
     html += '</table>'
     return HTML(html)
-

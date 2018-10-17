@@ -6,7 +6,7 @@ del get_versions
 def import_star(module, ns):
     public = lambda name: not name.startswith('_')
     ns.update({name: getattr(module, name)
-                        for name in dir(module) if public(name)})
+               for name in dir(module) if public(name)})
 
 
 def configure_base(user_ns, broker_name, *,
