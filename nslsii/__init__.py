@@ -1,10 +1,12 @@
+from IPython import get_ipython
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
 
 def import_star(module, ns):
-    public = lambda name: not name.startswith('_')
+    def public(name):
+        return not name.startswith('_')
     ns.update({name: getattr(module, name)
                for name in dir(module) if public(name)})
 
