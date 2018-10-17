@@ -147,7 +147,7 @@ class ModalTrigger(ModalBase, TriggerBase):
         self._status._finished()
         # TODO this timestamp is inaccurate!
         if self.mode_settings.scan_type.get() != 'fly':
-            # Don't dispatch images for fly-scans - they are bulk read at the end
+            # Don't dispatch images for fly-scans-they are bulk read at the end
             self.dispatch(self._image_name, ttime.time())
         return self._status
 
@@ -173,7 +173,8 @@ class FileStoreBulkReadable(FileStoreIterativeWrite):
     def bulk_read(self, timestamps):
         image_name = self.image_name
 
-        uids = [self.generate_datum(self.image_name, ts, {}) for ts in timestamps]
+        uids = [self.generate_datum(self.image_name, ts, {})
+                for ts in timestamps]
 
         # clear so unstage will not save the images twice:
         self._reset_data()

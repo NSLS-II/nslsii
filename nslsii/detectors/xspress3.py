@@ -2,7 +2,6 @@ from __future__ import print_function, division
 import time
 import time as ttime
 import logging
-import uuid
 
 from pathlib import PurePath
 from .utils import makedirs
@@ -95,7 +94,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         timestamp = time.time()
 
         uids = [self._reg.register_datum(
-            self._filestore_res, {'frame': self.parent._abs_trigger_count -1,
+            self._filestore_res, {'frame': self.parent._abs_trigger_count - 1,
                                   'channel': chan})
                 for chan in self.channels]
 

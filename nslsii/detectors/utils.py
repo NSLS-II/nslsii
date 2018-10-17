@@ -1,6 +1,5 @@
 from __future__ import print_function
 import os
-from ophyd import Signal
 
 
 def makedirs(path, mode=0o777):
