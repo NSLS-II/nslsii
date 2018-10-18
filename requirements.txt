@@ -1,7 +1,7 @@
 bluesky
+caproto
 databroker
 matplotlib
 numpy
 ophyd
 pyolog
-caproto
