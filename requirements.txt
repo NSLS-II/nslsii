@@ -3,4 +3,5 @@ databroker
 matplotlib
 numpy
 ophyd
+psutil
 pyolog
