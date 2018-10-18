@@ -1,5 +1,7 @@
 bluesky
 databroker
+ipython
+ipywidgets
 matplotlib
 numpy
 ophyd
