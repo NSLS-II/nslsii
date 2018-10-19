@@ -1,4 +1,5 @@
 bluesky
+caproto
 databroker
 ipython
 ipywidgets
