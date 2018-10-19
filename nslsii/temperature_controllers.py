@@ -4,23 +4,24 @@ from ophyd import DeviceStatus, Device, Component as Cpt, EpicsSignal, Signal
 class Eurotherm(Device):
     '''This class is used for integrating with Eurotherm controllers.
 
+    This is used for Eurotherm controllers and is designed to ensure that the
+    set returns 'done' status only after the temperature has reached
+    equilibrium at the required value not when it first reaches the required
+    value. This is done via the attributes `self.equilibrium_time` and
+    `self.tolerance`. It only returns `done` if `self.readback` remains within
+    `self.tolerance` of `self.setpoint` over `self.equilibrium_time`. A third
+    attribute, `self.timeout`, is used to determeine the maximum time to wait
+    for equilibrium. If it takes longer than this it raises a TimeoutError.
+
     Parameters
     ----------
-    PV_prefix : str.
+    pv_prefix : str.
         The PV prefix that is common to the readback and setpoint PV's.
-    tolerance : float, optional.
-        The range of temperature within which it can be considered constant.
-        Default is 1.
-    EquilibriumTime : float, optional.
-        The time (in seconds) that a temperature should be within `tolerance`
-        for it to be considered at equilibrium. Default is 5 seconds.
-    Timeout : float, optional.
-        The maximum time (in seconds) to wait for the temperature to reach
-        equilibrium before raising a TimeOutError. Default is 30 seconds.
     '''
 
-    def __init__(self, PV_prefix, **kwargs):
-        super().__init__(PV_prefix, **kwargs)
+    def __init__(self, pv_prefix, **kwargs):
+        super().__init__(pv_prefix, **kwargs)
+        self._set_lock = False
 
     # Setup some new signals required for the moving indicator logic
     equilibrium_time = Cpt(Signal, value=5)
@@ -30,8 +31,6 @@ class Eurotherm(Device):
     # Add the readback and setpoint components
     setpoint = Cpt(EpicsSignal, 'SP')
     readback = Cpt(EpicsSignal, 'I')
-
-    _set_lock = False
 
     # define the new set method with the new moving indicator
     def set(self, value):
@@ -56,7 +55,7 @@ class Eurotherm(Device):
             nonlocal initial_timestamp
             if abs(value - set_value) < tolerance:
                 if initial_timestamp:
-                    if ((timestamp - initial_timestamp) > equilibrium_time):
+                    if (timestamp - initial_timestamp) > equilibrium_time:
                         status._finished()
                         self._set_lock = False
                         self.readback.clear_sub(status_indicator)
