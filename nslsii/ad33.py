@@ -8,13 +8,13 @@ all of these names may change in the future.
 """
 
 from ophyd import Device, Component as Cpt
-from ophyd.areadetector.base import (ADComponent as C, ad_group,
+from ophyd.areadetector.base import (ADBase, ADComponent as ADCpt, ad_group,
                                      EpicsSignalWithRBV as SignalWithRBV)
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.trigger_mixins import TriggerBase, ADTriggerStatus
 from ophyd.device import DynamicDeviceComponent as DDC, Staged
-from ophyd.signal import (EpicsSignalRO, EpicsSignal)
-
+from ophyd.signal import (Signal, EpicsSignalRO, EpicsSignal)
+from ophyd.quadem import QuadEM
 
 import time as ttime
 
@@ -100,8 +100,8 @@ class StatsPluginV33(PluginBase):
         'profile_cursor')
     )
 
-    bgd_width = C(SignalWithRBV, 'BgdWidth')
-    centroid_threshold = C(SignalWithRBV, 'CentroidThreshold')
+    bgd_width = ADCpt(SignalWithRBV, 'BgdWidth')
+    centroid_threshold = ADCpt(SignalWithRBV, 'CentroidThreshold')
 
     centroid = DDC(ad_group(EpicsSignalRO,
                             (('x', 'CentroidX_RBV'),
@@ -109,10 +109,10 @@ class StatsPluginV33(PluginBase):
                    doc='The centroid XY',
                    default_read_attrs=('x', 'y'))
 
-    compute_centroid = C(SignalWithRBV, 'ComputeCentroid', string=True)
-    compute_histogram = C(SignalWithRBV, 'ComputeHistogram', string=True)
-    compute_profiles = C(SignalWithRBV, 'ComputeProfiles', string=True)
-    compute_statistics = C(SignalWithRBV, 'ComputeStatistics', string=True)
+    compute_centroid = ADCpt(SignalWithRBV, 'ComputeCentroid', string=True)
+    compute_histogram = ADCpt(SignalWithRBV, 'ComputeHistogram', string=True)
+    compute_profiles = ADCpt(SignalWithRBV, 'ComputeProfiles', string=True)
+    compute_statistics = ADCpt(SignalWithRBV, 'ComputeStatistics', string=True)
 
     cursor = DDC(ad_group(SignalWithRBV,
                           (('x', 'CursorX'),
@@ -120,11 +120,11 @@ class StatsPluginV33(PluginBase):
                  doc='The cursor XY',
                  default_read_attrs=('x', 'y'))
 
-    hist_entropy = C(EpicsSignalRO, 'HistEntropy_RBV')
-    hist_max = C(SignalWithRBV, 'HistMax')
-    hist_min = C(SignalWithRBV, 'HistMin')
-    hist_size = C(SignalWithRBV, 'HistSize')
-    histogram = C(EpicsSignalRO, 'Histogram_RBV')
+    hist_entropy = ADCpt(EpicsSignalRO, 'HistEntropy_RBV')
+    hist_max = ADCpt(SignalWithRBV, 'HistMax')
+    hist_min = ADCpt(SignalWithRBV, 'HistMin')
+    hist_size = ADCpt(SignalWithRBV, 'HistSize')
+    histogram = ADCpt(EpicsSignalRO, 'Histogram_RBV')
 
     max_size = DDC(ad_group(EpicsSignal,
                             (('x', 'MaxSizeX'),
@@ -132,15 +132,15 @@ class StatsPluginV33(PluginBase):
                    doc='The maximum size in XY',
                    default_read_attrs=('x', 'y'))
 
-    max_value = C(EpicsSignalRO, 'MaxValue_RBV')
+    max_value = ADCpt(EpicsSignalRO, 'MaxValue_RBV')
     max_xy = DDC(ad_group(EpicsSignalRO,
                           (('x', 'MaxX_RBV'),
                            ('y', 'MaxY_RBV'))),
                  doc='Maximum in XY',
                  default_read_attrs=('x', 'y'))
 
-    mean_value = C(EpicsSignalRO, 'MeanValue_RBV')
-    min_value = C(EpicsSignalRO, 'MinValue_RBV')
+    mean_value = ADCpt(EpicsSignalRO, 'MeanValue_RBV')
+    min_value = ADCpt(EpicsSignalRO, 'MinValue_RBV')
 
     min_xy = DDC(ad_group(EpicsSignalRO,
                           (('x', 'MinX_RBV'),
@@ -148,7 +148,7 @@ class StatsPluginV33(PluginBase):
                  doc='Minimum in XY',
                  default_read_attrs=('x', 'y'))
 
-    net = C(EpicsSignalRO, 'Net_RBV')
+    net = ADCpt(EpicsSignalRO, 'Net_RBV')
     profile_average = DDC(ad_group(EpicsSignalRO,
                                    (('x', 'ProfileAverageX_RBV'),
                                     ('y', 'ProfileAverageY_RBV'))),
@@ -179,13 +179,13 @@ class StatsPluginV33(PluginBase):
                             doc='Profile threshold in XY',
                             default_read_attrs=('x', 'y'))
 
-    set_xhopr = C(EpicsSignal, 'SetXHOPR')
-    set_yhopr = C(EpicsSignal, 'SetYHOPR')
-    sigma_xy = C(EpicsSignalRO, 'SigmaXY_RBV')
-    sigma_x = C(EpicsSignalRO, 'SigmaX_RBV')
-    sigma_y = C(EpicsSignalRO, 'SigmaY_RBV')
-    sigma = C(EpicsSignalRO, 'Sigma_RBV')
-    ts_acquiring = C(EpicsSignal, 'TS:TSAcquiring')
+    set_xhopr = ADCpt(EpicsSignal, 'SetXHOPR')
+    set_yhopr = ADCpt(EpicsSignal, 'SetYHOPR')
+    sigma_xy = ADCpt(EpicsSignalRO, 'SigmaXY_RBV')
+    sigma_x = ADCpt(EpicsSignalRO, 'SigmaX_RBV')
+    sigma_y = ADCpt(EpicsSignalRO, 'SigmaY_RBV')
+    sigma = ADCpt(EpicsSignalRO, 'Sigma_RBV')
+    ts_acquiring = ADCpt(EpicsSignal, 'TS:TSAcquiring')
 
     ts_centroid = DDC(ad_group(EpicsSignal,
                                (('x', 'TS:TSCentroidX'),
@@ -193,9 +193,9 @@ class StatsPluginV33(PluginBase):
                       doc='Time series centroid in XY',
                       default_read_attrs=('x', 'y'))
 
-    # ts_control = C(EpicsSignal, 'TS:TSControl', string=True)
-    ts_current_point = C(EpicsSignal, 'TS:TSCurrentPoint')
-    ts_max_value = C(EpicsSignal, 'TS:TSMaxValue')
+    # ts_control = ADCpt(EpicsSignal, 'TS:TSControl', string=True)
+    ts_current_point = ADCpt(EpicsSignal, 'TS:TSCurrentPoint')
+    ts_max_value = ADCpt(EpicsSignal, 'TS:TSMaxValue')
 
     ts_max = DDC(ad_group(EpicsSignal,
                           (('x', 'TS:TSMaxX'),
@@ -203,8 +203,8 @@ class StatsPluginV33(PluginBase):
                  doc='Time series maximum in XY',
                  default_read_attrs=('x', 'y'))
 
-    ts_mean_value = C(EpicsSignal, 'TS:TSMeanValue')
-    ts_min_value = C(EpicsSignal, 'TS:TSMinValue')
+    ts_mean_value = ADCpt(EpicsSignal, 'TS:TSMeanValue')
+    ts_min_value = ADCpt(EpicsSignal, 'TS:TSMinValue')
 
     ts_min = DDC(ad_group(EpicsSignal,
                           (('x', 'TS:TSMinX'),
@@ -212,12 +212,31 @@ class StatsPluginV33(PluginBase):
                  doc='Time series minimum in XY',
                  default_read_attrs=('x', 'y'))
 
-    ts_net = C(EpicsSignal, 'TS:TSNet')
-    ts_num_points = C(EpicsSignal, 'TS:TSNumPoints')
-    ts_read = C(EpicsSignal, 'TS:TSRead')
-    ts_sigma = C(EpicsSignal, 'TS:TSSigma')
-    ts_sigma_x = C(EpicsSignal, 'TS:TSSigmaX')
-    ts_sigma_xy = C(EpicsSignal, 'TS:TSSigmaXY')
-    ts_sigma_y = C(EpicsSignal, 'TS:TSSigmaY')
-    ts_total = C(EpicsSignal, 'TS:TSTotal')
-    total = C(EpicsSignalRO, 'Total_RBV')
+    ts_net = ADCpt(EpicsSignal, 'TS:TSNet')
+    ts_num_points = ADCpt(EpicsSignal, 'TS:TSNumPoints')
+    ts_read = ADCpt(EpicsSignal, 'TS:TSRead')
+    ts_sigma = ADCpt(EpicsSignal, 'TS:TSSigma')
+    ts_sigma_x = ADCpt(EpicsSignal, 'TS:TSSigmaX')
+    ts_sigma_xy = ADCpt(EpicsSignal, 'TS:TSSigmaXY')
+    ts_sigma_y = ADCpt(EpicsSignal, 'TS:TSSigmaY')
+    ts_total = ADCpt(EpicsSignal, 'TS:TSTotal')
+    total = ADCpt(EpicsSignalRO, 'Total_RBV')
+
+
+class QuadEMPort(ADBase):
+    port_name = Cpt(Signal, value="")
+
+    def __init__(self, port_name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.port_name.put(port_name)
+
+
+class QuadEMV33(QuadEM):
+    conf = Cpt(QuadEMPort, port_name="EM180")
+    em_range = Cpt(SignalWithRBV, "Range", string=True)
+
+    current1 = ADCpt(StatsPluginV33, 'Current1:')
+    current2 = ADCpt(StatsPluginV33, 'Current2:')
+    current3 = ADCpt(StatsPluginV33, 'Current3:')
+    current4 = ADCpt(StatsPluginV33, 'Current4:')
+    sum_all = ADCpt(StatsPluginV33, 'SumAll:')
