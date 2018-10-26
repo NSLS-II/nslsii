@@ -1,4 +1,4 @@
-from nslsii.temperature_controllers import Eurotherm
+from nslsii.temperature_controllers import Eurotherm, SetInProgress
 from bluesky.plan_stubs import mv
 from bluesky import RunEngine
 from bluesky.utils import FailedStatus
@@ -55,7 +55,7 @@ def test_Eurotherm(RE):
         euro.timeout.set(500)  # reset to default for the following tests.
 
         # test that the lock prevents setting while set in progress
-        with pytest.raises(Exception):
+        with pytest.raises(SetInProgress):
             for i in range(2):  # The previous set may or may not be complete
                 euro.set(100)
 

@@ -1,5 +1,5 @@
 from ophyd import DeviceStatus, Device, Component as Cpt, EpicsSignal, Signal
-import threading as th
+import threading
 
 
 class Eurotherm(Device):
@@ -22,8 +22,7 @@ class Eurotherm(Device):
 
     def __init__(self, pv_prefix, **kwargs):
         super().__init__(pv_prefix, **kwargs)
-        self._set_lock = th.Lock()
-        self._cid = None
+        self._set_lock = threading.Lock()
 
     # Setup some new signals required for the moving indicator logic
     equilibrium_time = Cpt(Signal, value=5)
@@ -38,8 +37,8 @@ class Eurotherm(Device):
     def set(self, value):
         # check that a set is not in progress, and if not set the lock.
         if not self._set_lock.acquire(blocking=False):
-            raise Exception('attempting to set {} '.format(self.name) +
-                            'while a set is in progress'.format(self.name))
+            raise SetInProgress('attempting to set {} '.format(self.name) +
+                                'while a set is in progress')
 
         # define some required values
         set_value = value
@@ -60,7 +59,8 @@ class Eurotherm(Device):
             self.readback.clear_sub(status_indicator)
             status._finished(success=False)
 
-        cb_timer = th.Timer(self.timeout.get(), timer_cleanup, args=[status])
+        cb_timer = threading.Timer(self.timeout.get(), timer_cleanup,
+                                   args=(status,))
 
         # set up the done moving indicator logic
         def status_indicator(value, timestamp, **kwargs):
@@ -95,3 +95,7 @@ class Eurotherm(Device):
         self._set_lock.release()
         # set the controller to the current value (best option we came up with)
         self.set(self.readback.get())
+
+
+class SetInProgress(RuntimeError):
+    ...
