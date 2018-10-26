@@ -24,6 +24,11 @@ class Eurotherm(Device):
         super().__init__(pv_prefix, **kwargs)
         self._set_lock = threading.Lock()
 
+        # defining these here so that they can be used by `set` and `start`
+        self._status = None
+        self._cb_timer = None
+        self._cid = None
+
     # Setup some new signals required for the moving indicator logic
     equilibrium_time = Cpt(Signal, value=5)
     timeout = Cpt(Signal, value=500)
@@ -42,7 +47,7 @@ class Eurotherm(Device):
 
         # define some required values
         set_value = value
-        status = DeviceStatus(self)
+        self._status = DeviceStatus(self)
 
         initial_timestamp = None
 
@@ -52,28 +57,27 @@ class Eurotherm(Device):
 
         # setup a cleanup function for the timer, this matches including
         # timeout in `status` but also ensures that the callback us removed.
-        def timer_cleanup(status):
+        def timer_cleanup():
             print('Set of {} timed out after {} s'.format(self.name,
                                                           self.timeout.get()))
             self._set_lock.release()
             self.readback.clear_sub(status_indicator)
-            status._finished(success=False)
+            self._status._finished(success=False)
 
-        cb_timer = threading.Timer(self.timeout.get(), timer_cleanup,
-                                   args=(status,))
+        self._cb_timer = threading.Timer(self.timeout.get(), timer_cleanup)
 
         # set up the done moving indicator logic
         def status_indicator(value, timestamp, **kwargs):
             # add a Timer to ensure that timeout occurs.
-            if not cb_timer.is_alive():
-                cb_timer.start()
+            if not self._cb_timer.is_alive():
+                self._cb_timer.start()
 
             nonlocal initial_timestamp
             if abs(value - set_value) < tolerance:
                 if initial_timestamp:
                     if (timestamp - initial_timestamp) > equilibrium_time:
-                        status._finished()
-                        cb_timer.cancel()
+                        self._status._finished()
+                        self._cb_timer.cancel()
                         self._set_lock.release()
                         self.readback.clear_sub(status_indicator)
                 else:
@@ -88,11 +92,14 @@ class Eurotherm(Device):
         self._cid = self.readback.subscribe(status_indicator)
 
         # hand the status object back to the RE
-        return status
+        return self._status
 
     def stop(self):
-        # overide the lock on any in progress sets
+        # overide the lock, cancel the timer and remove the subscription on any
+        # in progress sets
         self._set_lock.release()
+        self._cb_timer.cancel()
+        self.readback.unsubscribe(self._cid)
         # set the controller to the current value (best option we came up with)
         self.set(self.readback.get())
 
