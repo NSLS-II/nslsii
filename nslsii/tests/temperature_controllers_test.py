@@ -44,14 +44,15 @@ def test_Eurotherm(RE):
 
         # check that the readback value is within euro.tolerance of 100
         assert abs(euro.readback.get() - 100) <= euro.tolerance.get()
+        assert len(euro.readback._callbacks['value']) == 0  # ensure cb is gone
 
         # test that the set will fail after 'timeout'
         euro.timeout.set(1)
         with pytest.raises(FailedStatus):
-            RE(mv(euro,100))
+            RE(mv(euro, 100))
         # ensure callback is removed
         assert len(euro.readback._callbacks['value']) == 0
-        euro.timeout.set(500) # reset to default for the following tests.
+        euro.timeout.set(500)  # reset to default for the following tests.
 
         # test that the lock prevents setting while set in progress
         with pytest.raises(Exception):
