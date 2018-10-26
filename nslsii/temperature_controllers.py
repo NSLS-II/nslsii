@@ -22,7 +22,7 @@ class Eurotherm(Device):
 
     def __init__(self, pv_prefix, **kwargs):
         super().__init__(pv_prefix, **kwargs)
-        self._set_lock = False
+        self._set_lock = th.Lock()
         self._cid = None
 
     # Setup some new signals required for the moving indicator logic
@@ -37,10 +37,9 @@ class Eurotherm(Device):
     # define the new set method with the new moving indicator
     def set(self, value):
         # check that a set is not in progress, and if not set the lock.
-        if self._set_lock:
-            raise Exception('attempting to set {}'.format(self.name) +
+        if not self._set_lock.acquire(blocking=False):
+            raise Exception('attempting to set {} '.format(self.name) +
                             'while a set is in progress'.format(self.name))
-        self._set_lock = True
 
         # define some required values
         set_value = value
@@ -57,7 +56,7 @@ class Eurotherm(Device):
         def timer_cleanup(status):
             print('Set of {} timed out after {} s'.format(self.name,
                                                           self.timeout.get()))
-            self._set_lock = False
+            self._set_lock.release()
             self.readback.clear_sub(status_indicator)
             status._finished(success=False)
 
@@ -75,7 +74,7 @@ class Eurotherm(Device):
                     if (timestamp - initial_timestamp) > equilibrium_time:
                         status._finished()
                         cb_timer.cancel()
-                        self._set_lock = False
+                        self._set_lock.release()
                         self.readback.clear_sub(status_indicator)
                 else:
                     initial_timestamp = timestamp
@@ -93,6 +92,6 @@ class Eurotherm(Device):
 
     def stop(self):
         # overide the lock on any in progress sets
-        self._set_lock = False
+        self._set_lock.release()
         # set the controller to the current value (best option we came up with)
         self.set(self.readback.get())
