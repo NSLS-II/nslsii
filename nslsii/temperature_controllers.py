@@ -1,4 +1,5 @@
 from ophyd import DeviceStatus, Device, Component as Cpt, EpicsSignal, Signal
+import threading as th
 
 
 class Eurotherm(Device):
@@ -22,6 +23,7 @@ class Eurotherm(Device):
     def __init__(self, pv_prefix, **kwargs):
         super().__init__(pv_prefix, **kwargs)
         self._set_lock = False
+        self._cid = None
 
     # Setup some new signals required for the moving indicator logic
     equilibrium_time = Cpt(Signal, value=5)
@@ -42,7 +44,7 @@ class Eurotherm(Device):
 
         # define some required values
         set_value = value
-        status = DeviceStatus(self, timeout=self.timeout.get())
+        status = DeviceStatus(self)
 
         initial_timestamp = None
 
@@ -50,13 +52,29 @@ class Eurotherm(Device):
         equilibrium_time = self.equilibrium_time.get()
         tolerance = self.tolerance.get()
 
+        # setup a cleanup function for the timer, this matches including
+        # timeout in `status` but also ensures that the callback us removed.
+        def timer_cleanup(status):
+            print('Set of {} timed out after {} s'.format(self.name,
+                                                          self.timeout.get()))
+            self._set_lock = False
+            self.readback.clear_sub(status_indicator)
+            status._finished(success=False)
+
+        cb_timer = th.Timer(self.timeout.get(), timer_cleanup, args=[status])
+
         # set up the done moving indicator logic
         def status_indicator(value, timestamp, **kwargs):
+            # add a Timer to ensure that timeout occurs.
+            if not cb_timer.is_alive():
+                cb_timer.start()
+
             nonlocal initial_timestamp
             if abs(value - set_value) < tolerance:
                 if initial_timestamp:
                     if (timestamp - initial_timestamp) > equilibrium_time:
                         status._finished()
+                        cb_timer.cancel()
                         self._set_lock = False
                         self.readback.clear_sub(status_indicator)
                 else:
@@ -68,7 +86,7 @@ class Eurotherm(Device):
         self.setpoint.put(set_value)
 
         # subscribe to the read value to indicate the set is done.
-        self.readback.subscribe(status_indicator)
+        self._cid = self.readback.subscribe(status_indicator)
 
         # hand the status object back to the RE
         return status
