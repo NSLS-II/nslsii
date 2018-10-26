@@ -25,7 +25,6 @@ class Eurotherm(Device):
         self._set_lock = threading.Lock()
 
         # defining these here so that they can be used by `set` and `start`
-        self._status = None
         self._cb_timer = None
         self._cid = None
 
@@ -47,7 +46,7 @@ class Eurotherm(Device):
 
         # define some required values
         set_value = value
-        self._status = DeviceStatus(self)
+        status = DeviceStatus(self)
 
         initial_timestamp = None
 
@@ -62,7 +61,7 @@ class Eurotherm(Device):
                                                           self.timeout.get()))
             self._set_lock.release()
             self.readback.clear_sub(status_indicator)
-            self._status._finished(success=False)
+            status._finished(success=False)
 
         self._cb_timer = threading.Timer(self.timeout.get(), timer_cleanup)
 
@@ -76,7 +75,7 @@ class Eurotherm(Device):
             if abs(value - set_value) < tolerance:
                 if initial_timestamp:
                     if (timestamp - initial_timestamp) > equilibrium_time:
-                        self._status._finished()
+                        status._finished()
                         self._cb_timer.cancel()
                         self._set_lock.release()
                         self.readback.clear_sub(status_indicator)
@@ -92,7 +91,7 @@ class Eurotherm(Device):
         self._cid = self.readback.subscribe(status_indicator)
 
         # hand the status object back to the RE
-        return self._status
+        return status
 
     def stop(self):
         # overide the lock, cancel the timer and remove the subscription on any
