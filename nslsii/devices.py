@@ -60,7 +60,7 @@ class TwoButtonShutter(Device):
             nonlocal count
             value = cmd_enums[int(value)]
             count += 1
-            if count > 5:
+            if count > 10:
                 cmd_sig.clear_sub(cmd_retry_cb)
                 self._set_st = None
                 self.status.clear_sub(shutter_cb)
