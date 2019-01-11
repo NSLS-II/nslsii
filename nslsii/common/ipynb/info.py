@@ -16,11 +16,11 @@ def get_sys_info():
 
     mem = psutil.virtual_memory()
     html += '<tr><td>Total System Memory</td>'
-    html += '<td>{:.4} Mb</td></td>'.format(mem.total/1024**3)
+    html += '<td>{:.4} Mb</td></td>'.format(mem.total / 1024**3)
     html += '<tr><td>Total Memory Used</td>'
-    html += '<td>{:.4} Mb</td></td>'.format(mem.used/1024**3)
+    html += '<td>{:.4} Mb</td></td>'.format(mem.used / 1024**3)
     html += '<tr><td>Total Memory Free</td>'
-    html += '<td>{:.4} Mb</td></td>'.format(mem.free/1024**3)
+    html += '<td>{:.4} Mb</td></td>'.format(mem.free / 1024**3)
 
     html += '<tr><td>Number of CPU Cores</td><td>{}</td></tr>'.format(
         psutil.cpu_count())

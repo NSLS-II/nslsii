@@ -52,7 +52,7 @@ def show_image_stack(images, minmax, fontsize=18, cmap='CMRmap',
 
         plt.show()
 
-    interact(view_frame, i=(0, n-1), vmin=minmax, vmax=minmax)
+    interact(view_frame, i=(0, n - 1), vmin=minmax, vmax=minmax)
 
 
 def image_stack_to_movie(images, frames=None, vmin=None, vmax=None,
