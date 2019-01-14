@@ -8,3 +8,4 @@ numpy
 ophyd
 psutil
 pyolog
+requests
