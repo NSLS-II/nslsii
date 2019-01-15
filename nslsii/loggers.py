@@ -39,13 +39,17 @@ class ElasticHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
+def configure_elastic(beamline):
+    url = 'http://elasticsearch.cs.nsls2.local/' + beamline + '.blueksy'
 
-bluesky_logger = logging.getLogger('bluesky')
-carproto_logger = logging.getLogger('carproto')
-ophyd_logger = logging.getLogger('ophyd')
+    bluesky_logger = logging.getLogger('bluesky')
+    bluesky_elastic_hdr = ElasticHandler(url, level = logging.DEBUG)
+    bluesky_logger.addHandler(elastic_hdr)
 
-elastic_hdr = ElasticHandler('http://elasticsearch.cs.nsls2.local/test/_doc/1')
+    carproto_logger = logging.getLogger('carproto')
+    carproto_elastic_hdr = ElasticHandler(url, level = logging.INFO)
+    carproto_logger.addHandler(elastic_hdr)
 
-bluesky_logger.addHandler(elastic_hdr)
-carproto_logger.addHandler(elastic_hdr)
-ophyd_logger.addHandler(elastic_hdr)
+    ophyd_logger = logging.getLogger('ophyd')
+    ophyd_elastic_hdr = ElasticHandler(url, level = logging.INFO)
+    ophyd_logger.addHandler(elastic_hdr)
