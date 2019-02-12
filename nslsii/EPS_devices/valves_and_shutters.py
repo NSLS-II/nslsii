@@ -9,12 +9,12 @@ class nslsiiValves_and_ShuttersValueError(ValueError):
     pass
 
 
-class EpicsTwoStateDevice(Device):
-    '''An ``ophyd.Device`` class for two state Epics objects.
+class EPSTwoStateDevice(Device):
+    '''An ``ophyd.Device`` class for two state EPS objects at NSLS-II.
 
     This is a base class that should be used as a parent for classes related
-    to pneumatic actuators, gate valves, photon shutters or any other objects
-    that have 2 distinct states.
+    to pneumatic actuators, gate valves, photon shutters or any other NSLS-II
+    EPS objects that have 2 distinct states .
 
     Parameters
     ----------
@@ -37,7 +37,7 @@ class EpicsTwoStateDevice(Device):
     state2_pv_uid : str, optional
         The unique part of the EPICS PV for the state 2 command(see note below)
     num_retries : int, optional
-        This number of attempts at changing the state prior to raising an
+        The number of attempts at changing the state prior to raising an
         error, the default is 1.
     retry_sleep_time : float, optional
         This is the time in seconds to wait between retries on changing the
@@ -105,16 +105,17 @@ class EpicsTwoStateDevice(Device):
 
     enabled_status = Cpt(EpicsSignalRO, 'Enbl-Sts', string=True)
 
-    _fail_to_state2 = FmtCpt(EpicsSignalRO,
-                             '{self.prefix}Sts:Fail{self._state2_pv_uid}-Sts',
-                             string=True)
     _fail_to_state1 = FmtCpt(EpicsSignalRO,
                              '{self.prefix}Sts:Fail{self._state1_pv_uid}-Sts',
+                             string=True)
+    _fail_to_state2 = FmtCpt(EpicsSignalRO,
+                             '{self.prefix}Sts:Fail{self._state2_pv_uid}-Sts',
                              string=True)
 
     def set(self, val):
         if self._set_st is not None:
-            raise RuntimeError('trying to set while a set is in progress')
+            raise RuntimeError(
+                f'trying to set {self.name} while a set is in progress')
 
         cmd_sig = self._cmd_map[val]
         target_val = self._target_map[val]
@@ -145,8 +146,8 @@ class EpicsTwoStateDevice(Device):
                     cmd_sig.set(1)
                     ts = datetime.datetime.fromtimestamp(
                         timestamp).strftime(self._time_fmtstr)
-                    print('** ({}) Had to reactuate shutter while {}ing'
-                          ''.format(ts, val))
+                    print(f'** ({ts}) Had to reactuate {self.name} while'
+                          f'moving to {val}')
                 else:
                     cmd_sig.clear_sub(cmd_retry_cb)
 
@@ -187,7 +188,7 @@ class EpicsTwoStateDevice(Device):
         return super().unstage()
 
 
-class PneumaticActuator(EpicsTwoStateDevice):
+class PneumaticActuator(EPSTwoStateDevice):
     '''An ``ophyd.Device`` for EPS driven pneumatic actuators at NSLS-II
 
 
@@ -248,7 +249,7 @@ class PneumaticActuator(EpicsTwoStateDevice):
         super().__init__(prefix, name, **kwargs)
 
 
-class GateValve(EpicsTwoStateDevice):
+class GateValve(EPSTwoStateDevice):
     '''An ``ophyd.Device`` for EPS driven gate valves at NSLS-II
 
     This is for use with NSLS-II EPS based gate valves that have two
@@ -305,7 +306,7 @@ class GateValve(EpicsTwoStateDevice):
         super().__init__(prefix, name, **kwargs)
 
 
-class PhotonShutter(EpicsTwoStateDevice):
+class PhotonShutter(EPSTwoStateDevice):
     '''An ``ophyd.Device`` for EPS driven photon shutters at NSLS-II
 
     This is for use with NSLS-II EPS based photon shutters that have two
