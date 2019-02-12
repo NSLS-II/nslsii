@@ -55,7 +55,7 @@ class Eurotherm(Device):
         tolerance = self.tolerance.get()
 
         # setup a cleanup function for the timer, this matches including
-        # timeout in `status` but also ensures that the callback us removed.
+        # timeout in `status` but also ensures that the callback is removed.
         def timer_cleanup():
             print('Set of {} timed out after {} s'.format(self.name,
                                                           self.timeout.get()))
