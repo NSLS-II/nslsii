@@ -53,7 +53,6 @@ class EPSTwoStateDevice(Device):
         The PV associated with moving to 'state 1' is derived from the
         ``prefix`` and the ``state1_pv_uid`` using the following format:
         ``'{prefix}Cmd:{state1_pv_uid}-Cmd'``
-
    '''
 
     def __init__(self, *, prefix, name,
@@ -288,7 +287,6 @@ class GateValve(EPSTwoStateDevice):
         state, the default is 0.5 s.
     **kwargs : dict, optional
         The kwargs passed to the ``ophyd.Device`` ``__init__`` method
-
     '''
 
     def __init__(self, *, prefix, name,
@@ -347,7 +345,6 @@ class PhotonShutter(EPSTwoStateDevice):
         state, the default is 0.5 s.
     **kwargs : dict, optional
         The kwargs passed to the ``ophyd.Device`` ``__init__`` method
-
     '''
 
     def __init__(self, *, prefix, name,
