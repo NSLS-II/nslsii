@@ -19,9 +19,9 @@ def slit(name='', axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
 
     ..code ::
 
-        HorizSlit=BaffleSlit(name='Horiz_Slit',
-                             axes={'hg': '-Ax:HG}Mtr', 'hc':'-Ax:HC}Mtr'})
-        my_slit=HorizSlit(PV_prefix, name='my_slit')
+        HorizSlit = slit(name='Horiz_Slit',
+                         axes={'hg': '-Ax:HG}Mtr', 'hc':'-Ax:HC}Mtr'})
+        my_slit = HorizSlit(PV_prefix, name='my_slit')
 
     Parameters
     ----------
@@ -59,23 +59,16 @@ def slit(name='', axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
 
 # FourBladeSlit class
 _fourblade_docstring = (
-    '''An ``ophyd.Device`` class to be used for 4 blade baffle slits at NSLS-II
+    '''An ``ophyd.Device`` class to be used for 4 blade slits at NSLS-II
 
-    This is generated using ``nslsii.motor_devices.slit`` and adds the default
+    This is generated using ``nslsii.motor_devices.slit`` and has the default
     components for a 4 blade slit. In particular, in addition to the components
-    for horizontal and vertical gap and centres it adds components for the
-    inboard (inb), outboard (out), top (top) and bottom (bot) blades.
+    for horizontal and vertical gap and centres (hg, hc, vg and vc) it has
+    components for the inboard (inb), outboard (out), top (top) and bottom
+    (bot) blades.
 
     Parameters
     ----------
-    components, dict
-        Maps the name for a motor attribute to the PVsuffix for the EpicsMotor
-        group. The default, which defines a basic slit with horizontal(h) and
-        vertical(v) gaps(g) and centres(c), is:
-        {'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-         'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
-         'inb': '-Ax:I}Mtr', 'out': '-Ax:O}Mtr',
-         'top': '-Ax:T}Mtr', 'bot': '-Ax:B}Mtr'}
     *args
         The arguments that will be passed down to the ``ophyd.Device``
         ``__init__`` call.
@@ -95,30 +88,23 @@ FourBladeSlit = slit(name='FourBladeSlit',
 _scanaperture_docstring = (
     '''An ``ophyd.Device`` class used for scan/aperture baffle slits at NSLS-II
 
-    This is a child of ``nslsii.motor_devices.BaffleSlit`` and adds the
-    default components for a baffle slit with 'scan' and 'aperture' motors. In
-    particular, in addition to the default components for horizontal and
-    vertical gap and centres from ``nslsii.motor_devices.BaffleSlit`` it adds
-    default components for the horizontal scan (hs), horizontal aperture (ha),
-    vertical scan (vs) and vertical aperture (va) motors.
+    This is generated using ``nslsii.motor_devices.slit`` and has the default
+    components for a slit with 'scan' and 'aperture' motors. In particular, in
+    addition to the components for horizontal and vertical gap and centres
+    (hg, hc, vg and vc) it has components for the horizontal scan (hs),
+    horizontal aperture (ha), vertical scan (vs) and vertical aperture (va).
 
     Parameters
     ----------
-    components, dict
-        Maps the name for a motor attribute to the PVsuffix for the EpicsMotor
-        group. The default, which defines a basic slit with horizontal(h) and
-        vertical(v) gaps(g) and centres(c), is:
-        {'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-         'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
-         'hs': '-Ax:HS}Mtr', 'ha': '-Ax:HA}Mtr',
-         'vs': '-Ax:VS}Mtr', 'va': '-Ax:VA}Mtr'}
     *args
-        The arguments that will be passed down to the ``Device`` ``__init__``
+        The arguments that will be passed down to the ``ophyd.Device``
+        ``__init__``
         call.
     **kwargs
-        The keyword arguments that will be passed down to the ``Device``
+        The keyword arguments that will be passed down to the ``ophyd.Device``
         ``__init__`` call.
     ''')
+
 ScanAndApertureSlit = slit(name='ScanAndApertureSlit',
                            axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
                                  'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
