@@ -84,7 +84,7 @@ _fourblade_docstring = (
         ``__init__`` call.
     ''')
 
-FourBladeSlit = slit(name='FourBladeBaffleSlit',
+FourBladeSlit = slit(name='FourBladeSlit',
                      axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
                            'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
                            'inb': '-Ax:I}Mtr', 'out': '-Ax:O}Mtr',
