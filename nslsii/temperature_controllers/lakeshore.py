@@ -1,34 +1,42 @@
 from collections import OrderedDict
 from ophyd import (Component, DynamicDeviceComponent, Device, EpicsSignal,
                    EpicsSignalRO, PVPositioner)
+from ophyd.device import create_device_from_components
 
 
-class Lakeshore336(Device):
-    '''An ``ophyd.Device`` class to be used for Lakeshore336 temp controllers.
+def lakeshore336(name='Lakeshore336', temperatures=['A', 'B', 'C', 'D'],
+                 controls=[1, 2, 3, 4], docstring=None,
+                 default_read_attrs=None, default_configuration_attrs=None):
+    '''Returns a Lakeshore 336 class with the provided sensors and controls,
 
-    This is a class for controlling Lakeshore model 336 temperature controllers
-    The defaults are set to include four sensors (A, B, C and D) and four
-    control loops (1,2,3 and 4) however this is customizable at initialization
-    time via the kwargs ``temperatures`` and ``controls`` respectively. To
-    instantiate the default settings use the command:
-    ``my_controller = Lakeshore336(PVprefix, name='my_controller')``
+    This is a function for generating a class for controlling Lakeshore model
+    336 temperature controllers. The defaults are set to include four sensors
+    (A, B, C and D) and four control loops (1,2,3 and 4) however this is
+    customizable via the kwargs ``temperatures`` and ``controls`` respectively.
+    To instantiate a controller with the default settings use the commands:
+    ``MyLakeshore336 = lakeshore336()``
+    ``my_controller = MyLakeshore336(PVprefix, name='my_controller')``
 
     Parameters
     ----------
-    *args: list
-        The arguments that are passed to ``ophyd.Device``.
     temperatures: list
         A list of temperature sensor 'channels' to instantiate, the default is
         ['A','B','C','D'].
     controls: list
         A list of heater control 'channels' to instantiate, the default is
         [1,2,3,4].
-    **kwargs: dict
-        The keyword arguments passed to ``ophyd.Device``.
+    docstring : str, optional
+        Docstring to attach to the class
+    default_read_attrs : list, optional
+        Outside of Kind, control the default read_attrs list. Defaults to all
+        'component_names'.
+    default_configuration_attrs : list, optional
+        Outside of Kind, control the default configuration_attrs list.
+        Defaults to []
     '''
 
     def _set_fields(fields, cls, prefix, **kwargs):
-        '''A function that allows for the components to be dynamically set.
+        '''A function that generates the component dictionaries for fields.
 
         Parameters
         ----------
@@ -48,11 +56,14 @@ class Lakeshore336(Device):
         out_dict = OrderedDict()
         for field in fields:
             suffix = f'{prefix}{field}'
-            out_dict[f'{field}'] = (cls, suffix, kwargs)
+            out_dict[f'{field}'] = Component(cls, suffix, **kwargs)
         return out_dict
 
     class _Temperature(Device):
-        '''A Device that is used to create the readback 'channel' components.
+        '''A sub-class for the readback 'channel' components.
+
+        This class provides the temperature sensor ``ophyd.Components`` on a
+        Lakeshore model 336 temperature controller ``ophyd.Device``.
 
         Parameters
         ----------
@@ -73,7 +84,10 @@ class Lakeshore336(Device):
         T_limit = Component(EpicsSignal, '}T:Lim-RB', write_pv='}T:Lim-SP')
 
     class _Control(PVPositioner):
-        '''A sub-class used to define each of the temperature control channels.
+        '''A sub-class for the temperature control channels.
+
+        This class provides the temperature control ``ophyd.Components`` on a
+        Lakeshore model 336 temperature controller ``ophyd.Device``.
 
         Parameters
         ----------
@@ -105,7 +119,6 @@ class Lakeshore336(Device):
                           {'write_pv': '}Gain:I-SP'}),
              'derivative': (EpicsSignal, '}Gain:D-RB',
                             {'write_pv': '}Gain:D-SP'})})
-
         # output parameters
         output = DynamicDeviceComponent(
             {'current': (EpicsSignal, '}Out-I'),
@@ -116,12 +129,12 @@ class Lakeshore336(Device):
              'resistance': (EpicsSignalRO, '}Out:R-RB',
                             {'write_pv': '}Out:R-SP'})})
 
-    def __init__(self, *args, temperatures=['A', 'B', 'C', 'D'],
-                 controls=[1, 2, 3, 4], **kwargs):
-        super().__init__(*args, **kwargs)
+    components = _set_fields(temperatures, _Temperature, '-Chan:')
+    components.update(_set_fields(controls, _Control, '-Out:'))
 
-        self.temperature = DynamicDeviceComponent(
-            self._set_fields(temperatures, self._Temperature, '-Chan:'))
+    new_class = create_device_from_components(
+        name, docstring=docstring, default_read_attrs=default_read_attrs,
+        default_configuration_attrs=default_configuration_attrs,
+        base_class=Device, **components)
 
-        self.control = DynamicDeviceComponent(
-            self._set_fields(controls, self._Control, '-Out:'))
+    return new_class
