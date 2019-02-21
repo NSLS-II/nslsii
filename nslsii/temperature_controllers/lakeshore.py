@@ -27,7 +27,7 @@ class Lakeshore336(Device):
         The keyword arguments passed to ``ophyd.Device``.
     '''
 
-    def _set_fields(fields, device, prefix, **kwargs):
+    def _set_fields(fields, cls, prefix, **kwargs):
         '''A function that allows for the components to be dynamically set.
 
         Parameters
@@ -36,8 +36,8 @@ class Lakeshore336(Device):
             A list of field identifiers to include, for ``_Temperature``
             components an example is ['A','B','C','D'] and for ``_Control``
             components an example is [1,2,3,4].
-        device: object
-            An ``ophyd.Device`` or ``ophyd.Signal`` object that shold be used
+        cls: class
+            An ``ophyd.Device`` or ``ophyd.Signal`` class that shold be used
             to create the ``ophyd.Component``s specifed in ``fields``.
         prefix: str
             The string to prefix to the field identifier in ``fields`` to
@@ -48,7 +48,7 @@ class Lakeshore336(Device):
         out_dict = OrderedDict()
         for field in fields:
             suffix = f'{prefix}{field}'
-            out_dict[f'{field}'] = (device, suffix, kwargs)
+            out_dict[f'{field}'] = (cls, suffix, kwargs)
         return out_dict
 
     class _Temperature(Device):
@@ -93,27 +93,28 @@ class Lakeshore336(Device):
         enable = Component(EpicsSignal, '}Enbl-Sel')
         target_channel = Component(EpicsSignal, '}Out-Sel')
         # ramp attributes
-        ramp_dict = {'enabled': (EpicsSignal, '}Enbl:Ramp-Sel'),
-                     'rate': (EpicsSignal, '}Val:Ramp-RB',
-                              {'write_pv': '}Val:Ramp-SP'})}
-        ramp = DynamicDeviceComponent(ramp_dict)
+        ramp = DynamicDeviceComponent(
+            {'enabled': (EpicsSignal, '}Enbl:Ramp-Sel'),
+             'rate': (EpicsSignal, '}Val:Ramp-RB',
+                      {'write_pv': '}Val:Ramp-SP'})})
         # PID loop parameters
-        pid_dict = {'proportional': (EpicsSignal, '}Gain:P-RB',
-                                     {'write_pv': '}Gain:P-SP'}),
-                    'integral': (EpicsSignal, '}Gain:I-RB',
-                                 {'write_pv': '}Gain:I-SP'}),
-                    'derivative': (EpicsSignal, '}Gain:D-RB',
-                                   {'write_pv': '}Gain:D-SP'})}
-        pid = DynamicDeviceComponent(pid_dict)
+        pid = DynamicDeviceComponent(
+            {'proportional': (EpicsSignal, '}Gain:P-RB',
+                              {'write_pv': '}Gain:P-SP'}),
+             'integral': (EpicsSignal, '}Gain:I-RB',
+                          {'write_pv': '}Gain:I-SP'}),
+             'derivative': (EpicsSignal, '}Gain:D-RB',
+                            {'write_pv': '}Gain:D-SP'})})
+
         # output parameters
-        output_dict = {'current': (EpicsSignal, '}Out-I'),
-                       'manual_current': (EpicsSignal, '}Out:Man-RB',
-                                          {'write_pv': '}Out:Man-SP'}),
-                       'max_current': (EpicsSignal, '}Out:MaxI-RB',
-                                       {'write_pv': '}Out:MaxI-SP'}),
-                       'resistance': (EpicsSignalRO, '}Out:R-RB',
-                                      {'write_pv': '}Out:R-SP'})}
-        output = DynamicDeviceComponent(output_dict)
+        output = DynamicDeviceComponent(
+            {'current': (EpicsSignal, '}Out-I'),
+             'manual_current': (EpicsSignal, '}Out:Man-RB',
+                                {'write_pv': '}Out:Man-SP'}),
+             'max_current': (EpicsSignal, '}Out:MaxI-RB',
+                             {'write_pv': '}Out:MaxI-SP'}),
+             'resistance': (EpicsSignalRO, '}Out:R-RB',
+                            {'write_pv': '}Out:R-SP'})})
 
     def __init__(self, *args, temperatures=['A', 'B', 'C', 'D'],
                  controls=[1, 2, 3, 4], **kwargs):
