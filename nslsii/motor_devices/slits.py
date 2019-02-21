@@ -1,52 +1,69 @@
 from ophyd import (Device, Component, EpicsMotor, PVPositioner, EpicsSignal,
                    EpicsSignalRO)
+from ophyd.device import create_device_from_components
 
 
-class BaffleSlit(Device):
-    '''An ``ophyd.Device`` class to be used as a base for'slits' at NSLS-II
+def slit(name='', axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
+                        'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr'}, *,
+         docstring=None, default_read_attrs=None,
+         default_configuration_attrs=None):
+    '''Returns an ``ophyd.Device`` class for 'slits' at NSLS-II
 
-    This is the base class that should be a parent for the remaining slit
-    classes at NSLS-II. Slits are defined as anything that has at least one
-    settable 'opening' or 'aperture'. The default is a baffle slit with a
+    This function generates ``ophyd.Device`` classes that should used to make
+    slit classes at NSLS-II. Slits are defined as anything that has at least
+    one settable 'opening' or 'aperture'. The default is a baffle slit with a
     horizontal gap and centre (hg and hc) and a vertical gap and centre (vg and
     vc). Other configurations can be created using the ``blades`` dict on
     initialization. For instance to define a horizontal only slit use the
     kwarg:
-      ``slit=BaffleSlit(PV_prefix, name='slit',
-                        components = {'hg': '-Ax:HG}Mtr', 'hc':'-Ax:HC}Mtr'})``
+
+    ..code ::
+
+        HorizSlit=BaffleSlit(name='Horiz_Slit',
+                             axes={'hg': '-Ax:HG}Mtr', 'hc':'-Ax:HC}Mtr'})
+        my_slit=HorizSlit(PV_prefix, name='my_slit')
 
     Parameters
     ----------
-    components, dict
+    name: str
+        The name of the new ``ophyd.Device`` class.
+    components : dict
         Maps the name for a motor attribute to the PVsuffix for the EpicsMotor
         group. The default, which defines a basic slit with horizontal(h) and
         vertical(v) gaps(g) and centres(c), is:
         {'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
          'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr'}
-    *args
-        The arguments that will be passed down to the ``Device`` ``__init__``
-        call.
-    **kwargs
-        The keyword arguments that will be passed down to the ``Device``
-        ``__init__`` call.
+    docstring : str, optional
+        Docstring to attach to the class
+    default_read_attrs : list, optional
+        Outside of Kind, control the default read_attrs list. Defaults to all
+        'component_names'.
+    default_configuration_attrs : list, optional
+        Outside of Kind, control the default configuration_attrs list.
+        Defaults to []
     '''
 
-    def __init__(self, *args,
-                 components={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-                             'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr'},
-                 **kwargs):
-        super().__init__(*args, **kwargs)
-        for name, PV_suffix in components.items():
-            setattr(self, name, Component(EpicsMotor, PV_suffix, name=name))
+    components = {}
+    for name, PV_suffix in axes.items():
+        components[name] = Component(EpicsMotor, PV_suffix, name=name)
+
+    new_class = create_device_from_components(
+        name, docstring=docstring, default_read_attrs=default_read_attrs,
+        default_configuration_attrs=default_configuration_attrs,
+        base_class=Device, **components)
+
+    return new_class
 
 
-class FourBladeBaffleSlit(BaffleSlit):
+# Below we define a few common examples of classes
+
+# FourBladeSlit class
+_fourblade_docstring = (
     '''An ``ophyd.Device`` class to be used for 4 blade baffle slits at NSLS-II
 
-    This is a child of ``nslsii.motor_devices.BaffleSlit`` and adds the
-    default components for a 4 blade baffle slit. In particular, in addition to
-    the default components for horizontal and vertical gap and centres from
-    ``nslsii.motor_devices.BaffleSlit`` it adds default components for the
+    This is generated using ``nslsii.motor_devices.slit`` and adds the default
+    components for a 4 blade slit. In particular, in addition to the components
+    for horizontal and vertical gap and centres it adds components for the
     inboard (inb), outboard (out), top (top) and bottom (bot) blades.
 
     Parameters
@@ -60,22 +77,22 @@ class FourBladeBaffleSlit(BaffleSlit):
          'inb': '-Ax:I}Mtr', 'out': '-Ax:O}Mtr',
          'top': '-Ax:T}Mtr', 'bot': '-Ax:B}Mtr'}
     *args
-        The arguments that will be passed down to the ``Device`` ``__init__``
-        call.
-    **kwargs
-        The keyword arguments that will be passed down to the ``Device``
+        The arguments that will be passed down to the ``ophyd.Device``
         ``__init__`` call.
-    '''
-    def __init__(self, *args,
-                 components={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-                             'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
-                             'inb': '-Ax:I}Mtr', 'out': '-Ax:O}Mtr',
-                             'top': '-Ax:T}Mtr', 'bot': '-Ax:B}Mtr'},
-                 **kwargs):
-        super().__init__(*args, components=components, **kwargs)
+    **kwargs
+        The keyword arguments that will be passed down to the ``ophyd.Device``
+        ``__init__`` call.
+    ''')
 
+FourBladeSlit = slit(name='FourBladeBaffleSlit',
+                     axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
+                           'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
+                           'inb': '-Ax:I}Mtr', 'out': '-Ax:O}Mtr',
+                           'top': '-Ax:T}Mtr', 'bot': '-Ax:B}Mtr'},
+                     docstring=_fourblade_docstring)
 
-class ScanAndApertureBaffleSlit(BaffleSlit):
+# ScanAndApertureSlit class
+_scanaperture_docstring = (
     '''An ``ophyd.Device`` class used for scan/aperture baffle slits at NSLS-II
 
     This is a child of ``nslsii.motor_devices.BaffleSlit`` and adds the
@@ -101,14 +118,13 @@ class ScanAndApertureBaffleSlit(BaffleSlit):
     **kwargs
         The keyword arguments that will be passed down to the ``Device``
         ``__init__`` call.
-    '''
-    def __init__(self, *args,
-                 components={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-                             'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
-                             'hs': '-Ax:HS}Mtr', 'ha': '-Ax:HA}Mtr',
-                             'vs': '-Ax:VS}Mtr', 'va': '-Ax:VA}Mtr'},
-                 **kwargs):
-        super().__init__(*args, components=components, **kwargs)
+    ''')
+ScanAndApertureSlit = slit(name='ScanAndApertureSlit',
+                           axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
+                                 'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
+                                 'hs': '-Ax:HS}Mtr', 'ha': '-Ax:HA}Mtr',
+                                 'vs': '-Ax:VS}Mtr', 'va': '-Ax:VA}Mtr'},
+                           docstring=_scanaperture_docstring)
 
 
 class FrontEndSlits(Device):
