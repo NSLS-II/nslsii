@@ -77,12 +77,12 @@ _fourblade_docstring = (
         ``__init__`` call.
     ''')
 
-FourBladeSlit = slit(name='FourBladeSlit',
-                     axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-                           'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
-                           'inb': '-Ax:I}Mtr', 'out': '-Ax:O}Mtr',
-                           'top': '-Ax:T}Mtr', 'bot': '-Ax:B}Mtr'},
-                     docstring=_fourblade_docstring)
+FourBladeSlits = slit(name='FourBladeSlits',
+                      axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
+                            'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
+                            'inb': '-Ax:I}Mtr', 'out': '-Ax:O}Mtr',
+                            'top': '-Ax:T}Mtr', 'bot': '-Ax:B}Mtr'},
+                      docstring=_fourblade_docstring)
 
 # ScanAndApertureSlit class
 _scanaperture_docstring = (
@@ -105,12 +105,12 @@ _scanaperture_docstring = (
         ``__init__`` call.
     ''')
 
-ScanAndApertureSlit = slit(name='ScanAndApertureSlit',
-                           axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-                                 'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
-                                 'hs': '-Ax:HS}Mtr', 'ha': '-Ax:HA}Mtr',
-                                 'vs': '-Ax:VS}Mtr', 'va': '-Ax:VA}Mtr'},
-                           docstring=_scanaperture_docstring)
+ScanAndApertureSlits = slit(name='ScanAndApertureSlits',
+                            axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
+                                  'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr',
+                                  'hs': '-Ax:HS}Mtr', 'ha': '-Ax:HA}Mtr',
+                                  'vs': '-Ax:VS}Mtr', 'va': '-Ax:VA}Mtr'},
+                            docstring=_scanaperture_docstring)
 
 
 class FrontEndSlits(Device):
@@ -136,13 +136,13 @@ class FrontEndSlits(Device):
     class _VirtualGap(PVPositioner):
         readback = Component(EpicsSignalRO, 't2.C')
         setpoint = Component(EpicsSignal, 'size')
-        done = Component(EpicsSignalRO, 'DMOV')
+        done = Component(EpicsSignalRO, 'DMOV', kind='config')
         done_value = 1
 
     class _VirtualCenter(PVPositioner):
         readback = Component(EpicsSignalRO, 't2.D')
         setpoint = Component(EpicsSignal, 'center')
-        done = Component(EpicsSignalRO, 'DMOV')
+        done = Component(EpicsSignalRO, 'DMOV', kind='omitted')
         done_value = 1
 
     hc = Component(_VirtualCenter, '-Ax:X}')
