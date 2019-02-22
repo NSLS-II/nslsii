@@ -62,7 +62,10 @@ class EPSTwoStateDevice(Device):
                  num_retries=1, retry_sleep_time=0.5,
                  stop_str=None, **kwargs):
 
-        super().__init__(prefix, name, **kwargs)
+        self._state1_pv_uid = state1_pv_uid
+        self._state2_pv_uid = state2_pv_uid
+
+        super().__init__(prefix=prefix, name=name, **kwargs)
 
         self._set_st = None
         self.read_attrs = ['status']
@@ -70,8 +73,6 @@ class EPSTwoStateDevice(Device):
         self._state2_val = state2_val
         self._state1_str = state1_str
         self._state2_str = state2_str
-        self._state1_pv_uid = state1_pv_uid
-        self._state2_pv_uid = state2_pv_uid
         self._num_retries = num_retries
         self._retry_sleep_time = retry_sleep_time
         if stop_str == state1_str:
