@@ -1,4 +1,5 @@
-from nslsii.temperature_controllers import Eurotherm, SetInProgress
+from nslsii.temperature_controllers.eurotherm import Eurotherm, SetInProgress
+from nslsii.temperature_controllers.lakeshore import lakeshore336
 from bluesky.plan_stubs import mv
 from bluesky import RunEngine
 from bluesky.utils import FailedStatus
@@ -63,3 +64,13 @@ def test_Eurotherm(RE):
         # Ensure that for any exception the ioc sub-process is terminated
         # before raising.
         ioc_process.terminate()
+
+
+def test_lakeshore336():
+    '''This is a smoke test of the lakeshore336 class factory function
+    '''
+
+    MyLakeshore336 = lakeshore336()
+    temp_controller = MyLakeshore336('test', name='temp_controller')
+    assert(hasattr(temp_controller, 'temp'))
+    assert(hasattr(temp_controller, 'ctrl'))

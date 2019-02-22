@@ -35,7 +35,7 @@ def lakeshore336(name='Lakeshore336', temperatures=['A', 'B', 'C', 'D'],
         Defaults to []
     '''
 
-    def _set_fields(fields, cls, prefix, **kwargs):
+    def _set_fields(fields, cls, prefix, field_prefix='', **kwargs):
         '''A function that generates the component dictionaries for fields.
 
         Parameters
@@ -50,13 +50,17 @@ def lakeshore336(name='Lakeshore336', temperatures=['A', 'B', 'C', 'D'],
         prefix: str
             The string to prefix to the field identifier in ``fields`` to
             create the ``ophyd.Component`` ``suffix``.
-        **kwargs: dict
+        field_prefix: str, optional
+            An optional prefix to the field name (required as numbers are not
+            valid attribute names).
+        **kwargs: dict, optional
             The kwargs that are to be passed into the call to ``device``.
         '''
         out_dict = OrderedDict()
         for field in fields:
             suffix = f'{prefix}{field}'
-            out_dict[f'{field}'] = Component(cls, suffix, **kwargs)
+            out_dict[f'{field_prefix}{field}'] = Component(cls, suffix,
+                                                           **kwargs)
         return out_dict
 
     class _Temperature(Device):
@@ -76,12 +80,15 @@ def lakeshore336(name='Lakeshore336', temperatures=['A', 'B', 'C', 'D'],
         T = Component(EpicsSignalRO, '}T-I')
         T_celsius = Component(EpicsSignalRO, '}T:C-I')
         V = Component(EpicsSignalRO, '}Val:Sens-I')
-        status = Component(EpicsSignalRO, '}T-Sts')
-        name = Component(EpicsSignal, '}T:Name-RB', write_pv='}T:Name-SP')
-        alarm_dict = {'high': (EpicsSignalRO, '}Alrm:High-Sts'),
-                      'low': (EpicsSignalRO, '}Alrm:Low-Sts')}
-        alarm = DynamicDeviceComponent(alarm_dict)
-        T_limit = Component(EpicsSignal, '}T:Lim-RB', write_pv='}T:Lim-SP')
+        status = Component(EpicsSignalRO, '}T-Sts', kind='config')
+        display_name = Component(EpicsSignal, '}T:Name-RB',
+                                 write_pv='}T:Name-SP', kind='omitted')
+        alarm = DynamicDeviceComponent(
+            {'high': (EpicsSignalRO, '}Alrm:High-Sts', {'kind':'config'}),
+             'low': (EpicsSignalRO, '}Alrm:Low-Sts', {'kind':'config'})},
+            kind='config')
+        T_limit = Component(EpicsSignal, '}T:Lim-RB', write_pv='}T:Lim-SP',
+                            kind='omitted')
 
     class _Control(PVPositioner):
         '''A sub-class for the temperature control channels.
@@ -99,38 +106,49 @@ def lakeshore336(name='Lakeshore336', temperatures=['A', 'B', 'C', 'D'],
         # PVPositioner required attributes
         setpoint = Component(EpicsSignal, '}T-SP')
         readback = Component(EpicsSignalRO, '}T-RB')
-        done = Component(EpicsSignalRO, '}Sts:Ramp-Sts')
+        done = Component(EpicsSignalRO, '}Sts:Ramp-Sts',kind='omitted')
         # top level attributes
-        heater_range = Component(EpicsSignal, '}Val:Range-Sel')
-        heater_status = Component(EpicsSignalRO, '}Err:Htr-Sts')
-        mode = Component(EpicsSignal, '}Mode-Sel')
-        enable = Component(EpicsSignal, '}Enbl-Sel')
-        target_channel = Component(EpicsSignal, '}Out-Sel')
+        heater_range = Component(EpicsSignal, '}Val:Range-Sel', kind='config')
+        heater_status = Component(EpicsSignalRO, '}Err:Htr-Sts',
+                                  kind='omitted')
+        mode = Component(EpicsSignal, '}Mode-Sel', kind='config')
+        enable = Component(EpicsSignal, '}Enbl-Sel', kind='config')
+        target_channel = Component(EpicsSignal, '}Out-Sel', kind='config')
         # ramp attributes
         ramp = DynamicDeviceComponent(
-            {'enabled': (EpicsSignal, '}Enbl:Ramp-Sel'),
+            {'enabled': (EpicsSignal, '}Enbl:Ramp-Sel', {'kind': 'config'}),
              'rate': (EpicsSignal, '}Val:Ramp-RB',
-                      {'write_pv': '}Val:Ramp-SP'})})
+                      {'write_pv': '}Val:Ramp-SP', 'kind': 'config'})},
+            kind='config')
         # PID loop parameters
         pid = DynamicDeviceComponent(
             {'proportional': (EpicsSignal, '}Gain:P-RB',
-                              {'write_pv': '}Gain:P-SP'}),
+                              {'write_pv': '}Gain:P-SP', 'kind': 'config'}),
              'integral': (EpicsSignal, '}Gain:I-RB',
-                          {'write_pv': '}Gain:I-SP'}),
+                          {'write_pv': '}Gain:I-SP', 'kind': 'config'}),
              'derivative': (EpicsSignal, '}Gain:D-RB',
-                            {'write_pv': '}Gain:D-SP'})})
+                            {'write_pv': '}Gain:D-SP', 'kind': 'config'})},
+             kind='config')
         # output parameters
+
         output = DynamicDeviceComponent(
-            {'current': (EpicsSignal, '}Out-I'),
+            {'current': (EpicsSignal, '}Out-I', {}),
              'manual_current': (EpicsSignal, '}Out:Man-RB',
                                 {'write_pv': '}Out:Man-SP'}),
              'max_current': (EpicsSignal, '}Out:MaxI-RB',
-                             {'write_pv': '}Out:MaxI-SP'}),
-             'resistance': (EpicsSignalRO, '}Out:R-RB',
-                            {'write_pv': '}Out:R-SP'})})
+                             {'write_pv': '}Out:MaxI-SP', 'kind': 'config'}),
+             'resistance': (EpicsSignal, '}Out:R-RB',
+                            {'write_pv': '}Out:R-SP', 'kind': 'config'})})
 
-    components = _set_fields(temperatures, _Temperature, '-Chan:')
-    components.update(_set_fields(controls, _Control, '-Out:'))
+    temp_components = _set_fields(temperatures, _Temperature, '-Chan:')
+    output_components = _set_fields(controls, _Control, '-Out:',
+                                    field_prefix='out')
+
+    components = {
+        'temp': Component(
+            create_device_from_components('temp',**temp_components),''),
+        'ctrl': Component(
+            create_device_from_components('ctrl',**output_components),'')}
 
     new_class = create_device_from_components(
         name, docstring=docstring, default_read_attrs=default_read_attrs,
