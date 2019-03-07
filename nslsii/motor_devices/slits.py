@@ -3,9 +3,7 @@ from ophyd import (Device, Component, EpicsMotor, PVPositioner, EpicsSignal,
 from ophyd.device import create_device_from_components
 
 
-def slit(name='', axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
-                        'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr'}, *,
-         docstring=None, default_read_attrs=None,
+def slit(name, axes=None, *, docstring=None, default_read_attrs=None,
          default_configuration_attrs=None):
     '''Returns an ``ophyd.Device`` class for 'slits' at NSLS-II
 
@@ -27,7 +25,7 @@ def slit(name='', axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
     ----------
     name: str
         The name of the new ``ophyd.Device`` class.
-    components : dict
+    components : dict, optional
         Maps the name for a motor attribute to the PVsuffix for the EpicsMotor
         group. The default, which defines a basic slit with horizontal(h) and
         vertical(v) gaps(g) and centres(c), is:
@@ -42,6 +40,10 @@ def slit(name='', axes={'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
         Outside of Kind, control the default configuration_attrs list.
         Defaults to []
     '''
+
+    if axes is None:
+        axes = {'hg': '-Ax:HG}Mtr', 'hc': '-Ax:HC}Mtr',
+                'vg': '-Ax:VG}Mtr', 'vc': '-Ax:VC}Mtr'},
 
     components = {}
     for name, PV_suffix in axes.items():
