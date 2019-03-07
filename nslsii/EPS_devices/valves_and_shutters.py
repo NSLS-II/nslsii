@@ -96,21 +96,21 @@ class EPSTwoStateDevice(Device):
 
     _state1_cmd = FmtCpt(EpicsSignal,
                          '{self.prefix}Cmd:{self._state1_pv_uid}-Cmd',
-                         string=True)
+                         string=True, kind='omitted')
     _state2_cmd = FmtCpt(EpicsSignal,
                          '{self.prefix}Cmd:{self._state2_pv_uid}-Cmd',
-                         string=True)
+                         string=True, kind='omitted')
 
     status = Cpt(EpicsSignalRO, 'Pos-Sts', string=True)
 
-    enabled_status = Cpt(EpicsSignalRO, 'Enbl-Sts', string=True)
+    enabled_status = Cpt(EpicsSignalRO, 'Enbl-Sts', string=True, kind='config')
 
     _fail_to_state1 = FmtCpt(EpicsSignalRO,
                              '{self.prefix}Sts:Fail{self._state1_pv_uid}-Sts',
-                             string=True)
+                             string=True, kind='omitted')
     _fail_to_state2 = FmtCpt(EpicsSignalRO,
                              '{self.prefix}Sts:Fail{self._state2_pv_uid}-Sts',
-                             string=True)
+                             string=True, kind='omitted')
 
     def set(self, val):
         if self._set_st is not None:
@@ -156,36 +156,6 @@ class EPSTwoStateDevice(Device):
         self.status.subscribe(state_cb)
 
         return st
-
-    def stop(self, success):
-        import time
-        prev_st = self._set_st
-        cmd_sig = self._cmd_map[self._stop_str]
-        stop_val = self._target_map[self._stop_str]
-
-        if prev_st is not None:
-            while not prev_st.done:
-                time.sleep(.1)
-        self._was_stopped = (stop_val == self.status.get())
-        st = self.set(cmd_sig)
-        while not st.done:
-            time.sleep(self._retry_sleep_time)
-
-    def resume(self):
-        import time
-        cmd_sig = self._cmd_map[self._resume_str]
-        prev_st = self._set_st
-        if prev_st is not None:
-            while not prev_st.done:
-                time.sleep(.1)
-        if not self._was_stopped:
-            st = self.set(cmd_sig)
-            while not st.done:
-                time.sleep(self._retry_sleep_time)
-
-    def unstage(self):
-        self._was_stopped = True
-        return super().unstage()
 
 
 class PneumaticActuator(EPSTwoStateDevice):
