@@ -1,8 +1,4 @@
 [flake8]
-<<<<<<< HEAD
-exclude = .git,__pycache__,build,dist,versioneer.py,nslsii/_version.py,docs/source/conf.py
-=======
 ignore = E402,W504
 exclude = .git,__pycache__,doc/source/conf.py,build,dist,versioneer.py
 max-line-length = 115
->>>>>>> MNT: Add .flake8
