@@ -5,7 +5,7 @@ from ophyd.device import (Component as Cpt, FormattedComponent as FmtCpt,
 import time
 
 
-class nslsiiValves_and_ShuttersValueError(ValueError):
+class NSLSIIValvesAndShuttersValueError(ValueError):
     pass
 
 
@@ -14,7 +14,7 @@ class EPSTwoStateDevice(Device):
 
     This is a base class that should be used as a parent for classes related
     to pneumatic actuators, gate valves, photon shutters or any other NSLS-II
-    EPS objects that have 2 distinct states .
+    EPS objects that have 2 distinct states.
 
     Parameters
     ----------
@@ -23,9 +23,9 @@ class EPSTwoStateDevice(Device):
     name : str, keyword only
         The name of the device as will be reported via read()
     state1_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 1
+        The value displayed when the device is read that signifies state 1
     state2_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 2
+        The value displayed when the device is read that signifies state 2
     state1_str : str, optional
         The string value to be passed to ``RE(mv(device, val))`` to move to
         state 1
@@ -33,9 +33,9 @@ class EPSTwoStateDevice(Device):
         The string value to be passed to ``RE(mv(device, val))`` to move to
         state 2
     state1_pv_uid : str, optional
-        The unique part of the EPICS PV for the state 1 command(see note below)
+        The unique part of the EPICS PV for the state 1 command (see note below)
     state2_pv_uid : str, optional
-        The unique part of the EPICS PV for the state 2 command(see note below)
+        The unique part of the EPICS PV for the state 2 command (see note below)
     num_retries : int, optional
         The number of attempts at changing the state prior to raising an
         error, the default is 1.
@@ -83,8 +83,8 @@ class EPSTwoStateDevice(Device):
             self._resume_str = self._state1_str
         else:
             raise nslsiiValves_and_ShuttersValueError(
-                'the kwarg ``stop_str`` in the EpicsTwoStateDevice class'
-                '``__init__`` method needs to be None or needs to match one of'
+                'the kwarg ``stop_str`` in the EpicsTwoStateDevice class '
+                '``__init__`` method needs to be None or needs to match one of '
                 'the kwargs ``state1_str`` or ``state2_str``')
 
         self._cmd_map = {self._state1_str: self._state1_cmd,
@@ -115,7 +115,7 @@ class EPSTwoStateDevice(Device):
     def set(self, val):
         if self._set_st is not None:
             raise RuntimeError(
-                f'trying to set {self.name} while a set is in progress')
+                f'trying to set {self.name} while another set is in progress')
 
         cmd_sig = self._cmd_map[val]
         target_val = self._target_map[val]
@@ -159,7 +159,7 @@ class EPSTwoStateDevice(Device):
 
 
 class PneumaticActuator(EPSTwoStateDevice):
-    '''An ``ophyd.Device`` for EPS driven pneumatic actuators at NSLS-II
+    '''An ``ophyd.Device`` for EPS driven pneumatic actuators at NSLS-II.
 
 
     This is for use with NSLS-II EPS based pneumatic actuators that have two
