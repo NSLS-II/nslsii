@@ -161,7 +161,7 @@ class EPSTwoStateDevice(Device):
 
     def stop():
         self.status.clear_sub(state_cb)
-        self._set_st._finished(succsess=False)
+        self._set_st._finished(success=False)
         super().stop()
 
 class PneumaticActuator(EPSTwoStateDevice):
