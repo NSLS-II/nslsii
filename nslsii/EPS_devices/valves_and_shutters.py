@@ -126,7 +126,7 @@ class EPSTwoStateDevice(Device):
         def state_cb(value, timestamp, **kwargs):
             value = enums[int(value)]
             if value == target_val:
-                self._set_st._finished()
+                st._finished()
                 self._set_st = None
                 self.status.clear_sub(state_cb)
 
@@ -139,6 +139,8 @@ class EPSTwoStateDevice(Device):
             count += 1
             if count > self._num_retries:
                 cmd_sig.clear_sub(cmd_retry_cb)
+                self._set_st = None
+                self.status.clear_sub(state_cb)
                 st._finished(success=False)
             if value == 'None':
                 if not st.done:
