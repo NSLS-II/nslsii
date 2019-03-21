@@ -164,9 +164,9 @@ class EPSTwoStateDevice(Device):
         self._set_st._finished(success=False)
         super().stop()
 
+
 class PneumaticActuator(EPSTwoStateDevice):
     '''An ``ophyd.Device`` for EPS driven pneumatic actuators at NSLS-II.
-
 
     This is for use with NSLS-II EPS based pneumatic actuators that have two
     distinct states 'In' and 'Out' and are actuated into these two states by
@@ -188,9 +188,9 @@ class PneumaticActuator(EPSTwoStateDevice):
     name : str, keyword only
         The name of the device as will be reported via read()
     state1_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 1
+        The value displayed when the device is read that signifies state 1
     state2_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 2
+        The value displayed when the device is read that signifies state 2
     state1_str : str, optional
         The string value to be passed to ``RE(mv(device, val))`` to move to
         state 1
@@ -226,7 +226,7 @@ class PneumaticActuator(EPSTwoStateDevice):
 
 
 class GateValve(EPSTwoStateDevice):
-    '''An ``ophyd.Device`` for EPS driven gate valves at NSLS-II
+    '''An ``ophyd.Device`` for EPS driven gate valves at NSLS-II.
 
     This is for use with NSLS-II EPS based gate valves that have two
     distinct states 'Open' and 'Close' and are actuated into these two states
@@ -247,9 +247,9 @@ class GateValve(EPSTwoStateDevice):
     name : str, keyword only
         The name of the device as will be reported via read()
     state1_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 1
+        The value displayed when the device is read that signifies state 1
     state2_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 2
+        The value displayed when the device is read that signifies state 2
     state1_str : str, optional
         The string value to be passed to ``RE(mv(device, val))`` to move to
         state 1
@@ -305,9 +305,9 @@ class PhotonShutter(EPSTwoStateDevice):
     name : str, keyword only
         The name of the device as will be reported via read()
     state1_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 1
+        The value displayed when the device is read that signifies state 1
     state2_val : float, int or str, optional
-        The value displayed when the device is read that signifys state 2
+        The value displayed when the device is read that signifies state 2
     state1_str : str, optional
         The string value to be passed to ``RE(mv(device, val))`` to move to
         state 1
@@ -316,7 +316,7 @@ class PhotonShutter(EPSTwoStateDevice):
         state 2
     num_retries : int, optional
         This number of attempts at changing the state prior to raising an
-        error, the default is 5.
+        error, the default is 10.
     retry_sleep_time : float, optional
         This is the time in seconds to wait between retries on changing the
         state, the default is 0.5 s.
