@@ -82,7 +82,7 @@ class EPSTwoStateDevice(Device):
             self._stop_str = self._state2_str
             self._resume_str = self._state1_str
         else:
-            raise nslsiiValves_and_ShuttersValueError(
+            raise NSLSIIValvesAndShuttersValueError(
                 'the kwarg ``stop_str`` in the EpicsTwoStateDevice class '
                 '``__init__`` method needs to be None or needs to match one of '
                 'the kwargs ``state1_str`` or ``state2_str``')
