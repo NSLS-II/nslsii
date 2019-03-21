@@ -33,9 +33,11 @@ class EPSTwoStateDevice(Device):
         The string value to be passed to ``RE(mv(device, val))`` to move to
         state 2
     state1_pv_uid : str, optional
-        The unique part of the EPICS PV for the state 1 command (see note below)
+        The unique part of the EPICS PV for the state 1 command (see note
+        below)
     state2_pv_uid : str, optional
-        The unique part of the EPICS PV for the state 2 command (see note below)
+        The unique part of the EPICS PV for the state 2 command (see note
+        below)
     num_retries : int, optional
         The number of attempts at changing the state prior to raising an
         error, the default is 1.
@@ -84,7 +86,7 @@ class EPSTwoStateDevice(Device):
         else:
             raise NSLSIIValvesAndShuttersValueError(
                 'the kwarg ``stop_str`` in the EpicsTwoStateDevice class '
-                '``__init__`` method needs to be None or needs to match one of '
+                '``__init__`` method needs to be None or needs to match one of'
                 'the kwargs ``state1_str`` or ``state2_str``')
 
         self._cmd_map = {self._state1_str: self._state1_cmd,
@@ -159,9 +161,9 @@ class EPSTwoStateDevice(Device):
 
         return st
 
-    def stop():
+    def stop(self, success=False):
         self.status.clear_sub(state_cb)
-        self._set_st._finished(success=False)
+        self._set_st._finished(success=success)
         super().stop()
 
 
