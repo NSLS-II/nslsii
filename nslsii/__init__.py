@@ -1,6 +1,6 @@
 from IPython import get_ipython
 from ._version import get_versions
-import .loggers import configure_elastic
+from .loggers import configure_elastic
 __version__ = get_versions()['version']
 del get_versions
 
