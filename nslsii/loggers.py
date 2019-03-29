@@ -35,7 +35,7 @@ class ElasticHandler(logging.Handler):
                            'threadName': record.threadName}
 
             if hasattr(record, 'pv'): record_dict['pv'] = record.pv
-            if hasattr(record, 'address'): record_dict['address'] = record.address
+            if hasattr(record, 'address'): record_dict['address'] = record.address[0]+':'+str(record.address[1])
             if hasattr(record, 'role'): record_dict['role'] = record.role
             response = requests.post(self.url, json=record_dict)
             response.raise_for_status()
