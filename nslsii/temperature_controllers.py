@@ -63,13 +63,11 @@ class Eurotherm(Device):
             self.readback.clear_sub(status_indicator)
             status._finished(success=False)
 
+        # Add a Timer to ensure that timeout occurs.
         self._cb_timer = threading.Timer(self.timeout.get(), timer_cleanup)
-
+        self._cb_timer.start()
         # set up the done moving indicator logic
         def status_indicator(value, timestamp, **kwargs):
-            # add a Timer to ensure that timeout occurs.
-            if not self._cb_timer.is_alive():
-                self._cb_timer.start()
 
             nonlocal initial_timestamp
             if abs(value - set_value) < tolerance:
