@@ -4,6 +4,7 @@ databroker
 ipython
 ipywidgets
 matplotlib
+netifaces
 numpy
 ophyd
 psutil
