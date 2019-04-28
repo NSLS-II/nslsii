@@ -88,7 +88,6 @@ class EPSTwoStateIOC(PVGroup):
 
     @enbl_sts.startup
     async def enbl_sts(self, instance, async_lib):
-        print('in enbl_sts', 'enbl_sts_val:', self._enbl_sts_val)
         await instance.write(value=self._enbl_sts_val)
 
     @state1_cmd.putter
@@ -96,7 +95,6 @@ class EPSTwoStateIOC(PVGroup):
         rv = await self._state_cmd_put(instance, value,
                                        self._pos_states[0],
                                        self.fail_to_state1)
-        print('in state1_cmd', 'value:', value, 'rv:', rv)
         return rv
 
     @state2_cmd.putter
@@ -104,13 +102,11 @@ class EPSTwoStateIOC(PVGroup):
         rv = await self._state_cmd_put(instance, value,
                                        self._pos_states[1],
                                        self.fail_to_state2)
-        print('in state2_cmd', 'value:', value, 'rv:', rv)
         return rv
 
     # Internal Methods
 
     async def _state_cmd_put(self, instance, value, state_val, fail_to_state):
-        print('1. state_cmd_put:', 'value:', value, 'state_val:', state_val)
         if(value == self._cmd_states[0]):  # if None -> do nothing
             return self._cmd_states[0]
         if(self._pos_sts_val == state_val):  # if in state -> do nothing
@@ -130,7 +126,6 @@ class EPSTwoStateIOC(PVGroup):
             return self._cmd_states[1]
         await self.pos_sts.write(value=state_val)
         self._pos_sts_val = state_val
-        print('pos_sts.write:', state_val)
         return self._cmd_states[0]
 
 
@@ -156,8 +151,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     ioc_options, run_options = split_args(args)
-
-    print(ioc_options, args.retries, args.enable, args.hwerror, args.stserror)
 
     ioc = EPSTwoStateIOC(retries=args.retries,
                          enbl_sts_val=args.enable,
