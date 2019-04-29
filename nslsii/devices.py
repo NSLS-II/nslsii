@@ -74,7 +74,7 @@ class TwoButtonShutter(Device):
                         .strftime(_time_fmtstr)
                     if count > 2:
                         msg = '** ({}) Had to reactuate shutter while {}ing'
-                        print(msg.format(ts, val if val is not 'Close'
+                        print(msg.format(ts, val if val != 'Close'
                                          else val[:-1]))
                 else:
                     cmd_sig.clear_sub(cmd_retry_cb)

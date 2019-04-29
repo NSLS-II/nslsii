@@ -1,6 +1,6 @@
-import subprocess
-import os
-import sys
+# import subprocess
+# import os
+# import sys
 
 from ophyd import Device, EpicsSignal, EpicsSignalRO
 from ophyd.device import (Component as Cpt,
@@ -24,10 +24,10 @@ class EPSTwoStateDevice(Device):
 
 def test_epstwostate_ioc():
 
+    '''
     stdout = subprocess.PIPE
     stdin = None
 
-    # Start up EPSTwoStateIOC requiring two attempts
     ioc_process = subprocess.Popen([sys.executable, '-m',
                                     'caproto.tests.example_runner',
                                     'nslsii.iocs.eps_two_state_ioc_sim'],
@@ -35,6 +35,7 @@ def test_epstwostate_ioc():
                                    env=os.environ)
 
     print(f'nslsii.iocs.epc_two_state_ioc_sim is now running')
+    '''
 
     # Wrap the rest in a try-except to ensure the ioc is killed before exiting
     try:
@@ -94,4 +95,5 @@ def test_epstwostate_ioc():
     finally:
         # Ensure that for any exception the ioc sub-process is terminated
         # before raising.
-        ioc_process.terminate()
+        # ioc_process.terminate()
+        pass
