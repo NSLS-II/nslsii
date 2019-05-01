@@ -6,7 +6,21 @@ from caproto import ChannelType
 
 class EPSTwoStateIOC(PVGroup):
     """
-    Simulates multiple-attempt issue for two-state device.
+    Simulates an EPS Two State device including multiple-attempt issue
+    for two-state device.
+
+    This IOC is used to simulate an EPS Two State Device, for testing
+    or development  purposes. Known EPS two state devices include Photon
+    shutters, gate valves and Pneumatic actuators at NSLS-II. It simulates
+    known issues with some of these including: A hardware error (when some
+    attempts at sending the command fail and we need to 'kick' the device
+    a few times to get it to actuate), A position status error (it sometimes
+    does not reach the final state but remains 'between states') and
+    an enable state change error (there is an 'enable' PV controlled by
+    the control room that determines if the device can be operated or not).
+    A parameter (described below) allows each of these error paths to be
+    tested against.
+
     Parameters
     ----------
     retries : int, optional
@@ -76,19 +90,44 @@ class EPSTwoStateIOC(PVGroup):
 
     # Enbl-Sts PV that enables/disables the state change
 
-    _enbl_states = ['True', 'False']
+    _enbl_states = ['False', 'True']
 
     enbl_sts = pvproperty(value='',
                           enum_strings=_enbl_states,
                           dtype=ChannelType.ENUM,
-                          read_only=True,
                           name='Enbl-Sts')
+
+    # Hardware error status
+
+    _hw_error_states = ['False', 'True']
+
+    hw_error_sts = pvproperty(value='',
+                              enum_strings=_hw_error_states,
+                              dtype=ChannelType.ENUM,
+                              name='HwError-Sts')
+
+    # Pos-Sts error status
+
+    _sts_error_states = ['False', 'True']
+
+    sts_error_sts = pvproperty(value='',
+                               enum_strings=_sts_error_states,
+                               dtype=ChannelType.ENUM,
+                               name='StsError-Sts')
 
     # PV Startup/Putter Methods
 
     @enbl_sts.startup
     async def enbl_sts(self, instance, async_lib):
         await instance.write(value=self._enbl_sts_val)
+
+    @hw_error_sts.startup
+    async def hw_error_sts(self, instance, async_lib):
+        await instance.write(value=self._hw_error_val)
+
+    @sts_error_sts.startup
+    async def sts_error_sts(self, instance, async_lib):
+        await instance.write(value=self._sts_error_val)
 
     @state1_cmd.putter
     async def state1_cmd(self, instance, value):
@@ -103,6 +142,21 @@ class EPSTwoStateIOC(PVGroup):
                                        self._pos_states[1],
                                        self.fail_to_state2)
         return rv
+
+    @enbl_sts.putter
+    async def enbl_sts(self, instance, value):
+        self._enbl_sts_val = value
+        return value
+
+    @hw_error_sts.putter
+    async def hw_error_sts(self, instance, value):
+        self._hw_error_val = value
+        return value
+
+    @sts_error_sts.putter
+    async def sts_error_sts(self, instance, value):
+        self._sts_error_val = value
+        return value
 
     # Internal Methods
 
@@ -122,6 +176,8 @@ class EPSTwoStateIOC(PVGroup):
         if(self._hw_error_val == 'True'):  # if hw error -> fail
             await fail_to_state.write(value='True')
             return self._cmd_states[1]
+        else:
+            await fail_to_state.write(value='False')
         if(self._sts_error_val == 'True'):  # if sts error -> don't change sts
             return self._cmd_states[1]
         await self.pos_sts.write(value=state_val)
