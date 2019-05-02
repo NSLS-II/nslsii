@@ -89,7 +89,7 @@ class StatsPluginV33(PluginBase):
     Due to https://github.com/areaDetector/ADCore/pull/333
     """
     _default_suffix = 'Stats1:'
-    _suffix_re = 'Stats\d:'
+    _suffix_re = r'Stats\d:'
     _html_docs = ['NDPluginStats.html']
     _plugin_type = 'NDPluginStats'
 
