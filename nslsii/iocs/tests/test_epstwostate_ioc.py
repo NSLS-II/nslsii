@@ -66,6 +66,8 @@ def test_epstwostate_ioc():
 
         eps = EPSTwoStateDevice(prefix='eps2state:', name='eps')
 
+        time.sleep(5)
+
         # 1. check the ioc-device connection and initial values
         sts_val = eps.status.get()
         assert sts_val == 'Open'
