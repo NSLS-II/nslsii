@@ -123,7 +123,7 @@ class EPSTwoStateDevice(Device):
             raise RuntimeError(
                 f'trying to set {self.name} while another set is in progress')
 
-        if self.enabled_status.get()=='False':
+        if self.enabled_status.get() == 'False':
             raise NSLSIIValvesAndShuttersEnableError(
                 f'Attempted to set {self.name} to {val}, but it is disabled '
                 f'check the read only attribute {self.name}.enabled_status '

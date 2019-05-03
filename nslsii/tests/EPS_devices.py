@@ -10,10 +10,13 @@ import sys
 import time
 import pytest
 
-RE=RunEngine()
+
+@pytest.fixture
+def RE():
+    return RunEngine()
 
 
-def test_EPSTwoStateDevice():
+def test_EPSTwoStateDevice(RE):
     '''A test of the EPSTwoStateDevice class.
 
     This test covers 3 known failure modes which are modelled using the caproto
@@ -34,10 +37,10 @@ def test_EPSTwoStateDevice():
                        kind='omitted')
 
         hw_error = Cpt(EpicsSignal, 'HwError-Sts', string=True,
-                           kind='omitted')
+                       kind='omitted')
 
         sts_error = Cpt(EpicsSignal, 'StsError-Sts', string=True,
-                            kind='omitted')
+                        kind='omitted')
 
     stdout = subprocess.PIPE
     stdin = None
@@ -60,7 +63,7 @@ def test_EPSTwoStateDevice():
 
         # two quick tests to ensure the devices and IOC are running.
         assert(hasattr(shutter, 'read'))  # make sure that the device runs
-        assert shutter.read()['shutter_status']['value'] in ['Open','Closed']
+        assert shutter.read()['shutter_status']['value'] in ['Open', 'Closed']
 
         # Retry activation error test by closing and opening succesfully
         RE(mv(shutter, 'close'))
