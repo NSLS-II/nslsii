@@ -9,6 +9,10 @@ class NSLSIIValvesAndShuttersValueError(ValueError):
     pass
 
 
+class NSLSIIValvesAndShuttersEnableError(ValueError):
+    pass
+
+
 class EPSTwoStateDevice(Device):
     '''An ``ophyd.Device`` class for two state EPS objects at NSLS-II.
 
@@ -119,6 +123,12 @@ class EPSTwoStateDevice(Device):
             raise RuntimeError(
                 f'trying to set {self.name} while another set is in progress')
 
+        if self.enabled_status.get()=='False':
+            raise NSLSIIValvesAndShuttersEnableError(
+                f'Attempted to set {self.name} to {val}, but it is disabled '
+                f'check the read only attribute {self.name}.enabled_status '
+                f'to ensure that it is enabled prior to moving.')
+
         cmd_sig = self._cmd_map[val]
         target_val = self._target_map[val]
 
@@ -131,6 +141,7 @@ class EPSTwoStateDevice(Device):
                 st._finished()
                 self._set_st = None
                 self.status.clear_sub(state_cb)
+                cmd_sig._set_thread = None
 
         cmd_enums = cmd_sig.enum_strs
         count = 0
@@ -147,10 +158,10 @@ class EPSTwoStateDevice(Device):
             if value == 'None':
                 if not st.done:
                     time.sleep(self._retry_sleep_time)
-                    cmd_sig.set(1)
+                    cmd_sig.put(1)
                     ts = datetime.datetime.fromtimestamp(
                         timestamp).strftime(self._time_fmtstr)
-                    print(f'** ({ts}) Had to reactuate {self.name} while'
+                    print(f'** ({ts}) Had to reactuate {self.name} while '
                           f'moving to {val}')
                 else:
                     cmd_sig.clear_sub(cmd_retry_cb)
@@ -160,11 +171,6 @@ class EPSTwoStateDevice(Device):
         self.status.subscribe(state_cb)
 
         return st
-
-    def stop(self, success=False):
-        self.status.clear_sub(state_cb)
-        self._set_st._finished(success=success)
-        super().stop()
 
 
 class PneumaticActuator(EPSTwoStateDevice):
