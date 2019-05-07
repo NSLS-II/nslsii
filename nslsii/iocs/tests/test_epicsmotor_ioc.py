@@ -27,14 +27,14 @@ def test_epicsmotor_ioc():
 
     print(f'nslsii.iocs.epc_two_state_ioc_sim is now running')
 
-    time.sleep(5)
+    time.sleep(7)
 
     # Wrap the rest in a try-except to ensure the ioc is killed before exiting
     try:
 
         mtr = EpicsMotor(prefix='mtr:', name='mtr')
 
-        time.sleep(5)
+        time.sleep(7)
 
         # 1. check the ioc-device connection and initial values
 
