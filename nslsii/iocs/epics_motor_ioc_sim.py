@@ -2,25 +2,7 @@
 from caproto.server import pvproperty, PVGroup
 from caproto.server import ioc_arg_parser, run
 from caproto import ChannelType
-import contextvars
-import functools
-import math
-
-internal_process = contextvars.ContextVar('internal_process',
-                                          default=False)
-
-def no_reentry(func):
-    @functools.wraps(func)
-    async def inner(*args, **kwargs):
-        if internal_process.get():
-            return
-        try:
-            internal_process.set(True)
-            return (await func(*args, **kwargs))
-        finally:
-            internal_process.set(False)
-
-    return inner
+import time
 
 
 class EpicsMotorIOC(PVGroup):
@@ -33,6 +15,8 @@ class EpicsMotorIOC(PVGroup):
 
     _dir_states = ['neg', 'pos']
     _false_true_states = ['False', 'True']
+
+    _step_size = 0.1
 
     # position
 
@@ -149,25 +133,17 @@ class EpicsMotorIOC(PVGroup):
 
     # Methods
 
-    @user_setpoint.startup
-    async def user_setpoint(self, instance, async_lib):
-        instance.ev = async_lib.library.Event()
-        instance.async_lib = async_lib
-
     @user_setpoint.putter
-    @no_reentry
     async def user_setpoint(self, instance, value):
-        disp = (value - instance.value)
-        step_size = 0.1
-        dwell = step_size/self._velocity
-        N = max(1, int(disp / step_size))
+        p0 = instance.value
+        dwell = self._step_size/self._velocity
+        N = max(1, int((value - p0) / self._step_size))
 
         await self.motor_done_move.write(value='False')
 
         for j in range(N):
-            new_value = instance.value + step_size
-            await instance.write(new_value)
-            await instance.async_lib.library.sleep(dwell)
+            new_value = p0 + self._step_size*(j+1)
+            time.sleep(dwell)
             await self.user_readback.write(value=new_value)
 
         await self.motor_done_move.write(value='True')

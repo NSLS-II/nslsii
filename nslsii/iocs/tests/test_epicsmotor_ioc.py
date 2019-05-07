@@ -1,5 +1,4 @@
 import os
-import pytest
 import subprocess
 import sys
 import time
@@ -27,14 +26,14 @@ def test_epicsmotor_ioc():
 
     print(f'nslsii.iocs.epc_two_state_ioc_sim is now running')
 
-    time.sleep(7)
+    time.sleep(5)
 
     # Wrap the rest in a try-except to ensure the ioc is killed before exiting
     try:
 
         mtr = EpicsMotor(prefix='mtr:', name='mtr')
 
-        time.sleep(7)
+        time.sleep(5)
 
         # 1. check the ioc-device connection and initial values
 
@@ -50,7 +49,13 @@ def test_epicsmotor_ioc():
 
         target_val = 5
 
+        readback_val = mtr.user_readback.get()
+        mvtime = (target_val - readback_val)/velocity_val
+
         mtr.set_current_position(target_val)
+
+        time.sleep(mvtime)
+
         setpoint_val = mtr.user_setpoint.get()
         readback_val = mtr.user_readback.get()
         assert round(setpoint_val, 3) == target_val
@@ -63,15 +68,15 @@ def test_epicsmotor_ioc():
 
         move_status = MoveStatus(mtr, target_val)
 
-        try: 
+        try:
             move_status = mtr.move(target_val, timeout=mvtime+1)
-        except:
+        except RuntimeError:
             pass
 
-        assert move_status.success == True
-		
+        assert move_status.success is True
+
         time.sleep(mvtime)
-		
+
         setpoint_val = mtr.user_setpoint.get()
         readback_val = mtr.user_readback.get()
         assert round(setpoint_val, 3) == target_val
@@ -84,12 +89,12 @@ def test_epicsmotor_ioc():
 
         move_status = MoveStatus(mtr, target_val)
 
-        try: 
+        try:
             move_status = mtr.move(target_val, timeout=mvtime-1)
-        except:
+        except RuntimeError:
             pass
 
-        assert move_status.success == False
+        assert move_status.success is False
 
     finally:
         # Ensure that for any exception the ioc sub-process is terminated
