@@ -2,6 +2,25 @@
 from caproto.server import pvproperty, PVGroup
 from caproto.server import ioc_arg_parser, run
 from caproto import ChannelType
+import contextvars
+import functools
+import math
+
+internal_process = contextvars.ContextVar('internal_process',
+                                          default=False)
+
+def no_reentry(func):
+    @functools.wraps(func)
+    async def inner(*args, **kwargs):
+        if internal_process.get():
+            return
+        try:
+            internal_process.set(True)
+            return (await func(*args, **kwargs))
+        finally:
+            internal_process.set(False)
+
+    return inner
 
 
 class EpicsMotorIOC(PVGroup):
@@ -17,14 +36,14 @@ class EpicsMotorIOC(PVGroup):
 
     # position
 
-    _upper_alarm_limit = 100.0
-    _lower_alarm_limit = -100.0
+    _upper_alarm_limit = 10.0
+    _lower_alarm_limit = -10.0
 
-    _upper_warning_limit = 90.0
-    _lower_warning_limit = -90.0
+    _upper_warning_limit = 9.0
+    _lower_warning_limit = -9.0
 
-    _upper_ctrl_limit = 110.0
-    _lower_ctrl_limit = -110.0
+    _upper_ctrl_limit = 11.0
+    _lower_ctrl_limit = -11.0
 
     _egu = 'mm'
 
@@ -78,13 +97,13 @@ class EpicsMotorIOC(PVGroup):
     _velocity = 1.
     _acceleration = 3.
 
-    velocity = pvproperty(value=_velocity,
+    velocity = pvproperty(value=_velocity, read_only=True,
                           dtype=ChannelType.DOUBLE,
                           name='.VELO')
-    acceleration = pvproperty(value=_acceleration,
+    acceleration = pvproperty(value=_acceleration, read_only=True,
                               dtype=ChannelType.DOUBLE,
                               name='.ACCL')
-    motor_egu = pvproperty(value=_egu,
+    motor_egu = pvproperty(value=_egu, read_only=True,
                            dtype=ChannelType.STRING,
                            name='.EGU')
 
@@ -130,11 +149,29 @@ class EpicsMotorIOC(PVGroup):
 
     # Methods
 
+    @user_setpoint.startup
+    async def user_setpoint(self, instance, async_lib):
+        instance.ev = async_lib.library.Event()
+        instance.async_lib = async_lib
+
     @user_setpoint.putter
+    @no_reentry
     async def user_setpoint(self, instance, value):
+        disp = (value - instance.value)
+        step_size = 0.1
+        dwell = step_size/self._velocity
+        N = max(1, int(disp / step_size))
+
         await self.motor_done_move.write(value='False')
-        await self.user_readback.write(value=value)
+
+        for j in range(N):
+            new_value = instance.value + step_size
+            await instance.write(new_value)
+            await instance.async_lib.library.sleep(dwell)
+            await self.user_readback.write(value=new_value)
+
         await self.motor_done_move.write(value='True')
+
         return value
 
 
