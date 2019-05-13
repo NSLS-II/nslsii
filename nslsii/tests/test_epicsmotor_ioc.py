@@ -5,7 +5,6 @@ import sys
 import time
 
 from ophyd.epics_motor import EpicsMotor
-from ophyd.status import MoveStatus
 
 
 @pytest.fixture(scope='class')
@@ -41,6 +40,10 @@ def ioc_sim(request):
 @pytest.mark.usefixtures('ioc_sim')
 class TestIOC:
 
+    def test_zero_division(self):
+        with pytest.raises(ZeroDivisionError):
+            1 / 0
+
     def test_initial_values(self):
 
         assert self.mtr.egu == 'mm'
@@ -74,21 +77,8 @@ class TestIOC:
         velocity_val = self.mtr.velocity.get()
         mvtime = (target_val - readback_val)/velocity_val
 
-        move_status = MoveStatus(self.mtr, target_val)
-
-        try:
-            move_status = self.mtr.move(target_val, timeout=mvtime+1)
-        except RuntimeError:
-            pass
-
+        move_status = self.mtr.move(target_val, timeout=mvtime+1)
         assert move_status.success is True
-
-        time.sleep(mvtime)
-
-        setpoint_val = self.mtr.user_setpoint.get()
-        readback_val = self.mtr.user_readback.get()
-        assert round(setpoint_val, 3) == target_val
-        assert round(readback_val, 3) == target_val
 
     def test_move_with_timeout_lt_moving_time(self):
 
@@ -97,11 +87,5 @@ class TestIOC:
         velocity_val = self.mtr.velocity.get()
         mvtime = (target_val - readback_val)/velocity_val
 
-        move_status = MoveStatus(self.mtr, target_val)
-
-        try:
-            move_status = self.mtr.move(target_val, timeout=mvtime-1)
-        except RuntimeError:
-            pass
-
-        assert move_status.success is False
+        with pytest.raises(RuntimeError):
+            self.mtr.move(target_val, timeout=mvtime-1)
