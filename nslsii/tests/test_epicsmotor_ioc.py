@@ -1,4 +1,5 @@
 import os
+import pytest
 import subprocess
 import sys
 import time
@@ -7,7 +8,10 @@ from ophyd.epics_motor import EpicsMotor
 from ophyd.status import MoveStatus
 
 
-def test_epicsmotor_ioc():
+@pytest.fixture(scope='class')
+def ioc_sim(request):
+
+    # setup code
 
     stdout = subprocess.PIPE
     stdin = None
@@ -21,48 +25,59 @@ def test_epicsmotor_ioc():
 
     time.sleep(5)
 
-    # Wrap the rest in a try-except to ensure the ioc is killed before exiting
-    try:
+    mtr = EpicsMotor(prefix='mtr:', name='mtr')
 
-        mtr = EpicsMotor(prefix='mtr:', name='mtr')
+    time.sleep(5)
 
-        time.sleep(5)
+    request.cls.mtr = mtr
 
-        # 1. check the ioc-device connection and initial values
+    yield
 
-        assert mtr.egu == 'mm'
+    # teardown code
 
-        velocity_val = mtr.velocity.get()
+    ioc_process.terminate()
+
+
+@pytest.mark.usefixtures('ioc_sim')
+class TestIOC:
+
+    def test_initial_values(self):
+
+        assert self.mtr.egu == 'mm'
+
+        velocity_val = self.mtr.velocity.get()
         assert velocity_val == 1
 
-        assert mtr.low_limit == -11.0
-        assert mtr.high_limit == 11.0
+        assert self.mtr.low_limit == -11.0
+        assert self.mtr.high_limit == 11.0
 
-        # 2. set_current_position
+    def test_set_current_position(self):
 
         target_val = 5
-
-        readback_val = mtr.user_readback.get()
+        readback_val = self.mtr.user_readback.get()
+        velocity_val = self.mtr.velocity.get()
         mvtime = (target_val - readback_val)/velocity_val
 
-        mtr.set_current_position(target_val)
+        self.mtr.set_current_position(target_val)
 
         time.sleep(mvtime)
 
-        setpoint_val = mtr.user_setpoint.get()
-        readback_val = mtr.user_readback.get()
+        setpoint_val = self.mtr.user_setpoint.get()
+        readback_val = self.mtr.user_readback.get()
         assert round(setpoint_val, 3) == target_val
         assert round(readback_val, 3) == target_val
 
-        # 3. move (timeout > moving time)
+    def test_move_with_timeout_gt_moving_time(self):
 
         target_val = 7
+        readback_val = self.mtr.user_readback.get()
+        velocity_val = self.mtr.velocity.get()
         mvtime = (target_val - readback_val)/velocity_val
 
-        move_status = MoveStatus(mtr, target_val)
+        move_status = MoveStatus(self.mtr, target_val)
 
         try:
-            move_status = mtr.move(target_val, timeout=mvtime+1)
+            move_status = self.mtr.move(target_val, timeout=mvtime+1)
         except RuntimeError:
             pass
 
@@ -70,26 +85,23 @@ def test_epicsmotor_ioc():
 
         time.sleep(mvtime)
 
-        setpoint_val = mtr.user_setpoint.get()
-        readback_val = mtr.user_readback.get()
+        setpoint_val = self.mtr.user_setpoint.get()
+        readback_val = self.mtr.user_readback.get()
         assert round(setpoint_val, 3) == target_val
         assert round(readback_val, 3) == target_val
 
-        # 4. move (timeout < moving time)
+    def test_move_with_timeout_lt_moving_time(self):
 
         target_val = 9
+        readback_val = self.mtr.user_readback.get()
+        velocity_val = self.mtr.velocity.get()
         mvtime = (target_val - readback_val)/velocity_val
 
-        move_status = MoveStatus(mtr, target_val)
+        move_status = MoveStatus(self.mtr, target_val)
 
         try:
-            move_status = mtr.move(target_val, timeout=mvtime-1)
+            move_status = self.mtr.move(target_val, timeout=mvtime-1)
         except RuntimeError:
             pass
 
         assert move_status.success is False
-
-    finally:
-        # Ensure that for any exception the ioc sub-process is terminated
-        # before raising.
-        ioc_process.terminate()

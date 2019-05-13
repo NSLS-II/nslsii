@@ -2,7 +2,6 @@
 from caproto.server import pvproperty, PVGroup
 from caproto.server import ioc_arg_parser, run
 from caproto import ChannelType
-import time
 
 
 class EpicsMotorIOC(PVGroup):
@@ -133,6 +132,11 @@ class EpicsMotorIOC(PVGroup):
 
     # Methods
 
+    @user_setpoint.startup
+    async def user_setpoint(self, instance, async_lib):
+        instance.ev = async_lib.library.Event()
+        instance.async_lib = async_lib
+
     @user_setpoint.putter
     async def user_setpoint(self, instance, value):
         p0 = instance.value
@@ -143,7 +147,7 @@ class EpicsMotorIOC(PVGroup):
 
         for j in range(N):
             new_value = p0 + self._step_size*(j+1)
-            time.sleep(dwell)
+            await instance.async_lib.library.sleep(dwell)
             await self.user_readback.write(value=new_value)
 
         await self.motor_done_move.write(value='True')
