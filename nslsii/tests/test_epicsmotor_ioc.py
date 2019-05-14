@@ -20,7 +20,7 @@ def ioc_sim(request):
                                    stdout=stdout, stdin=stdin,
                                    env=os.environ)
 
-    print(f'nslsii.iocs.epc_two_state_ioc_sim is now running')
+    print(f'nslsii.iocs.epics_motor_ioc_sim is now running')
 
     time.sleep(5)
 
@@ -39,10 +39,6 @@ def ioc_sim(request):
 
 @pytest.mark.usefixtures('ioc_sim')
 class TestIOC:
-
-    def test_zero_division(self):
-        with pytest.raises(ZeroDivisionError):
-            1 / 0
 
     def test_initial_values(self):
 

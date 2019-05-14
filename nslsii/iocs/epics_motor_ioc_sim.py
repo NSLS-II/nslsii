@@ -3,6 +3,8 @@ from caproto.server import pvproperty, PVGroup
 from caproto.server import ioc_arg_parser, run
 from caproto import ChannelType
 
+from threading import Lock
+
 
 class EpicsMotorIOC(PVGroup):
     """
@@ -54,6 +56,8 @@ class EpicsMotorIOC(PVGroup):
                                units=_egu,
                                precision=_precision,
                                name='.VAL')
+
+    putter_lock = Lock()
 
     # calibration dial <--> user
 
@@ -139,6 +143,12 @@ class EpicsMotorIOC(PVGroup):
 
     @user_setpoint.putter
     async def user_setpoint(self, instance, value):
+
+        if self.putter_lock.locked() is True:
+            return instance.value
+        else:
+            self.putter_lock.acquire()
+
         p0 = instance.value
         dwell = self._step_size/self._velocity
         N = max(1, int((value - p0) / self._step_size))
@@ -151,6 +161,8 @@ class EpicsMotorIOC(PVGroup):
             await self.user_readback.write(value=new_value)
 
         await self.motor_done_move.write(value='True')
+
+        self.putter_lock.release()
 
         return value
 
