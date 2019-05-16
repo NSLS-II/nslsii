@@ -5,10 +5,43 @@ import sys
 import time
 
 from ophyd import Device, EpicsMotor
-from ophyd import Component as Cpt
-from ophyd.device import create_device_from_components
+from ophyd import Component
+# from ophyd.device import create_device_from_components
 
 from caproto.sync.client import read
+
+from collections import OrderedDict
+
+
+def create_device_from_components(name, *, docstring=None,
+                                  default_read_attrs=None,
+                                  default_configuration_attrs=None,
+                                  base_class=Device, class_kwargs=None,
+                                  **components):
+
+    if docstring is None:
+        docstring = f'{name} Device'
+
+    if not isinstance(base_class, tuple):
+        base_class = (base_class, )
+
+    if class_kwargs is None:
+        class_kwargs = {}
+
+    clsdict = OrderedDict(
+        __doc__=docstring,
+        _default_read_attrs=default_read_attrs,
+        _default_configuration_attrs=default_configuration_attrs
+    )
+
+    for attr, component in components.items():
+        if not isinstance(component, Component):
+            raise ValueError(f'Attribute {attr} is not a Component. '
+                             f'It is of type {type(component).__name__}')
+
+        clsdict[attr] = component
+
+    return type(name, base_class, clsdict, **class_kwargs)
 
 
 def slit(name, axes=None, *, docstring=None, default_read_attrs=None,
@@ -16,7 +49,7 @@ def slit(name, axes=None, *, docstring=None, default_read_attrs=None,
 
     components = {}
     for name, PV_suffix in axes.items():
-        components[name] = Cpt(EpicsMotor, PV_suffix, name=name)
+        components[name] = Component(EpicsMotor, PV_suffix, name=name)
 
     new_class = create_device_from_components(
         name, docstring=docstring, default_read_attrs=default_read_attrs,
