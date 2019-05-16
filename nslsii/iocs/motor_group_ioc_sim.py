@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from caproto.server import PVGroup, ioc_arg_parser, run
 
-from epics_motor_record import EpicsMotorRecord
+from nslsii.iocs.epics_motor_record import EpicsMotorRecord
 
 
 class MotorGroupIOC(PVGroup):
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     )
 
     axes = {"HGMtr", "HCMtr", "VGMtr", "VCMtr",
-            "IMtr", "OMtr", "TMtr", "BMtr",}
+            "IMtr", "OMtr", "TMtr", "BMtr", }
 
     ioc = create_ioc(axes=axes, **ioc_options)
 

@@ -1,7 +1,7 @@
-# import os
+import os
 import pytest
-# import subprocess
-# import sys
+import subprocess
+import sys
 import time
 
 from ophyd import Device, EpicsMotor
@@ -29,7 +29,6 @@ def slit(name, axes=None, *, docstring=None, default_read_attrs=None,
 @pytest.fixture(scope='class')
 def ioc_sim(request):
 
-    '''
     # setup code
 
     stdout = subprocess.PIPE
@@ -37,13 +36,12 @@ def ioc_sim(request):
 
     ioc_process = subprocess.Popen([sys.executable, '-m',
                                    'nslsii.iocs.motor_group_ioc_sim'],
-                                  stdout=stdout, stdin=stdin,
-                                  env=os.environ)
+                                   stdout=stdout, stdin=stdin,
+                                   env=os.environ)
 
     print(f'nslsii.iocs.motor_group_ioc_sim is now running')
 
     time.sleep(5)
-    '''
 
     FourBladeSlits = slit(name='FourBladeSlits',
                           axes={'hg': '-Ax:HGMtr', 'hc': '-Ax:HCMtr',
@@ -62,7 +60,7 @@ def ioc_sim(request):
 
     # teardown code
 
-#    ioc_process.terminate()
+    ioc_process.terminate()
 
 
 @pytest.mark.usefixtures('ioc_sim')

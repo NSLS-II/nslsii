@@ -19,7 +19,6 @@ env:
 
 script:
   - export OPHYD_CONTROL_LAYER=caproto
-  - python -m nslsii.iocs.motor_group_ioc_sim
   - coverage run -m pytest  # Run the tests and check for test coverage.
   - coverage report -m  # Generate test coverage report.
   - codecov  # Upload the report to codecov.
