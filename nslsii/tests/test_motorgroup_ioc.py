@@ -59,6 +59,11 @@ def slit(name, axes=None, *, docstring=None, default_read_attrs=None,
     return new_class
 
 
+prefix = 'test{tst-Ax:'
+axes = {'hg': 'HG}Mtr', 'hc': 'HC}Mtr', 'vg': 'VG}Mtr', 'vc': 'VC}Mtr',
+        'inb': 'I}Mtr', 'out': 'O}Mtr', 'top': 'T}Mtr', 'bot': 'B}Mtr'}
+
+
 @pytest.fixture(scope='class')
 def ioc_sim(request):
 
@@ -67,8 +72,13 @@ def ioc_sim(request):
     stdout = subprocess.PIPE
     stdin = None
 
-    ioc_process = subprocess.Popen([sys.executable, '-m',
-                                   'nslsii.iocs.motor_group_ioc_sim'],
+    axes_str = ''
+    for name, PV_suffix in axes.items():
+        axes_str += PV_suffix + ','
+
+    ioc_process = subprocess.Popen([sys.executable,
+                                    '-m', 'nslsii.iocs.motor_group_ioc_sim',
+                                    '--axes', axes_str],
                                    stdout=stdout, stdin=stdin,
                                    env=os.environ)
 
@@ -77,13 +87,10 @@ def ioc_sim(request):
     time.sleep(5)
 
     FourBladeSlits = slit(name='FourBladeSlits',
-                          axes={'hg': '-Ax:HGMtr', 'hc': '-Ax:HCMtr',
-                                'vg': '-Ax:VGMtr', 'vc': '-Ax:VCMtr',
-                                'inb': '-Ax:IMtr', 'out': '-Ax:OMtr',
-                                'top': '-Ax:TMtr', 'bot': '-Ax:BMtr'},
+                          axes=axes,
                           docstring='Four Blades Slits')
 
-    slits = FourBladeSlits('test', name='slits')
+    slits = FourBladeSlits(prefix, name='slits')
 
     time.sleep(5)
 
@@ -101,13 +108,15 @@ class TestIOC:
 
     def test_caproto_level(self):
 
-        res = read('test-Ax:HCMtr.VELO')
-        velocity_val = res.data[0]
-        assert velocity_val == 1.0
+        for name, PV_suffix in axes.items():
+            pvname = prefix + PV_suffix + '.VELO'
+            res = read(pvname)
+            velocity_val = res.data[0]
+            assert velocity_val == 1.0
 
     def test_device_level(self):
 
-        assert(hasattr(self.slits, 'hc'))
+        assert(hasattr(self.slits, 'hg'))
 
-        velocity_val = self.slits.hc.velocity.get()
+        velocity_val = self.slits.hg.velocity.get()
         assert velocity_val == 1
