@@ -187,3 +187,22 @@ class TestIOC:
 
         res = self.tc.ctrl.out1.setpoint.get()
         assert res == 0.0
+
+        res = self.tc.ctrl.out1.target_channel.get()
+        assert res == ''
+
+    def test_target_channel(self):
+
+        self.tc.ctrl.out1.target_channel.put('A')
+        res = self.tc.ctrl.out1.target_channel.get()
+        assert res == 'A'
+
+    def test_ctrl_setpoint(self):
+
+        new_value = 1.0
+
+        self.tc.ctrl.out1.target_channel.put('A')
+        self.tc.ctrl.out1.setpoint.put(new_value)
+
+        res = self.tc.temp.A.T.get()
+        assert res == new_value

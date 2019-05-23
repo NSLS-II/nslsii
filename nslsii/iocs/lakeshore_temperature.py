@@ -11,6 +11,8 @@ class TemperatureRecord(PVGroup):
         super().__init__(prefix, **kwargs)
         self.ioc = ioc
 
+    _false_true_states = ['False', 'True']
+
     _T_val = 0.
     _TC_val = 0.
     _V_val = 0.
@@ -79,13 +81,34 @@ class TemperatureRecord(PVGroup):
         instance.async_lib = async_lib
 
     @cmd.putter
-    async def cmd(self, instance, value):
+    async def cmd(self, instance, cmd):
+
+        value = float(cmd)
+
+        # check lock
 
         if self.putter_lock.locked() is True:
             return instance.value
         else:
             self.putter_lock.acquire()
 
+        # select the lakeshore control
+
+        prefix = self.ioc.prefix.replace('{', '{'*2)
+        ctrl_suffix = 1
+        c_k = f'{prefix}-Out:{ctrl_suffix}'
+        ctrl = self.ioc.groups[c_k]
+
+        # update the temp and ctrl readbacks
+
+        await ctrl.done.write(value='False')
+
+        await self.T.write(value=value)
+        await ctrl.readback.write(value=value)
+
+        await ctrl.done.write(value='True')
+
+        '''
         p0 = instance.value
         dwell = self._step_size/self._velocity
         N = max(1, int((value - p0) / self._step_size))
@@ -95,6 +118,7 @@ class TemperatureRecord(PVGroup):
             await instance.async_lib.library.sleep(dwell)
             await self.T.write(value=new_value)
 
-        self.putter_lock.release()
+        '''
 
+        self.putter_lock.release()
         return value
