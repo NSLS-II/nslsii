@@ -6,6 +6,7 @@ import subprocess
 import os
 import sys
 import pytest
+import time
 
 
 @pytest.fixture
@@ -27,12 +28,13 @@ def test_Eurotherm(RE):
 
     # Start up an IOC based on the thermo_sim device in caproto.ioc_examples
     ioc_process = subprocess.Popen([sys.executable, '-m',
-                                    'caproto.tests.example_runner',
                                     'caproto.ioc_examples.thermo_sim'],
                                    stdout=stdout, stdin=stdin,
                                    env=os.environ)
 
     print(f'caproto.ioc_examples.thermo_sim is now running')
+
+    time.sleep(5)
 
     # Wrap the rest in a try-except to ensure the ioc is killed before exiting
     try:
