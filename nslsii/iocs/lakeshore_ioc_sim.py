@@ -24,12 +24,12 @@ def create_ioc(prefix, temperatures, controls, **ioc_options):
     for t in temperatures:
         t_prefix = f'{prefix}-Chan:{t}'
         print('t_prefix:', t_prefix)
-        groups[t_prefix] = TemperatureRecord(t_prefix, ioc=ioc)
+        groups[t_prefix] = TemperatureRecord(t_prefix, indx=t, ioc=ioc)
 
     for c in controls:
         c_prefix = f'{prefix}-Out:{c}'
         print('c_prefix:', c_prefix)
-        groups[c_prefix] = ControlRecord(c_prefix, ioc=ioc)
+        groups[c_prefix] = ControlRecord(c_prefix, indx=c, ioc=ioc)
 
     for prefix, group in groups.items():
         ioc.pvdb.update(**group.pvdb)
@@ -44,7 +44,7 @@ if __name__ == '__main__':
         desc='Lakeshore IOC.')
 
     temperatures = ['A', 'B', 'C', 'D']
-    controls = [1]
+    controls = [1, 2]
 
     ioc = create_ioc(temperatures=temperatures,
                      controls=controls,

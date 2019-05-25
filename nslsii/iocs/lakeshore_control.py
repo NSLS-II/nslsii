@@ -5,8 +5,9 @@ from caproto import ChannelType
 
 class ControlRecord(PVGroup):
 
-    def __init__(self, prefix, *, ioc, **kwargs):
+    def __init__(self, prefix, *, indx, ioc, **kwargs):
         super().__init__(prefix, **kwargs)
+        self._indx = indx
         self.ioc = ioc
 
     _false_true_states = ['False', 'True']
@@ -61,7 +62,7 @@ class ControlRecord(PVGroup):
     # ramp attributes
 
     _ramp_enable_val = 0.
-    _ramp_rate_val = 0.
+    _ramp_rate_val = 5.  # degree/s
 
     ramp_enable = pvproperty(value=_ramp_enable_val,
                              dtype=ChannelType.DOUBLE,
@@ -155,7 +156,9 @@ class ControlRecord(PVGroup):
         t_v = self.ioc.groups[t_k]
 
         # apply cmd
-        await t_v.cmd.write(value=value)
+        indx = self._indx
+        cmd = f'{value},{indx}'
+        await t_v.cmd.write(value=cmd)
 
         self._rb_val = value
         return value

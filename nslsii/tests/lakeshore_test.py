@@ -43,7 +43,7 @@ def create_device_from_components(name, *, docstring=None,
 
 
 def lakeshore336(name='Lakeshore336', temperatures=['A', 'B', 'C', 'D'],
-                 controls=[1], docstring=None,
+                 controls=[1, 2], docstring=None,
                  default_read_attrs=None, default_configuration_attrs=None):
 
     def _set_fields(fields, cls, prefix, field_prefix='', **kwargs):
@@ -164,14 +164,13 @@ def ioc_sim(request):
     # teardown code
 
     ioc_process.terminate()
-
-
+				
 @pytest.mark.usefixtures('ioc_sim')
 class TestIOC:
 
     def test_caproto_level(self):
 
-        t_rb = read('test:{-Chan:A}T-I')
+        t_rb = read('test:{-Chan:A}T:C-I')
         assert t_rb.data[0] == 0.0
 
         c_sp = read('test:{-Out:1}T-SP')
@@ -182,7 +181,7 @@ class TestIOC:
 
     def test_device_level(self):
 
-        res = self.tc.temp.A.T.get()
+        res = self.tc.temp.A.T_celsius.get()
         assert res == 0.0
 
         res = self.tc.ctrl.out1.setpoint.get()
@@ -197,12 +196,68 @@ class TestIOC:
         res = self.tc.ctrl.out1.target_channel.get()
         assert res == 'A'
 
-    def test_ctrl_setpoint(self):
+    def test_alarm_low(self):
 
-        new_value = 1.0
+        new_value = 150.0
+
+        res = self.tc.temp.A.alarm.low.get()
+        assert res == 0
 
         self.tc.ctrl.out1.target_channel.put('A')
         self.tc.ctrl.out1.setpoint.put(new_value)
 
+        res = self.tc.temp.A.alarm.low.get()
+        assert res == 1
+
+    def test_alarm_high(self):
+
+        new_value = 450.0
+
+        res = self.tc.temp.A.alarm.high.get()
+        assert res == 0
+
+        self.tc.ctrl.out1.target_channel.put('A')
+        self.tc.ctrl.out1.setpoint.put(new_value)
+
+        res = self.tc.temp.A.alarm.high.get()
+        assert res == 1
+
+    def test_1_A(self):
+
+        value = self.tc.temp.A.T.get()
+        new_value = value + 10
+
+        rate = self.tc.ctrl.out1.ramp.rate.get()
+        t = (new_value-value)/rate
+
+        self.tc.ctrl.out1.target_channel.put('A')
+        self.tc.ctrl.out1.setpoint.put(new_value)
+
+        time.sleep(t+1)
+
+        res = self.tc.ctrl.out1.done.get()
+        assert res == 1
+
         res = self.tc.temp.A.T.get()
         assert res == new_value
+
+    def test_2_B(self):
+
+        value = self.tc.temp.B.T.get()
+        new_value = value + 10
+
+        rate = self.tc.ctrl.out2.ramp.rate.get()
+        t = (new_value-value)/rate
+
+        self.tc.ctrl.out2.target_channel.put('B')
+        self.tc.ctrl.out2.setpoint.put(new_value)
+
+        time.sleep(t+1)
+
+        res = self.tc.ctrl.out2.done.get()
+        assert res == 1
+
+        res = self.tc.temp.B.T.get()
+        assert res == new_value
+
+
