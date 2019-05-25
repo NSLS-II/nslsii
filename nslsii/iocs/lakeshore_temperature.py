@@ -129,7 +129,7 @@ class TemperatureRecord(PVGroup):
         for j in range(N):
             new_value = p0 + self._step_size*(j+1)
             await instance.async_lib.library.sleep(dwell)
-            await self.T.write(value=new_value) 
+            await self.T.write(value=new_value)
             await self.T_celsius.write(value=(new_value - 273.15))
             await ctrl.readback.write(value=new_value)
 

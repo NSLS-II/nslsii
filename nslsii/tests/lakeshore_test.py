@@ -164,7 +164,8 @@ def ioc_sim(request):
     # teardown code
 
     ioc_process.terminate()
-				
+
+
 @pytest.mark.usefixtures('ioc_sim')
 class TestIOC:
 
@@ -259,5 +260,3 @@ class TestIOC:
 
         res = self.tc.temp.B.T.get()
         assert res == new_value
-
-
