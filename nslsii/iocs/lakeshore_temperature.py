@@ -2,6 +2,8 @@
 from caproto.server import pvproperty, PVGroup
 from caproto import ChannelType
 
+import numpy as np
+
 from threading import Lock
 
 
@@ -77,6 +79,17 @@ class TemperatureRecord(PVGroup):
                      dtype=ChannelType.STRING,
                      name='}}Cmd')
 
+    def exp_sin_func(self, p0, p1, dwell, j, v):
+        omega = np.pi
+        setpoint = p1
+        Tvar = setpoint*0.1
+        K = (p1 - p0)/v/2.5
+        dt = dwell*(j+1)
+        return Tvar*np.exp(-dt / K) * np.sin(omega * dt) + setpoint
+
+    def linear_func(self, p0, dp, j):
+        return p0 + dp*(j+1)
+
     @cmd.startup
     async def cmd(self, instance, async_lib):
         instance.ev = async_lib.library.Event()
@@ -123,11 +136,15 @@ class TemperatureRecord(PVGroup):
         await ctrl.done.write(value=0)
 
         p0 = self._T_val
-        dwell = self._step_size/ctrl._ramp_rate_val
+        dp = self._step_size
+        v = ctrl._ramp_rate_val
+        dwell = dp/v
         N = max(1, int((value - p0) / self._step_size))
 
         for j in range(N):
-            new_value = p0 + self._step_size*(j+1)
+            # new_value = p0 + self._step_size*(j+1)
+            # new_value = self.linear_func(p0, dp, j)
+            new_value = self.exp_sin_func(p0, value, dwell, j, v)
             await instance.async_lib.library.sleep(dwell)
             await self.T.write(value=new_value)
             await self.T_celsius.write(value=(new_value - 273.15))
