@@ -44,7 +44,6 @@ def test_epstwostate_ioc():
     stdin = None
 
     ioc_process = subprocess.Popen([sys.executable, '-m',
-                                    'caproto.tests.example_runner',
                                     'nslsii.iocs.eps_two_state_ioc_sim'],
                                    stdout=stdout, stdin=stdin,
                                    env=os.environ)
