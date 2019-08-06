@@ -3,7 +3,17 @@ from __future__ import (absolute_import, division, print_function)
 import versioneer
 import setuptools
 
-with open('requirements.txt') as f:
+# To use a consistent encoding
+from codecs import open
+from os import path
+
+here = path.abspath(path.dirname(__file__))
+
+# Get the long description from the README file
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
+with open(path.join(here, 'requirements.txt')) as f:
     requirements = f.read().splitlines()
 
 setuptools.setup(
@@ -12,8 +22,9 @@ setuptools.setup(
     cmdclass=versioneer.get_cmdclass(),
     license="BSD (3-clause)",
     packages=setuptools.find_packages(),
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     description='Tools for data collection and analysis at NSLS-II',
-    author='Stuart B. Wilkins',
-    author_email='swilkins@bnl.gov',
+    author='Brookhaven National Laboratory',
     install_requires=requirements,
 )
