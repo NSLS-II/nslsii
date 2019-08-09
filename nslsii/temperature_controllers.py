@@ -34,8 +34,8 @@ class Eurotherm(Device):
     tolerance = Cpt(Signal, value=1)
 
     # Add the readback and setpoint components
-    setpoint = Cpt(EpicsSignal, 'SP')
-    readback = Cpt(EpicsSignal, 'I')
+    setpoint = Cpt(EpicsSignal, 'T-SP')
+    readback = Cpt(EpicsSignal, 'T-I')
 
     # define the new set method with the new moving indicator
     def set(self, value):
