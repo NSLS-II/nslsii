@@ -35,7 +35,7 @@ class Eurotherm(Device):
 
     # Add the readback and setpoint components
     setpoint = Cpt(EpicsSignal, 'T-SP')
-    readback = Cpt(EpicsSignal, 'T-I')
+    readback = Cpt(EpicsSignal, 'T-RB')
 
     # define the new set method with the new moving indicator
     def set(self, value):
