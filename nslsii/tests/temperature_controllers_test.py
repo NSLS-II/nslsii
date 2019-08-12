@@ -28,7 +28,7 @@ def test_Eurotherm(RE):
     # Start up an IOC based on the thermo_sim device in caproto.ioc_examples
     ioc_process = subprocess.Popen([sys.executable, '-m',
                                     'caproto.tests.example_runner',
-                                    'caproto.ioc_examples.thermo_sim'],
+                                    'nslsii.iocs.thermo_sim'],
                                    stdout=stdout, stdin=stdin,
                                    env=os.environ)
 
