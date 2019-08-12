@@ -9,7 +9,7 @@ class Thermo(PVGroup):
     """
     Simulates (poorly) an oscillating temperature controller.
 
-    Follows :math:`T_{output} = T_{var} exp^{-(t - t_0)/K} sin(ω t) 
+    Follows :math:`T_{output} = T_{var} exp^{-(t - t_0)/K} sin(ω t)
                    + T_{setpoint}`
 
     The default prefix is `thermo:`
