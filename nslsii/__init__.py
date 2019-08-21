@@ -80,20 +80,42 @@ def configure_base(user_ns, broker_name, *,
     >>>> configure_base(get_ipython().user_ns, 'chx');
     """
     ns = {}  # We will update user_ns with this at the end.
+    import bluesky
 
     # Set up a RunEngine and use metadata backed by a sqlite file.
     from bluesky import RunEngine
-    from bluesky.utils import get_history
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine
     if 'RE' in user_ns:
         RE = user_ns['RE']
     else:
         kwargs = {}
+        if bluesky.__version__ < '1.6':
+            from bluesky.utils import get_history
+            md = get_history()
+        else:
+            from bluesky.utils import PersistentDict
+
+            from pathlib import Path
+            import os
+            SEARCH_PATH = []
+            ENV_VAR = 'BLUESKY_HISTORY_PATH'
+            if ENV_VAR in os.environ:
+                SEARCH_PATH.append(Path(os.environ[ENV_VAR]).expanduser())
+            SEARCH_PATH.extend([
+                Path('~/.config/bluesky/bluesky_history').expanduser(),
+                Path('/etc/bluesky/bluesky_history')])
+            for path in SEARCH_PATH:
+                if path.exists():
+                    break
+            else:
+                path = SEARCH_PATH[0]
+            md = PersistentDict(path)
+
         if baton is not None:
             kwargs['acquire_baton'] = baton.acquire_baton
 
-        RE = RunEngine(get_history(), **kwargs)
+        RE = RunEngine(md, **kwargs)
 
         if baton is not None:
             for d in ['start', 'stop']:
