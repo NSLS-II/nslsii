@@ -86,3 +86,19 @@ class Baton(Device):
 
     def state_callback(self, new, old):
         self.state.put(new)
+
+
+class BatonDisplay(Device):
+    """
+    Read-only Ophyd object to wrap the "baton" IOC.
+
+    This is to populate a typhon screen.
+    """
+
+    baton = Cpt(EpicsSignalRO, "baton", string=True, kind="config")
+    host = Cpt(EpicsSignalRO, "host", string=True, kind="config")
+    pid = Cpt(EpicsSignalRO, "pid", kind="config")
+
+    current_uid = Cpt(EpicsSignalRO, "current_uid", string=True)
+    current_scanid = Cpt(EpicsSignalRO, "current_scanid")
+    state = Cpt(EpicsSignalRO, "state", string=True, kind="hinted")
