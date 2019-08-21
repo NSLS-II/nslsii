@@ -72,6 +72,7 @@ class Baton(Device):
                 self.baton.put("")
                 self.host.put("")
                 self.pid.put(0)
+                self.state.put("unknown")
             except Exception:
                 # if we fail in tear down 🤷
                 pass
