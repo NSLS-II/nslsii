@@ -168,10 +168,10 @@ def configure_base(user_ns, broker_name, *,
         import matplotlib.pyplot as plt
         ns['plt'] = plt
         plt.ion()
-
-        # Make plots update live while scans run.
-        from bluesky.utils import install_kicker
-        install_kicker()
+        if bluesky.__version__ < '1.6':
+            # Make plots update live while scans run.
+            from bluesky.utils import install_kicker
+            install_kicker()
 
     if epics_context:
         # Create a context in the underlying EPICS client.
