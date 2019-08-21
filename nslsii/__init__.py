@@ -13,7 +13,7 @@ def import_star(module, ns):
 
 def configure_base(user_ns, broker_name, *,
                    bec=True, epics_context=False, magics=True, mpl=True,
-                   ophyd_logging=True, pbar=True):
+                   ophyd_logging=True, pbar=True, baton=None):
     """
     Perform base setup and instantiation of important objects.
 
@@ -61,6 +61,12 @@ def configure_base(user_ns, broker_name, *,
         ophyd.
     pbar : boolean, optional
         True by default. Set false to skip ProgressBarManager.
+    baton : nslsii.baton.Baton, optional
+        Device to manage a baton and status IOC.  Expected to have:
+
+          - baton.acquire_baton
+          - baton.doc_callback
+          - baton.state_callback
 
     Returns
     -------
@@ -83,7 +89,18 @@ def configure_base(user_ns, broker_name, *,
     if 'RE' in user_ns:
         RE = user_ns['RE']
     else:
-        RE = RunEngine(get_history())
+        kwargs = {}
+        if baton is not None:
+            kwargs['acquire_baton'] = baton.acquire_baton
+
+        RE = RunEngine(get_history(), **kwargs)
+
+        if baton is not None:
+            for d in ['start', 'stop']:
+                tok = RE.subscribe(baton.doc_callback, d)
+                baton.tokens.append(tok)
+            RE.state_hook = baton.state_callback
+
         ns['RE'] = RE
 
     # Set up SupplementalData.
