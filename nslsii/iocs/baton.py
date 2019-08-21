@@ -27,18 +27,17 @@ class IOC(PVGroup):
         value=0, doc="pid of running RE on host", mock_record="ai"
     )
 
-    last_uid = pvproperty(
+    current_uid = pvproperty(
         value="",
         dtype=ChannelType.STRING,
         doc="Last finished uid.",
         mock_record="ai",
     )
-    current_uid = pvproperty(
-        value="",
-        dtype=ChannelType.STRING,
-        doc="UID currently being collected.",
-        mock_record="ai",
+
+    current_scanid = pvproperty(
+        value=0, doc="Last finished scanid.", mock_record="ai"
     )
+
     state = pvproperty(
         value="unknown",
         doc="current state of RE",

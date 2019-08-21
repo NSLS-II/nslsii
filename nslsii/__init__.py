@@ -118,7 +118,7 @@ def configure_base(user_ns, broker_name, *,
         RE = RunEngine(md, **kwargs)
 
         if baton is not None:
-            for d in ['start', 'stop']:
+            for d in ['start']:
                 tok = RE.subscribe(baton.doc_callback, d)
                 baton.tokens.append(tok)
             RE.state_hook = baton.state_callback

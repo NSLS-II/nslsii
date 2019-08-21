@@ -2,27 +2,31 @@ import platform
 import os
 import uuid
 import atexit
-from ophyd import Device, Component as Cpt, EpicsSignal
+from ophyd import Device, Component as Cpt, EpicsSignal, EpicsSignalRO
 
 
 class Baton(Device):
     """
     Ophyd object to wrap the "baton" IOC
 
+    This object has the methods that the RE needs to
+    install the baton and check it on every use, and update
+    the state while running.
+
     Examples
     --------
 
     >>>>  b = Baton(PREFX, name='baton')
     >>>>  ip = get_ipython()
-    >>>>  configure_base(ip.user_ns, 'chx', acquire_baton=b.acquire_baton)
+    >>>>  configure_base(ip.user_ns, 'temp', baton=b)
 
     """
 
     baton = Cpt(EpicsSignal, "baton", string=True)
     host = Cpt(EpicsSignal, "host", string=True)
     pid = Cpt(EpicsSignal, "pid")
-    last_uid = Cpt(EpicsSignal, "last_uid", string=True)
     current_uid = Cpt(EpicsSignal, "current_uid", string=True)
+    current_scanid = Cpt(EpicsSignal, "current_scanid")
     state = Cpt(EpicsSignal, "state", string=True)
 
     def __init__(self, *args, **kwargs):
@@ -78,8 +82,7 @@ class Baton(Device):
     def doc_callback(self, name, doc):
         if name == "start":
             self.current_uid.put(doc["uid"])
-        elif name == "stop":
-            self.last_uid.put(doc["run_start"])
+            self.current_scanid.put(doc.get("scan_id", -1))
 
     def state_callback(self, new, old):
         self.state.put(new)
