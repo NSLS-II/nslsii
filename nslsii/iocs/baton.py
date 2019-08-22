@@ -58,8 +58,7 @@ class IOC(PVGroup):
     )
 
 
-if __name__ == "__main__":
-
+def main():
     ioc_options, run_options = ioc_arg_parser(
         default_prefix="XF31ID:", desc=dedent(IOC.__doc__)
     )
@@ -67,3 +66,7 @@ if __name__ == "__main__":
     ioc = IOC(**ioc_options)
 
     run(ioc.pvdb, **run_options)
+
+
+if __name__ == "__main__":
+    main()
