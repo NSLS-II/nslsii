@@ -13,7 +13,7 @@ def import_star(module, ns):
 
 def configure_base(user_ns, broker_name, *,
                    bec=True, epics_context=False, magics=True, mpl=True,
-                   ophyd_logging=True, pbar=True):
+                   ophyd_logging=True, pbar=True, baton=None):
     """
     Perform base setup and instantiation of important objects.
 
@@ -61,6 +61,12 @@ def configure_base(user_ns, broker_name, *,
         ophyd.
     pbar : boolean, optional
         True by default. Set false to skip ProgressBarManager.
+    baton : nslsii.baton.Baton, optional
+        Device to manage a baton and status IOC.  Expected to have:
+
+          - baton.acquire_baton
+          - baton.doc_callback
+          - baton.state_callback
 
     Returns
     -------
@@ -74,16 +80,49 @@ def configure_base(user_ns, broker_name, *,
     >>>> configure_base(get_ipython().user_ns, 'chx');
     """
     ns = {}  # We will update user_ns with this at the end.
+    import bluesky
 
     # Set up a RunEngine and use metadata backed by a sqlite file.
     from bluesky import RunEngine
-    from bluesky.utils import get_history
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine
     if 'RE' in user_ns:
         RE = user_ns['RE']
     else:
-        RE = RunEngine(get_history())
+        kwargs = {}
+        if bluesky.__version__ < '1.6':
+            from bluesky.utils import get_history
+            md = get_history()
+        else:
+            from bluesky.utils import PersistentDict
+
+            from pathlib import Path
+            import os
+            SEARCH_PATH = []
+            ENV_VAR = 'BLUESKY_HISTORY_PATH'
+            if ENV_VAR in os.environ:
+                SEARCH_PATH.append(Path(os.environ[ENV_VAR]).expanduser())
+            SEARCH_PATH.extend([
+                Path('~/.config/bluesky/bluesky_history').expanduser(),
+                Path('/etc/bluesky/bluesky_history')])
+            for path in SEARCH_PATH:
+                if path.exists():
+                    break
+            else:
+                path = SEARCH_PATH[0]
+            md = PersistentDict(path)
+
+        if baton is not None:
+            kwargs['acquire_baton'] = baton.acquire_baton
+
+        RE = RunEngine(md, **kwargs)
+
+        if baton is not None:
+            for d in ['start']:
+                tok = RE.subscribe(baton.doc_callback, d)
+                baton.tokens.append(tok)
+            RE.state_hook = baton.state_callback
+
         ns['RE'] = RE
 
     # Set up SupplementalData.
@@ -129,10 +168,10 @@ def configure_base(user_ns, broker_name, *,
         import matplotlib.pyplot as plt
         ns['plt'] = plt
         plt.ion()
-
-        # Make plots update live while scans run.
-        from bluesky.utils import install_kicker
-        install_kicker()
+        if bluesky.__version__ < '1.6':
+            # Make plots update live while scans run.
+            from bluesky.utils import install_kicker
+            install_kicker()
 
     if epics_context:
         # Create a context in the underlying EPICS client.

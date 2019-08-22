@@ -27,4 +27,9 @@ setuptools.setup(
     description='Tools for data collection and analysis at NSLS-II',
     author='Brookhaven National Laboratory',
     install_requires=requirements,
+    entry_points={
+        'console_scripts': [
+            'baton-ioc = nslsii.iocs.baton:main',
+            ]
+        }
 )
