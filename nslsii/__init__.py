@@ -1,5 +1,6 @@
 from IPython import get_ipython
 from ._version import get_versions
+from .loggers import configure_elastic
 __version__ = get_versions()['version']
 del get_versions
 
@@ -147,6 +148,9 @@ def configure_base(user_ns, broker_name, *,
         ch = logging.StreamHandler()
         ch.setLevel(logging.ERROR)
         ophyd.ophydobj.logger.addHandler(ch)
+
+    configure_elastic(broker_name)
+    #Configure elastic log handler including bluesky, carproto and ophyd
 
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
