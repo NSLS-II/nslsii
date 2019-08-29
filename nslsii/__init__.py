@@ -13,7 +13,7 @@ def import_star(module, ns):
 
 def configure_base(user_ns, broker_name, *,
                    bec=True, epics_context=False, magics=True, mpl=True,
-                   ophyd_logging=True, pbar=True):
+                   ophyd_logging=True, pbar=True, ipython_exc_logging=True):
     """
     Perform base setup and instantiation of important objects.
 
@@ -61,6 +61,9 @@ def configure_base(user_ns, broker_name, *,
         ophyd.
     pbar : boolean, optional
         True by default. Set false to skip ProgressBarManager.
+    ipython_exc_logging : boolean, optional
+        True by default. Exception stack traces will be written to IPython log file
+        when IPython logging is enabled.
 
     Returns
     -------
@@ -147,6 +150,11 @@ def configure_base(user_ns, broker_name, *,
         ch = logging.StreamHandler()
         ch.setLevel(logging.ERROR)
         ophyd.ophydobj.logger.addHandler(ch)
+
+    if ipython_exc_logging:
+        # IPython logging must be enabled separately
+        from nslsii.common.ipynb.logutils import log_exception
+        get_ipython().set_custom_exc((BaseException,), log_exception)
 
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
