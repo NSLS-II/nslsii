@@ -5,6 +5,10 @@ def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
     """A custom IPython exception handler that logs exception tracebacks to
     the IPython log file.
 
+    References:
+        https://ipython.readthedocs.io/en/stable/api/generated/IPython.core.interactiveshell.html
+        https://ipython.readthedocs.io/en/stable/api/generated/IPython.core.logger.html
+
     Usage:
         from nslsii.common.ipynb.logutils import log_exception
         get_ipython().set_custom_exc((BaseException, ), log_exception)
