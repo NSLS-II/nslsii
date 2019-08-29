@@ -62,8 +62,8 @@ def configure_base(user_ns, broker_name, *,
     pbar : boolean, optional
         True by default. Set false to skip ProgressBarManager.
     ipython_exc_logging : boolean, optional
-        True by default. Exception stack traces will be written to IPython log file
-        when IPython logging is enabled.
+        True by default. Exception stack traces will be written to IPython
+        log file when IPython logging is enabled.
 
     Returns
     -------
