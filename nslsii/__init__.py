@@ -1,3 +1,6 @@
+from distutils.version import LooseVersion
+import os
+
 from IPython import get_ipython
 from ._version import get_versions
 __version__ = get_versions()['version']
@@ -79,14 +82,23 @@ def configure_base(user_ns, broker_name, *,
     ns = {}  # We will update user_ns with this at the end.
 
     # Set up a RunEngine and use metadata backed by a sqlite file.
-    from bluesky import RunEngine
-    from bluesky.utils import get_history
+    from bluesky import RunEngine, __version__ as bluesky_version
+    if LooseVersion(bluesky_version) >= LooseVersion('1.6.0'):
+        # current approach using PersistentDict
+        from bluesky.utils import PersistentDict
+        directory = os.path.expanduser('~/.config/bluesky/md')
+        os.makedirs(directory, exist_ok=True)
+        md = PersistentDict(directory)
+    else:
+        # legacy approach using HistoryDict
+        from bluesky.utils import get_history
+        md = get_history()
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine
     if 'RE' in user_ns:
         RE = user_ns['RE']
     else:
-        RE = RunEngine(get_history())
+        RE = RunEngine(md)
         ns['RE'] = RE
 
     # Set up SupplementalData.
@@ -134,8 +146,9 @@ def configure_base(user_ns, broker_name, *,
         plt.ion()
 
         # Make plots update live while scans run.
-        from bluesky.utils import install_kicker
-        install_kicker()
+        if LooseVersion(bluesky_version) < LooseVersion('1.6.0'):
+            from bluesky.utils import install_kicker
+            install_kicker()
 
     if epics_context:
         # Create a context in the underlying EPICS client.
