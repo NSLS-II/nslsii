@@ -79,12 +79,13 @@ def configure_base(user_ns, broker_name, *,
 
     >>>> configure_base(get_ipython().user_ns, 'chx');
     """
-    if configure_base.has_been_called:
+    ns = {}  # We will update user_ns with this at the end.
+    # Protect against double-subscription.
+    SENTINEL = "__nslsii_configure_base_has_been_run"
+    if user_ns.get(SENTINEL)
         raise RuntimeError(
             "configure_base should only be called once per process.")
-    configure_base.has_been_called = True
-    ns = {}  # We will update user_ns with this at the end.
-
+    ns[SENTINEL] = True
     # Set up a RunEngine and use metadata backed by a sqlite file.
     from bluesky import RunEngine, __version__ as bluesky_version
     if LooseVersion(bluesky_version) >= LooseVersion('1.6.0'):
@@ -208,9 +209,6 @@ def configure_base(user_ns, broker_name, *,
 
     user_ns.update(ns)
     return list(ns)
-
-
-configure_base.has_been_called = False
 
 
 def configure_olog(user_ns, *, callback=None, subscribe=True):
