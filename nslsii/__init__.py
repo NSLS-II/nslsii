@@ -79,6 +79,10 @@ def configure_base(user_ns, broker_name, *,
 
     >>>> configure_base(get_ipython().user_ns, 'chx');
     """
+    if configure_base.has_been_called:
+        raise RuntimeError(
+            "configure_base should only be called once per process.")
+    configure_base.has_been_called = True
     ns = {}  # We will update user_ns with this at the end.
 
     # Set up a RunEngine and use metadata backed by a sqlite file.
@@ -204,6 +208,9 @@ def configure_base(user_ns, broker_name, *,
 
     user_ns.update(ns)
     return list(ns)
+
+
+configure_base.has_been_called = False
 
 
 def configure_olog(user_ns, *, callback=None, subscribe=True):
