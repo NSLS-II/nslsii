@@ -82,7 +82,7 @@ def configure_base(user_ns, broker_name, *,
     ns = {}  # We will update user_ns with this at the end.
     # Protect against double-subscription.
     SENTINEL = "__nslsii_configure_base_has_been_run"
-    if user_ns.get(SENTINEL)
+    if user_ns.get(SENTINEL):
         raise RuntimeError(
             "configure_base should only be called once per process.")
     ns[SENTINEL] = True
