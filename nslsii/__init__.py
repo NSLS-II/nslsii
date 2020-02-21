@@ -38,7 +38,7 @@ def configure_base(user_ns, broker_name, *,
     And it performs some low-level configuration:
 
     * creates a context in ophyd's control layer (``ophyd.setup_ophyd()``)
-    * turns out interactive plotting (``matplotlib.pyplot.ion()``)
+    * turns on interactive plotting (``matplotlib.pyplot.ion()``)
     * bridges the RunEngine and Qt event loops
       (``bluesky.utils.install_kicker()``)
     * logs ERROR-level log message from ophyd to the standard out
