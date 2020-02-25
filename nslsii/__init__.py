@@ -160,14 +160,33 @@ def configure_base(user_ns, broker_name, *,
         from ophyd import setup_ophyd
         setup_ophyd()
 
-    if not ophyd_logging:
-        # Turn on error-level logging, particularly useful for knowing when
-        # pyepics callbacks fail.
+    # if not ophyd_logging:
+    #     # Turn on error-level logging, particularly useful for knowing when
+    #     # pyepics callbacks fail.
+    #     import logging
+    #     import ophyd.ophydobj
+    #     ch = logging.StreamHandler()
+    #     ch.setLevel(logging.ERROR)
+    #     ophyd.ophydobj.logger.addHandler(ch)
+
+    if True:
         import logging
-        import ophyd.ophydobj
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.ERROR)
-        ophyd.ophydobj.logger.addHandler(ch)
+        from logging.handlers import TimedRotatingFileHandler
+
+        log_file_handler = TimedRotatingFileHandler(
+            filename=os.path.expanduser("/var/log/bluesky/bluesky.log"),
+            when="W0",
+            backupCount=10
+        )
+        log_file_handler.setLevel("INFO")
+
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel("WARNING")
+
+        logging.getLogger("bluesky").addHandler(log_file_handler)
+        logging.getLogger("bluesky.*").addHandler(log_file_handler)
+        logging.getLogger("ophyd").addHandler(log_file_handler)
+        logging.getLogger("ophyd.*").addHandler(log_file_handler)
 
     if ipython_exc_logging:
         # IPython logging must be enabled separately
