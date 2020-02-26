@@ -16,7 +16,7 @@ def import_star(module, ns):
 
 def configure_base(user_ns, broker_name, *,
                    bec=True, epics_context=False, magics=True, mpl=True,
-                   ophyd_logging=True, pbar=True, ipython_exc_logging=True):
+                   configure_logging=True, pbar=True, ipython_exc_logging=True):
     """
     Perform base setup and instantiation of important objects.
 
@@ -59,9 +59,9 @@ def configure_base(user_ns, broker_name, *,
     mpl : boolean, optional
         True by default. Set False to skip matplotlib ``ion()`` at event-loop
         bridging.
-    ophyd_logging : boolean, optional
-        True by default. Set False to skip ERROR-level log configuration for
-        ophyd.
+    configure_logging : boolean, optional
+        True by default. Set False to skip INFO-level logging to /var/logs/bluesky/bluesky.log
+        and WARNING-level logging to the console
     pbar : boolean, optional
         True by default. Set false to skip ProgressBarManager.
     ipython_exc_logging : boolean, optional
@@ -160,16 +160,7 @@ def configure_base(user_ns, broker_name, *,
         from ophyd import setup_ophyd
         setup_ophyd()
 
-    # if not ophyd_logging:
-    #     # Turn on error-level logging, particularly useful for knowing when
-    #     # pyepics callbacks fail.
-    #     import logging
-    #     import ophyd.ophydobj
-    #     ch = logging.StreamHandler()
-    #     ch.setLevel(logging.ERROR)
-    #     ophyd.ophydobj.logger.addHandler(ch)
-
-    if True:
+    if configure_logging:
         import logging
         from logging.handlers import TimedRotatingFileHandler
 
@@ -180,13 +171,18 @@ def configure_base(user_ns, broker_name, *,
         )
         log_file_handler.setLevel("INFO")
 
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel("WARNING")
-
         logging.getLogger("bluesky").addHandler(log_file_handler)
         logging.getLogger("bluesky.*").addHandler(log_file_handler)
         logging.getLogger("ophyd").addHandler(log_file_handler)
         logging.getLogger("ophyd.*").addHandler(log_file_handler)
+
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel("WARNING")
+
+        logging.getLogger("bluesky").addHandler(console_handler)
+        logging.getLogger("bluesky.*").addHandler(console_handler)
+        logging.getLogger("ophyd").addHandler(console_handler)
+        logging.getLogger("ophyd.*").addHandler(console_handler)
 
     if ipython_exc_logging:
         # IPython logging must be enabled separately
