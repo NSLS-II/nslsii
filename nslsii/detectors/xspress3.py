@@ -23,7 +23,7 @@ from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 from ophyd.areadetector.plugins import HDF5Plugin
 from ophyd.areadetector import ADBase
 from ophyd.device import (BlueskyInterface, Staged)
-from ophyd.ophydobj import DeviceStatus
+from ophyd.status import DeviceStatus
 
 from ..handlers import Xspress3HDF5Handler
 from ..handlers.xspress3 import XRF_DATA_KEY
