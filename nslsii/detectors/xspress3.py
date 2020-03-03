@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import time
 import time as ttime
 import logging
+import uuid
 
 from pathlib import PurePath
 from .utils import makedirs
@@ -20,13 +21,12 @@ from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 
 from ophyd.areadetector.plugins import HDF5Plugin
+from ophyd.areadetector import ADBase
 from ophyd.device import (BlueskyInterface, Staged)
 from ophyd.ophydobj import DeviceStatus
 
-
-# imort XRF_DATA_KEY for back-compat
-from databroker.assets.handlers import (Xspress3HDF5Handler,
-                                        XS3_XRF_DATA_KEY as XRF_DATA_KEY)
+from ..handlers import Xspress3HDF5Handler
+from ..handlers.xspress3 import XRF_DATA_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
     '''Xspress3 acquisition -> filestore'''
     num_capture_calc = Cpt(EpicsSignal, 'NumCapture_CALC')
     num_capture_calc_disable = Cpt(EpicsSignal, 'NumCapture_CALC.DISA')
+    filestore_spec = Xspress3HDF5Handler.HANDLER_NAME
 
     def __init__(self, basename, *, config_time=0.5,
                  mds_key_format='{self.settings.name}_ch{chan}', parent=None,
@@ -89,20 +90,6 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         self._config_time = config_time
         self.mds_keys = {chan: mds_key_format.format(self=self, chan=chan)
                          for chan in self.channels}
-
-    def read(self):
-        timestamp = time.time()
-
-        uids = [self._reg.register_datum(
-            self._filestore_res, {'frame': self.parent._abs_trigger_count - 1,
-                                  'channel': chan})
-                for chan in self.channels]
-
-        return {self.mds_keys[ch]: {'timestamp': timestamp,
-                                    'value': uid,
-                                    }
-                for uid, ch in zip(uids, self.channels)
-                }
 
     def stop(self, success=False):
         ret = super().stop(success=success)
@@ -143,6 +130,15 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
             logger.warning('Still capturing data .... interrupted.')
 
         return super().unstage()
+
+    def generate_datum(self, key, timestamp, datum_kwargs):
+        sn, n = next((f'channel{j}', j)
+                      for j in self.channels
+                      if getattr(self.parent, f'channel{j}').name == key)
+        datum_kwargs.update({'frame': self.parent._abs_trigger_count,
+                             'channel': int(sn[7:])})
+        self.mds_keys[n] = key
+        super().generate_datum(key, timestamp, datum_kwargs)
 
     def stage(self):
         # if should external trigger
@@ -205,12 +201,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                           .format(self.file_path.value))
 
         logger.debug('Inserting the filestore resource: %s', self._fn)
-        fn = PurePath(self._fn).relative_to(self.reg_root)
-        # parent class expects _resource
-        self._resource = self._filestore_res = self._reg.register_resource(
-            Xspress3HDF5Handler.HANDLER_NAME,
-            str(self.reg_root), str(fn),
-            {})
+        self._generate_resource({})
+        self._filestore_res = self._asset_docs_cache[-1][-1]
 
         # this gets auto turned off at the end
         self.capture.put(1)
@@ -292,8 +284,17 @@ class Xspress3ROISettings(PluginBase):
     '''Full areaDetector plugin settings'''
     array_data = Cpt(EpicsSignalRO, 'ArrayData_RBV')
 
+    @property
+    def ad_root(self):
+        root = self.parent
+        while True:
+            if not isinstance(root.parent, ADBase):
+                return root
+            root = root.parent
 
-class Xspress3ROI(Device):
+
+
+class Xspress3ROI(ADBase):
     '''A configurable Xspress3 EPICS ROI'''
 
     # prefix: C{channel}_   MCA_ROI{self.roi_num}
@@ -310,6 +311,15 @@ class Xspress3ROI(Device):
 
     enable = Cpt(SignalWithRBV, 'EnableCallbacks')
     # ad_plugin = Cpt(Xspress3ROISettings, '')
+
+    @property
+    def ad_root(self):
+        root = self.parent
+        while True:
+            if not isinstance(root.parent, ADBase):
+                return root
+            root = root.parent
+
 
     def __init__(self, prefix, *, roi_num=0, use_sum=False,
                  read_attrs=None, configuration_attrs=None, parent=None,
@@ -418,7 +428,7 @@ def make_rois(rois):
     return defn
 
 
-class Xspress3Channel(Device):
+class Xspress3Channel(ADBase):
     roi_name_format = 'Det{self.channel_num}_{roi_name}'
     roi_sum_name_format = 'Det{self.channel_num}_{roi_name}_sum'
 
@@ -620,11 +630,12 @@ class XspressTrigger(BlueskyInterface):
         self._status = DeviceStatus(self)
         self.settings.erase.put(1)
         self._acquisition_signal.put(1, wait=False)
-        self._abs_trigger_count += 1
         trigger_time = ttime.time()
 
         for sn in self.read_attrs:
-            if sn.startswith('channel'):
+            if sn.startswith('channel') and '.' not in sn:
                 ch = getattr(self, sn)
                 self.dispatch(ch.name, trigger_time)
+
+        self._abs_trigger_count += 1
         return self._status
