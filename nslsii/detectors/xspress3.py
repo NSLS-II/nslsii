@@ -25,8 +25,8 @@ from ophyd.areadetector import ADBase
 from ophyd.device import (BlueskyInterface, Staged)
 from ophyd.status import DeviceStatus
 
-from ..handlers import Xspress3HDF5Handler
-from ..handlers.xspress3 import XRF_DATA_KEY
+from databroker.assets.handlers import Xspress3HDF5Handler
+
 
 logger = logging.getLogger(__name__)
 
