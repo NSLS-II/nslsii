@@ -86,7 +86,7 @@ def configure_base(user_ns, broker_name, *,
         raise RuntimeError(
             "configure_base should only be called once per process.")
     ns[SENTINEL] = True
-    # Set up a RunEngine and use metadata backed by a sqlite file.
+    # Set up a RunEngine and use metadata backed by files on disk.
     from bluesky import RunEngine, __version__ as bluesky_version
     if LooseVersion(bluesky_version) >= LooseVersion('1.6.0'):
         # current approach using PersistentDict
@@ -310,3 +310,15 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     user_ns.update(ns)
     return list(ns)
+
+
+def migrate_metadata():
+    """
+    Copy metadata from (old) sqlite-backed file to (new) directory of msgpack.
+    """
+    from bluesky.utils import get_history, PersistentDict
+    old_md = get_history()
+    directory = os.path.expanduser('~/.config/bluesky/md')
+    os.makedirs(directory, exist_ok=True)
+    new_md = PersistentDict(directory)
+    new_md.update(old_md)
