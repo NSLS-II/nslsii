@@ -1,9 +1,10 @@
+import logging
 import traceback
 
 
 def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
     """A custom IPython exception handler that logs exception tracebacks to
-    the IPython log file.
+    the IPython log file as well as to the IPython logger.
 
     References:
         https://ipython.readthedocs.io/en/stable/api/generated/IPython.core.interactiveshell.html
@@ -34,6 +35,9 @@ def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
     tb_lines = traceback.format_exception(etype, evalue, tb)
     for tb_line in tb_lines:
         ipyshell.logger.log_write(tb_line, kind="output")
-    ipyshell.showtraceback((etype, evalue, tb), tb_offset=tb_offset)
+    ipyshell.showtraceback((etype, evalue, tb), tb_offset=tb_offset, exception_only=True)
+
+    logging.getLogger("bluesky.ipython").exception(evalue)
+    print("see bluesky log file for full stack trace")
 
     return tb_lines
