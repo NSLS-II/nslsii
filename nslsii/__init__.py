@@ -171,18 +171,26 @@ def configure_base(user_ns, broker_name, *,
         )
         log_file_handler.setLevel("INFO")
 
+        log_file_format = (
+            "[%(levelname)1.1s %(asctime)s.%(msecs)03d %(name)s  %(module)s:%(lineno)d] %(message)s"
+        )
+
+        log_file_handler.setFormatter(
+            logging.Formatter(fmt=log_file_format)
+        )
         logging.getLogger("bluesky").addHandler(log_file_handler)
-        logging.getLogger("bluesky.*").addHandler(log_file_handler)
+        logging.getLogger("caproto").addHandler(log_file_handler)
         logging.getLogger("ophyd").addHandler(log_file_handler)
-        logging.getLogger("ophyd.*").addHandler(log_file_handler)
+        get_ipython().log.addHandler(log_file_handler)
 
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel("WARNING")
+        # set the loggers to send DEBUG and higher log
+        # messages to their handlers
+        logging.getLogger("bluesky").setLevel("DEBUG")
+        logging.getLogger("caproto").setLevel("DEBUG")
+        logging.getLogger("ophyd").setLevel("DEBUG")
+        get_ipython().log.setLevel("DEBUG")
 
-        logging.getLogger("bluesky").addHandler(console_handler)
-        logging.getLogger("bluesky.*").addHandler(console_handler)
-        logging.getLogger("ophyd").addHandler(console_handler)
-        logging.getLogger("ophyd.*").addHandler(console_handler)
+        #get_ipython().log.info("hello, world!")
 
     if ipython_exc_logging:
         # IPython logging must be enabled separately
