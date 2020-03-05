@@ -202,7 +202,7 @@ def configure_base(user_ns, broker_name, *,
         from nslsii.common.ipynb.logutils import log_exception
         get_ipython().set_custom_exc((BaseException,), log_exception)
 
-        get_ipython().magic("logstart -o -t bluesky_ipython.log rotate")
+        get_ipython().magic("logstart -o -t bluesky_ipython.log append")
 
     # always configure %xmode minimal
     get_ipython().magic("xmode minimal")
