@@ -7,6 +7,9 @@ __version__ = get_versions()['version']
 del get_versions
 
 
+bluesky_log_file_path = "/var/log/bluesky/bluesky.log"
+
+
 def import_star(module, ns):
     def public(name):
         return not name.startswith('_')
@@ -15,8 +18,10 @@ def import_star(module, ns):
 
 
 def configure_base(user_ns, broker_name, *,
-                   bec=True, epics_context=False, magics=True, mpl=True,
-                   configure_logging=True, pbar=True, ipython_exc_logging=True):
+                   bec=True, epics_context=False,
+                   magics=True, mpl=True,
+                   configure_logging=True, pbar=True,
+                   ipython_exc_logging=True):
     """
     Perform base setup and instantiation of important objects.
 
@@ -165,7 +170,7 @@ def configure_base(user_ns, broker_name, *,
         from logging.handlers import TimedRotatingFileHandler
 
         log_file_handler = TimedRotatingFileHandler(
-            filename=os.path.expanduser("/var/log/bluesky/bluesky.log"),
+            filename=bluesky_log_file_path,
             when="W0",
             backupCount=10
         )
@@ -181,6 +186,7 @@ def configure_base(user_ns, broker_name, *,
         logging.getLogger("bluesky").addHandler(log_file_handler)
         logging.getLogger("caproto").addHandler(log_file_handler)
         logging.getLogger("ophyd").addHandler(log_file_handler)
+        logging.getLogger("nslsii").addHandler(log_file_handler)
         get_ipython().log.addHandler(log_file_handler)
 
         # set the loggers to send DEBUG and higher log
@@ -188,14 +194,19 @@ def configure_base(user_ns, broker_name, *,
         logging.getLogger("bluesky").setLevel("DEBUG")
         logging.getLogger("caproto").setLevel("DEBUG")
         logging.getLogger("ophyd").setLevel("DEBUG")
+        logging.getLogger("nslsii").setLevel("DEBUG")
         get_ipython().log.setLevel("DEBUG")
-
-        #get_ipython().log.info("hello, world!")
 
     if ipython_exc_logging:
         # IPython logging must be enabled separately
         from nslsii.common.ipynb.logutils import log_exception
         get_ipython().set_custom_exc((BaseException,), log_exception)
+
+        get_ipython().magic("logstart -o -t bluesky_ipython.log rotate")
+
+    # always configure %xmode minimal
+    get_ipython().magic("xmode minimal")
+
 
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
