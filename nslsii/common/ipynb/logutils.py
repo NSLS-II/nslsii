@@ -17,7 +17,7 @@ def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
         from nslsii.common.ipynb.logutils import log_exception
         get_ipython().set_custom_exc((BaseException, ), log_exception)
 
-        %logstart -o -t ipython_log/beamline.log rotate
+        %logstart -o -t ipython_log/beamline.log append
 
     Parameters
     ----------
