@@ -1,5 +1,8 @@
 import logging
+import sys
 import traceback
+
+from nslsii import bluesky_log_file_path
 
 
 def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
@@ -32,12 +35,22 @@ def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
     -------
     list of traceback lines
     """
+
+    # send the traceback to the IPython log file
     tb_lines = traceback.format_exception(etype, evalue, tb)
     for tb_line in tb_lines:
         ipyshell.logger.log_write(tb_line, kind="output")
-    ipyshell.showtraceback((etype, evalue, tb), tb_offset=tb_offset, exception_only=True)
 
-    logging.getLogger("bluesky.ipython").exception(evalue)
-    print("see bluesky log file for full stack trace")
+    # display the exception in the console
+    if ipyshell.InteractiveTB.mode == "Minimal":
+        print(
+            "An exception has occurred, use '%tb verbose' to see the full traceback.",
+            file=sys.stderr,
+        )
+    ipyshell.showtraceback((etype, evalue, tb), tb_offset=tb_offset)
+
+    # send the traceback to the IPython logger
+    logging.getLogger("nslsii.ipython").exception(evalue)
+    print(f"See {bluesky_log_file_path} for the full traceback.", file=sys.stderr)
 
     return tb_lines
