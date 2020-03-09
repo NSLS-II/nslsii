@@ -188,9 +188,18 @@ def configure_base(
         import logging
         from logging.handlers import TimedRotatingFileHandler
 
-        bluesky_log_file_path = os.environ.get(
-            "BLUESKY_LOG_FILE", default="/var/log/bluesky/bluesky.log"
-        )
+        if "BLUESKY_LOG_FILE" in os.environ:
+            print(
+                "bluesky log file configured from environment variable BLUESKY_LOG_FILE",
+                file=sys.stderr,
+            )
+            bluesky_log_file_path = os.environ["BLUESKY_LOG_FILE"]
+        else:
+            print(
+                f"environment variable BLUESKY_LOG_FILE is not set, using default file path",
+                file=sys.stderr,
+            )
+            bluesky_log_file_path = "/var/log/bluesky/bluesky.log"
         print(f"bluesky log file: {bluesky_log_file_path}", file=sys.stderr)
 
         log_file_handler = TimedRotatingFileHandler(
@@ -224,7 +233,28 @@ def configure_base(
 
         get_ipython().set_custom_exc((BaseException,), log_exception)
 
-        get_ipython().magic("logstart -o -t bluesky_ipython.log append")
+        if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
+            print(
+                "bluesky ipython log file configured from environment variable BLUESKY_IPYTHON_LOG_FILE",
+                file=sys.stderr,
+            )
+            bluesky_ipython_log_file_path = os.environ["BLUESKY_IPYTHON_LOG_FILE"]
+        else:
+            print(
+                f"environment variable BLUESKY_IPYTHON_LOG_FILE is not set, using default file path",
+                file=sys.stderr,
+            )
+            bluesky_ipython_log_file_path = "/var/log/bluesky/bluesky_ipython.log"
+
+        # before starting ipython logging check the size of the ipython log ile
+        # if the ipython log file has grown large make a copy and start a new one
+        # if a previous copy exists just overwrite it
+        if os.path.getsize(bluesky_ipython_log_file_path) > 1000000:
+            os.replace(
+                bluesky_ipython_log_file_path, bluesky_ipython_log_file_path + ".old"
+            )
+
+        get_ipython().magic(f"logstart -o -t {bluesky_ipython_log_file_path} append")
 
     # always configure %xmode minimal
     get_ipython().magic("xmode minimal")
