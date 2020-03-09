@@ -82,7 +82,7 @@ def configure_base(user_ns, broker_name, *,
     --------
     Configure IPython for CHX.
 
-    >>>> configure_base(get_ipython().user_ns, 'chx')
+    >>>> configure_base(get_ipython().user_ns, 'chx');
     """
     ns = {}  # We will update user_ns with this at the end.
     # Protect against double-subscription.
