@@ -4,7 +4,8 @@ import sys
 
 from IPython import get_ipython
 from ._version import get_versions
-__version__ = get_versions()['version']
+
+__version__ = get_versions()["version"]
 del get_versions
 
 
@@ -13,16 +14,23 @@ bluesky_log_file_path = None
 
 def import_star(module, ns):
     def public(name):
-        return not name.startswith('_')
-    ns.update({name: getattr(module, name)
-               for name in dir(module) if public(name)})
+        return not name.startswith("_")
+
+    ns.update({name: getattr(module, name) for name in dir(module) if public(name)})
 
 
-def configure_base(user_ns, broker_name, *,
-                   bec=True, epics_context=False,
-                   magics=True, mpl=True,
-                   configure_logging=True, pbar=True,
-                   ipython_exc_logging=True):
+def configure_base(
+    user_ns,
+    broker_name,
+    *,
+    bec=True,
+    epics_context=False,
+    magics=True,
+    mpl=True,
+    configure_logging=True,
+    pbar=True,
+    ipython_exc_logging=True,
+):
     """
     Perform base setup and instantiation of important objects.
 
@@ -89,42 +97,46 @@ def configure_base(user_ns, broker_name, *,
     # Protect against double-subscription.
     SENTINEL = "__nslsii_configure_base_has_been_run"
     if user_ns.get(SENTINEL):
-        raise RuntimeError(
-            "configure_base should only be called once per process.")
+        raise RuntimeError("configure_base should only be called once per process.")
     ns[SENTINEL] = True
     # Set up a RunEngine and use metadata backed by a sqlite file.
     from bluesky import RunEngine, __version__ as bluesky_version
-    if LooseVersion(bluesky_version) >= LooseVersion('1.6.0'):
+
+    if LooseVersion(bluesky_version) >= LooseVersion("1.6.0"):
         # current approach using PersistentDict
         from bluesky.utils import PersistentDict
-        directory = os.path.expanduser('~/.config/bluesky/md')
+
+        directory = os.path.expanduser("~/.config/bluesky/md")
         os.makedirs(directory, exist_ok=True)
         md = PersistentDict(directory)
     else:
         # legacy approach using HistoryDict
         from bluesky.utils import get_history
+
         md = get_history()
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine
-    if 'RE' in user_ns:
-        RE = user_ns['RE']
+    if "RE" in user_ns:
+        RE = user_ns["RE"]
     else:
         RE = RunEngine(md)
-        ns['RE'] = RE
+        ns["RE"] = RE
 
     # Set up SupplementalData.
     # (This is a no-op until devices are added to it,
     # so there is no need to provide a 'skip_sd' switch.)
     from bluesky import SupplementalData
+
     sd = SupplementalData()
     RE.preprocessors.append(sd)
-    ns['sd'] = sd
+    ns["sd"] = sd
 
     if isinstance(broker_name, str):
         # Set up a Broker.
         from databroker import Broker
+
         db = Broker.named(broker_name)
-        ns['db'] = db
+        ns["db"] = db
     else:
         db = broker_name
 
@@ -133,37 +145,43 @@ def configure_base(user_ns, broker_name, *,
     if pbar:
         # Add a progress bar.
         from bluesky.utils import ProgressBarManager
+
         pbar_manager = ProgressBarManager()
         RE.waiting_hook = pbar_manager
-        ns['pbar_manager'] = pbar_manager
+        ns["pbar_manager"] = pbar_manager
 
     if magics:
         # Register bluesky IPython magics.
         from bluesky.magics import BlueskyMagics
+
         get_ipython().register_magics(BlueskyMagics)
 
     if bec:
         # Set up the BestEffortCallback.
         from bluesky.callbacks.best_effort import BestEffortCallback
+
         _bec = BestEffortCallback()
         RE.subscribe(_bec)
-        ns['bec'] = _bec
-        ns['peaks'] = _bec.peaks  # just as alias for less typing
+        ns["bec"] = _bec
+        ns["peaks"] = _bec.peaks  # just as alias for less typing
 
     if mpl:
         # Import matplotlib and put it in interactive mode.
         import matplotlib.pyplot as plt
-        ns['plt'] = plt
+
+        ns["plt"] = plt
         plt.ion()
 
         # Make plots update live while scans run.
-        if LooseVersion(bluesky_version) < LooseVersion('1.6.0'):
+        if LooseVersion(bluesky_version) < LooseVersion("1.6.0"):
             from bluesky.utils import install_kicker
+
             install_kicker()
 
     if epics_context:
         # Create a context in the underlying EPICS client.
         from ophyd import setup_ophyd
+
         setup_ophyd()
 
     if configure_logging:
@@ -171,15 +189,12 @@ def configure_base(user_ns, broker_name, *,
         from logging.handlers import TimedRotatingFileHandler
 
         bluesky_log_file_path = os.environ.get(
-            "BLUESKY_LOG_FILE",
-            default="/var/log/bluesky/bluesky.log"
+            "BLUESKY_LOG_FILE", default="/var/log/bluesky/bluesky.log"
         )
         print(f"bluesky log file: {bluesky_log_file_path}", file=sys.stderr)
 
         log_file_handler = TimedRotatingFileHandler(
-            filename=bluesky_log_file_path,
-            when="W0",
-            backupCount=10
+            filename=bluesky_log_file_path, when="W0", backupCount=10
         )
         log_file_handler.setLevel("INFO")
 
@@ -188,9 +203,7 @@ def configure_base(user_ns, broker_name, *,
             "  %(module)s:%(lineno)d] %(message)s"
         )
 
-        log_file_handler.setFormatter(
-            logging.Formatter(fmt=log_file_format)
-        )
+        log_file_handler.setFormatter(logging.Formatter(fmt=log_file_format))
         logging.getLogger("bluesky").addHandler(log_file_handler)
         logging.getLogger("caproto").addHandler(log_file_handler)
         logging.getLogger("ophyd").addHandler(log_file_handler)
@@ -208,6 +221,7 @@ def configure_base(user_ns, broker_name, *,
     if ipython_exc_logging:
         # IPython logging must be enabled separately
         from nslsii.common.ipynb.logutils import log_exception
+
         get_ipython().set_custom_exc((BaseException,), log_exception)
 
         get_ipython().magic("logstart -o -t bluesky_ipython.log append")
@@ -220,32 +234,39 @@ def configure_base(user_ns, broker_name, *,
     # taught BL staff to expect LiveTable and LivePlot etc. to be in their
     # namespace
     import numpy as np
-    ns['np'] = np
+
+    ns["np"] = np
 
     import bluesky.callbacks
-    ns['bc'] = bluesky.callbacks
+
+    ns["bc"] = bluesky.callbacks
     import_star(bluesky.callbacks, ns)
 
     import bluesky.plans
-    ns['bp'] = bluesky.plans
+
+    ns["bp"] = bluesky.plans
     import_star(bluesky.plans, ns)
 
     import bluesky.plan_stubs
-    ns['bps'] = bluesky.plan_stubs
+
+    ns["bps"] = bluesky.plan_stubs
     import_star(bluesky.plan_stubs, ns)
     # special-case the commonly-used mv / mvr and its aliases mov / movr4
-    ns['mv'] = bluesky.plan_stubs.mv
-    ns['mvr'] = bluesky.plan_stubs.mvr
-    ns['mov'] = bluesky.plan_stubs.mov
-    ns['movr'] = bluesky.plan_stubs.movr
+    ns["mv"] = bluesky.plan_stubs.mv
+    ns["mvr"] = bluesky.plan_stubs.mvr
+    ns["mov"] = bluesky.plan_stubs.mov
+    ns["movr"] = bluesky.plan_stubs.movr
 
     import bluesky.preprocessors
-    ns['bpp'] = bluesky.preprocessors
+
+    ns["bpp"] = bluesky.preprocessors
 
     import bluesky.callbacks.broker
+
     import_star(bluesky.callbacks.broker, ns)
 
     import bluesky.simulators
+
     import_star(bluesky.simulators, ns)
 
     user_ns.update(ns)
@@ -306,19 +327,18 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     # This is for pyOlog.ophyd_tools.get_logbook, which simply looks for
     # a variable called 'logbook' in the global IPython namespace.
-    if 'logbook' in user_ns:
-        simple_olog_client = user_ns['logbook']
+    if "logbook" in user_ns:
+        simple_olog_client = user_ns["logbook"]
     else:
         simple_olog_client = SimpleOlogClient()
-        ns['logbook'] = simple_olog_client
+        ns["logbook"] = simple_olog_client
 
     if subscribe:
         if callback is None:
             # list of logbook names to publish to
-            LOGBOOKS = ('Data Acquisition',)
+            LOGBOOKS = ("Data Acquisition",)
             generic_logbook_func = simple_olog_client.log
-            configured_logbook_func = partial(generic_logbook_func,
-                                              logbooks=LOGBOOKS)
+            configured_logbook_func = partial(generic_logbook_func, logbooks=LOGBOOKS)
             callback = logbook_cb_factory(configured_logbook_func)
 
         def submit_to_olog(queue, cb):
@@ -327,13 +347,15 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
                 try:
                     cb(name, doc)
                 except Exception as exc:
-                    warn('This olog is giving errors. This will not be logged.'
-                         'Error:' + str(exc))
+                    warn(
+                        "This olog is giving errors. This will not be logged."
+                        "Error:" + str(exc)
+                    )
 
         olog_queue = queue.Queue(maxsize=100)
-        olog_thread = threading.Thread(target=submit_to_olog,
-                                       args=(olog_queue, callback),
-                                       daemon=True)
+        olog_thread = threading.Thread(
+            target=submit_to_olog, args=(olog_queue, callback), daemon=True
+        )
 
         olog_thread.start()
 
@@ -341,12 +363,13 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
             try:
                 olog_queue.put((name, doc), block=False)
             except queue.Full:
-                warn('The olog queue is full. This will not be logged.')
+                warn("The olog queue is full. This will not be logged.")
 
-        RE = user_ns['RE']
-        RE.subscribe(send_to_olog_queue, 'start')
+        RE = user_ns["RE"]
+        RE.subscribe(send_to_olog_queue, "start")
 
     import pyOlog.ophyd_tools
+
     import_star(pyOlog.ophyd_tools, ns)
 
     user_ns.update(ns)
