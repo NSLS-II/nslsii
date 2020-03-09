@@ -1,5 +1,6 @@
 from distutils.version import LooseVersion
 import os
+import sys
 
 from IPython import get_ipython
 from ._version import get_versions
@@ -7,7 +8,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 
-bluesky_log_file_path = "/var/log/bluesky/bluesky.log"
+bluesky_log_file_path = None
 
 
 def import_star(module, ns):
@@ -168,6 +169,12 @@ def configure_base(user_ns, broker_name, *,
     if configure_logging:
         import logging
         from logging.handlers import TimedRotatingFileHandler
+
+        bluesky_log_file_path = os.environ.get(
+            "BLUESKY_LOG_FILE",
+            default="/var/log/bluesky/bluesky.log"
+        )
+        print(f"bluesky log file: {bluesky_log_file_path}", file=sys.stderr)
 
         log_file_handler = TimedRotatingFileHandler(
             filename=bluesky_log_file_path,
