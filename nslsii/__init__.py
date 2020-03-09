@@ -191,11 +191,11 @@ def configure_base(user_ns, broker_name, *,
 
         # set the loggers to send DEBUG and higher log
         # messages to their handlers
-        logging.getLogger("bluesky").setLevel("DEBUG")
-        logging.getLogger("caproto").setLevel("DEBUG")
-        logging.getLogger("ophyd").setLevel("DEBUG")
-        logging.getLogger("nslsii").setLevel("DEBUG")
-        get_ipython().log.setLevel("DEBUG")
+        logging.getLogger("bluesky").setLevel("INFO")
+        logging.getLogger("caproto").setLevel("INFO")
+        logging.getLogger("ophyd").setLevel("INFO")
+        logging.getLogger("nslsii").setLevel("INFO")
+        get_ipython().log.setLevel("INFO")
 
     if ipython_exc_logging:
         # IPython logging must be enabled separately
