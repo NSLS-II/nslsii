@@ -235,13 +235,15 @@ def configure_base(
 
         if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
             print(
-                "bluesky ipython log file configured from environment variable BLUESKY_IPYTHON_LOG_FILE",
+                "bluesky ipython log file configured from environment"
+                " variable BLUESKY_IPYTHON_LOG_FILE",
                 file=sys.stderr,
             )
             bluesky_ipython_log_file_path = os.environ["BLUESKY_IPYTHON_LOG_FILE"]
         else:
             print(
-                f"environment variable BLUESKY_IPYTHON_LOG_FILE is not set, using default file path",
+                "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
+                " using default file path",
                 file=sys.stderr,
             )
             bluesky_ipython_log_file_path = "/var/log/bluesky/bluesky_ipython.log"
