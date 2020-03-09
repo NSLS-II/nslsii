@@ -65,8 +65,8 @@ def configure_base(user_ns, broker_name, *,
         True by default. Set False to skip matplotlib ``ion()`` at event-loop
         bridging.
     configure_logging : boolean, optional
-        True by default. Set False to skip INFO-level logging to /var/logs/bluesky/bluesky.log
-        and WARNING-level logging to the console
+        True by default. Set False to skip INFO-level logging to
+        /var/logs/bluesky/bluesky.log.
     pbar : boolean, optional
         True by default. Set false to skip ProgressBarManager.
     ipython_exc_logging : boolean, optional
@@ -177,7 +177,8 @@ def configure_base(user_ns, broker_name, *,
         log_file_handler.setLevel("INFO")
 
         log_file_format = (
-            "[%(levelname)1.1s %(asctime)s.%(msecs)03d %(name)s  %(module)s:%(lineno)d] %(message)s"
+            "[%(levelname)1.1s %(asctime)s.%(msecs)03d %(name)s"
+            "  %(module)s:%(lineno)d] %(message)s"
         )
 
         log_file_handler.setFormatter(
@@ -206,7 +207,6 @@ def configure_base(user_ns, broker_name, *,
 
     # always configure %xmode minimal
     get_ipython().magic("xmode minimal")
-
 
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
