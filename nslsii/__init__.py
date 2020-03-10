@@ -231,32 +231,9 @@ def configure_base(
         # IPython logging must be enabled separately
         from nslsii.common.ipynb.logutils import log_exception
 
-        get_ipython().set_custom_exc((BaseException,), log_exception)
-
-        if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
-            print(
-                "bluesky ipython log file configured from environment"
-                " variable BLUESKY_IPYTHON_LOG_FILE",
-                file=sys.stderr,
-            )
-            bluesky_ipython_log_file_path = os.environ["BLUESKY_IPYTHON_LOG_FILE"]
-        else:
-            print(
-                "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
-                " using default file path",
-                file=sys.stderr,
-            )
-            bluesky_ipython_log_file_path = "/var/log/bluesky/bluesky_ipython.log"
-
-        # before starting ipython logging check the size of the ipython log ile
-        # if the ipython log file has grown large make a copy and start a new one
-        # if a previous copy exists just overwrite it
-        if os.path.getsize(bluesky_ipython_log_file_path) > 1000000:
-            os.replace(
-                bluesky_ipython_log_file_path, bluesky_ipython_log_file_path + ".old"
-            )
-
-        get_ipython().magic(f"logstart -o -t {bluesky_ipython_log_file_path} append")
+        configure_ipython_exc_logging(
+            exception_logger=log_exception, ipython=get_ipython()
+        )
 
     # always configure %xmode minimal
     get_ipython().magic("xmode minimal")
@@ -303,6 +280,61 @@ def configure_base(
 
     user_ns.update(ns)
     return list(ns)
+
+
+def configure_ipython_exc_logging(exception_logger, ipython, rotate_file_size=100000):
+    """
+    Set a custom exception logging function and execute logstart.
+    The log file path is taken from environment variable BLUESKY_IPYTHON_LOG_FILE, if
+    it exists. If not the default log file location is
+    "/var/log/bluesky/bluesky/bluesky_ipython.log".
+
+    Parameters
+    ----------
+    exception_logger: function f(ipyshell, etype, evalue, tb, tb_offset=None) -> list
+        a function that will handle logging exceptions
+    ipython: InteractiveShell
+        IPython InteractiveShell into which the specified exception_logger will be installed
+    rotate_file_size: int, optional
+        at the time configure_ipython_exc_logging() is called, if there exists a log file
+        with size in bytes greater than or equal to rotate_file_size, the existing file will
+        be renamed and a new log file will be created
+
+    Returns
+    -------
+    bluesky_ipython_log_file_path: str
+        log file path
+
+    """
+    ipython.set_custom_exc((BaseException,), exception_logger)
+
+    if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
+        print(
+            "bluesky ipython log file configured from environment"
+            " variable BLUESKY_IPYTHON_LOG_FILE",
+            file=sys.stderr,
+        )
+        bluesky_ipython_log_file_path = os.environ["BLUESKY_IPYTHON_LOG_FILE"]
+    else:
+        print(
+            "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
+            " using default file path",
+            file=sys.stderr,
+        )
+        bluesky_ipython_log_file_path = "/var/log/bluesky/bluesky_ipython.log"
+    # before starting ipython logging check the size of the ipython log ile
+    # if the ipython log file has grown large make a copy and start a new one
+    # if a previous copy exists just overwrite it
+    if (
+        os.path.exists(bluesky_ipython_log_file_path)
+        and os.path.getsize(bluesky_ipython_log_file_path) >= rotate_file_size
+    ):
+        os.replace(
+            bluesky_ipython_log_file_path, bluesky_ipython_log_file_path + ".old"
+        )
+    ipython.magic(f"logstart -o -t {bluesky_ipython_log_file_path} append")
+
+    return bluesky_ipython_log_file_path
 
 
 def configure_olog(user_ns, *, callback=None, subscribe=True):
