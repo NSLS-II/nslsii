@@ -4,11 +4,23 @@ from unittest.mock import MagicMock
 
 import IPython.core.interactiveshell
 
-from nslsii import configure_ipython_exc_logging
+from nslsii import configure_bluesky_logging, configure_ipython_exc_logging
 from nslsii.common.ipynb.logutils import log_exception
 
 
-def test_log_exception():
+def test_configure_bluesky_logging(tmpdir):
+    log_file_path = Path(tmpdir) / Path("bluesky.log")
+
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
+    bluesky_log_file_path = configure_bluesky_logging(
+        ipython=ip,
+    )
+    assert bluesky_log_file_path == str(log_file_path)
+    assert log_file_path.exists()
+
+
+def test_ipython_log_exception():
     ip = IPython.core.interactiveshell.InteractiveShell()
     ip.logger = MagicMock()
     ip.set_custom_exc((BaseException, ), log_exception)

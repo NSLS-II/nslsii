@@ -1,4 +1,6 @@
 from distutils.version import LooseVersion
+import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 import sys
 
@@ -185,47 +187,7 @@ def configure_base(
         setup_ophyd()
 
     if configure_logging:
-        import logging
-        from logging.handlers import TimedRotatingFileHandler
-
-        if "BLUESKY_LOG_FILE" in os.environ:
-            print(
-                "bluesky log file configured from environment variable BLUESKY_LOG_FILE",
-                file=sys.stderr,
-            )
-            bluesky_log_file_path = os.environ["BLUESKY_LOG_FILE"]
-        else:
-            print(
-                f"environment variable BLUESKY_LOG_FILE is not set, using default file path",
-                file=sys.stderr,
-            )
-            bluesky_log_file_path = "/var/log/bluesky/bluesky.log"
-        print(f"bluesky log file: {bluesky_log_file_path}", file=sys.stderr)
-
-        log_file_handler = TimedRotatingFileHandler(
-            filename=bluesky_log_file_path, when="W0", backupCount=10
-        )
-        log_file_handler.setLevel("INFO")
-
-        log_file_format = (
-            "[%(levelname)1.1s %(asctime)s.%(msecs)03d %(name)s"
-            "  %(module)s:%(lineno)d] %(message)s"
-        )
-
-        log_file_handler.setFormatter(logging.Formatter(fmt=log_file_format))
-        logging.getLogger("bluesky").addHandler(log_file_handler)
-        logging.getLogger("caproto").addHandler(log_file_handler)
-        logging.getLogger("ophyd").addHandler(log_file_handler)
-        logging.getLogger("nslsii").addHandler(log_file_handler)
-        get_ipython().log.addHandler(log_file_handler)
-
-        # set the loggers to send DEBUG and higher log
-        # messages to their handlers
-        logging.getLogger("bluesky").setLevel("INFO")
-        logging.getLogger("caproto").setLevel("INFO")
-        logging.getLogger("ophyd").setLevel("INFO")
-        logging.getLogger("nslsii").setLevel("INFO")
-        get_ipython().log.setLevel("INFO")
+        configure_bluesky_logging(ipython=get_ipython())
 
     if ipython_exc_logging:
         # IPython logging must be enabled separately
@@ -280,6 +242,47 @@ def configure_base(
 
     user_ns.update(ns)
     return list(ns)
+
+
+def configure_bluesky_logging(ipython):
+    global bluesky_log_file_path
+
+    if "BLUESKY_LOG_FILE" in os.environ:
+        print(
+            "bluesky log file configured from environment variable BLUESKY_LOG_FILE",
+            file=sys.stderr,
+        )
+        bluesky_log_file_path = os.environ["BLUESKY_LOG_FILE"]
+    else:
+        print(
+            f"environment variable BLUESKY_LOG_FILE is not set, using default file path",
+            file=sys.stderr,
+        )
+        bluesky_log_file_path = "/var/log/bluesky/bluesky.log"
+    print(f"bluesky log file: {bluesky_log_file_path}", file=sys.stderr)
+    log_file_handler = TimedRotatingFileHandler(
+        filename=bluesky_log_file_path, when="W0", backupCount=10
+    )
+    log_file_handler.setLevel("INFO")
+    log_file_format = (
+        "[%(levelname)1.1s %(asctime)s.%(msecs)03d %(name)s"
+        "  %(module)s:%(lineno)d] %(message)s"
+    )
+    log_file_handler.setFormatter(logging.Formatter(fmt=log_file_format))
+    logging.getLogger("bluesky").addHandler(log_file_handler)
+    logging.getLogger("caproto").addHandler(log_file_handler)
+    logging.getLogger("ophyd").addHandler(log_file_handler)
+    logging.getLogger("nslsii").addHandler(log_file_handler)
+    ipython.log.addHandler(log_file_handler)
+    # set the loggers to send DEBUG and higher log
+    # messages to their handlers
+    logging.getLogger("bluesky").setLevel("INFO")
+    logging.getLogger("caproto").setLevel("INFO")
+    logging.getLogger("ophyd").setLevel("INFO")
+    logging.getLogger("nslsii").setLevel("INFO")
+    ipython.log.setLevel("INFO")
+
+    return bluesky_log_file_path
 
 
 def configure_ipython_exc_logging(exception_logger, ipython, rotate_file_size=100000):
