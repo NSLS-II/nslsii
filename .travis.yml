@@ -21,7 +21,7 @@ script:
   - coverage run -m pytest  # Run the tests and check for test coverage.
   - coverage report -m  # Generate test coverage report.
   - codecov  # Upload the report to codecov.
-  - flake8 --max-line-length=79
+  - flake8
   - set -e  # Stop here if anything fails above
 #commenting out the lines below until there are docs to build.
 #  - make -C docs html  # Build the documentation
