@@ -245,6 +245,24 @@ def configure_base(
 
 
 def configure_bluesky_logging(ipython):
+    """
+    Configure a TimedRotatingFileHandler log handler and attach it to
+    bluesky, ophyd, nslsii, and ipython loggers.
+
+    The log file path is taken from environment variable BLUESKY_LOG_FILE, if
+    it exists. If not the default log file location is "/var/log/bluesky/bluesky/bluesky.log".
+
+    Parameters
+    ----------
+    ipython: InteractiveShell
+        IPython InteractiveShell used to attach bluesky log handler to ipython
+
+    Returns
+    -------
+    bluesky_log_file_path: str
+        log file path
+
+    """
     global bluesky_log_file_path
 
     if "BLUESKY_LOG_FILE" in os.environ:
