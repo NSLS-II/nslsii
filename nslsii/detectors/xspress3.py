@@ -2,9 +2,7 @@ from __future__ import print_function, division
 import time
 import time as ttime
 import logging
-import uuid
 
-from pathlib import PurePath
 from .utils import makedirs
 
 from collections import OrderedDict
@@ -15,7 +13,7 @@ from ophyd.areadetector import (DetectorBase, CamBase,
                                 EpicsSignalWithRBV as SignalWithRBV)
 from ophyd import (Signal, EpicsSignal, EpicsSignalRO, DerivedSignal)
 
-from ophyd import (Device, Component as Cpt, FormattedComponent as FC,
+from ophyd import (Component as Cpt, FormattedComponent as FC,
                    DynamicDeviceComponent as DDC)
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
@@ -134,8 +132,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
     def generate_datum(self, key, timestamp, datum_kwargs):
         sn, n = next((f'channel{j}', j)
-                      for j in self.channels
-                      if getattr(self.parent, f'channel{j}').name == key)
+                     for j in self.channels
+                     if getattr(self.parent, f'channel{j}').name == key)
         datum_kwargs.update({'frame': self.parent._abs_trigger_count,
                              'channel': int(sn[7:])})
         self.mds_keys[n] = key
@@ -294,7 +292,6 @@ class Xspress3ROISettings(PluginBase):
             root = root.parent
 
 
-
 class Xspress3ROI(ADBase):
     '''A configurable Xspress3 EPICS ROI'''
 
@@ -320,7 +317,6 @@ class Xspress3ROI(ADBase):
             if not isinstance(root.parent, ADBase):
                 return root
             root = root.parent
-
 
     def __init__(self, prefix, *, roi_num=0, use_sum=False,
                  read_attrs=None, configuration_attrs=None, parent=None,
