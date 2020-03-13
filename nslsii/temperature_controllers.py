@@ -93,7 +93,7 @@ class Eurotherm(Device):
         # hand the status object back to the RE
         return status
 
-    def stop(self):
+    def stop(self, success=False):
         # overide the lock, cancel the timer and remove the subscription on any
         # in progress sets
         self._set_lock.release()
