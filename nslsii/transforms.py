@@ -3,7 +3,7 @@
 import copy
 
 
-def fix_csx_scaler_shape(d):
+def csx_fix_scaler_shape(d):
     """
     Transform an Event Descriptor.
 
