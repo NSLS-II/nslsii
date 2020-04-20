@@ -44,6 +44,7 @@ def configure_base(
     pbar=True,
     ipython_logging=True,
     publish_documents_to_kafka=False,
+    tb_minimize=True,
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -95,7 +96,9 @@ def configure_base(
         True by default. Console output and exception stack traces will be
         written to IPython log file when IPython logging is enabled.
     publish_documents_to_kafka: boolean, optional
-        False by default. If True publish bluesky documents to a Kafka message broker.
+        False by default. If True publish bluesky documents to a Kafka message broker
+    tb_minimize : boolean, optional
+        If IPython should print out 'minimal' tracebacks.
 
     Returns
     -------
@@ -221,9 +224,10 @@ def configure_base(
             },
         )
 
-    # always configure %xmode minimal
-    # so short tracebacks are printed to the console
-    get_ipython().magic("xmode minimal")
+    if tb_minimize:
+        # configure %xmode minimal
+        # so short tracebacks are printed to the console
+        get_ipython().magic("xmode minimal")
 
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
