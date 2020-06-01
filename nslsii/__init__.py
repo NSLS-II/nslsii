@@ -3,8 +3,12 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 import sys
+import uuid
 
 from IPython import get_ipython
+
+from bluesky_kafka import Publisher
+
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -471,3 +475,48 @@ def migrate_metadata():
     os.makedirs(directory, exist_ok=True)
     new_md = PersistentDict(directory)
     new_md.update(old_md)
+
+
+_kafka_publisher = None
+
+
+def subscribe_kafka_publisher(RE, beamline_name):
+    """
+    Create and subscribe a Kafka Publisher to a RunEngine. Keep a reference to the Publisher.
+    The Publisher will publish to Kafka topic "<beamline>.bluesky.documents".
+
+    Parameters
+    ----------
+    RE: RunEngine
+        the RunEngine to which the Kafka Publisher will be subscribed
+
+    beamline_name: str
+        beamline name, for example "csx"
+
+    """
+    global _kafka_publisher
+    _kafka_publisher = Publisher(
+         topic=f"{beamline_name.lower()}.bluesky.documents",
+         bootstrap_servers='10.0.137.8:9092',
+         key=uuid.uuid4(),
+         producer_config={
+             "enable.idempotence": True
+         }
+    )
+    RE.subscribe(_kafka_publisher)
+
+
+def unsubscribe_kafka_publisher(RE):
+    """
+    If a Kafka Publisher has been created then unsubscribe it from the specified RE.
+
+    Parameters
+    ----------
+    RE: RunEngine
+
+    """
+    global _kafka_publisher
+    if _kafka_publisher is None:
+        print("No Kafka Publisher exists")
+    else:
+        RE.unsubscribe(_kafka_publisher)
