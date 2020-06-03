@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import appdirs
 import IPython.core.interactiveshell
 
 from nslsii import configure_bluesky_logging, configure_ipython_exc_logging
@@ -13,19 +14,48 @@ def test_configure_bluesky_logging(tmpdir):
 
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
-    bluesky_log_file_path = configure_bluesky_logging(
-        ipython=ip,
-    )
-    assert bluesky_log_file_path == str(log_file_path)
+    bluesky_log_file_path = configure_bluesky_logging(ipython=ip,)
+    assert bluesky_log_file_path == log_file_path
     assert log_file_path.exists()
+
+
+def test_default_bluesky_logging():
+    log_file_path = Path(appdirs.user_log_dir(appname="bluesky-test")) / Path(
+        "bluesky.log"
+    )
+
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    os.environ.pop("BLUESKY_LOG_FILE", default=None)
+    bluesky_log_file_path = configure_bluesky_logging(
+        ipython=ip, appdirs_appname="bluesky-test"
+    )
+    assert bluesky_log_file_path == log_file_path
+    assert log_file_path.exists()
+
+    bluesky_log_file_path.unlink()
+    bluesky_log_file_path.parent.rmdir()
 
 
 def test_ipython_log_exception():
     ip = IPython.core.interactiveshell.InteractiveShell()
     ip.logger = MagicMock()
-    ip.set_custom_exc((BaseException, ), log_exception)
+    ip.set_custom_exc((BaseException,), log_exception)
     ip.run_cell("raise Exception")
     ip.logger.log_write.assert_called_with("Exception\n", kind="output")
+
+
+def test_default_ipython_exc_logging():
+    log_file_path = Path(appdirs.user_log_dir(appname="bluesky")) / Path(
+        "bluesky_ipython.log"
+    )
+
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    os.environ.pop("BLUESKY_IPYTHON_LOG_FILE", default=None)
+    bluesky_ipython_log_file_path = configure_ipython_exc_logging(
+        exception_logger=log_exception, ipython=ip,
+    )
+    assert bluesky_ipython_log_file_path == log_file_path
+    assert log_file_path.exists()
 
 
 def test_configure_ipython_exc_logging(tmpdir):
@@ -34,10 +64,9 @@ def test_configure_ipython_exc_logging(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_IPYTHON_LOG_FILE"] = str(log_file_path)
     bluesky_ipython_log_file_path = configure_ipython_exc_logging(
-        exception_logger=log_exception,
-        ipython=ip,
+        exception_logger=log_exception, ipython=ip,
     )
-    assert bluesky_ipython_log_file_path == str(log_file_path)
+    assert bluesky_ipython_log_file_path == log_file_path
     assert log_file_path.exists()
 
 
@@ -50,10 +79,9 @@ def test_configure_ipython_exc_logging_file_exists(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_IPYTHON_LOG_FILE"] = str(log_file_path)
     bluesky_ipython_log_file_path = configure_ipython_exc_logging(
-        exception_logger=log_exception,
-        ipython=ip,
+        exception_logger=log_exception, ipython=ip,
     )
-    assert bluesky_ipython_log_file_path == str(log_file_path)
+    assert bluesky_ipython_log_file_path == log_file_path
     assert log_file_path.exists()
 
 
@@ -66,11 +94,9 @@ def test_configure_ipython_exc_logging_rotate(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_IPYTHON_LOG_FILE"] = str(log_file_path)
     bluesky_ipython_log_file_path = configure_ipython_exc_logging(
-        exception_logger=log_exception,
-        ipython=ip,
-        rotate_file_size=0
+        exception_logger=log_exception, ipython=ip, rotate_file_size=0
     )
-    assert bluesky_ipython_log_file_path == str(log_file_path)
+    assert bluesky_ipython_log_file_path == log_file_path
     assert log_file_path.exists()
 
     old_log_file_path = log_file_path.parent / Path(log_file_path.name + ".old")

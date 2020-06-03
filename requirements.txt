@@ -1,3 +1,4 @@
+appdirs
 bluesky
 caproto
 databroker

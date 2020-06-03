@@ -2,7 +2,10 @@ from distutils.version import LooseVersion
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
+from pathlib import Path
 import sys
+
+import appdirs
 
 from IPython import get_ipython
 from ._version import get_versions
@@ -244,7 +247,7 @@ def configure_base(
     return list(ns)
 
 
-def configure_bluesky_logging(ipython):
+def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     """
     Configure a TimedRotatingFileHandler log handler and attach it to
     bluesky, ophyd, nslsii, and ipython loggers.
@@ -256,30 +259,37 @@ def configure_bluesky_logging(ipython):
     ----------
     ipython: InteractiveShell
         IPython InteractiveShell used to attach bluesky log handler to ipython
+    appdirs_appname: str
+        appname passed to appdirs.user_log_dir(); use the default for production,
+        set to something else for testing
 
     Returns
     -------
-    bluesky_log_file_path: str
+    bluesky_log_file_path: Path
         log file path
 
     """
     global bluesky_log_file_path
 
     if "BLUESKY_LOG_FILE" in os.environ:
+        bluesky_log_file_path = Path(os.environ["BLUESKY_LOG_FILE"])
         print(
             "bluesky log file configured from environment variable BLUESKY_LOG_FILE",
             file=sys.stderr,
         )
-        bluesky_log_file_path = os.environ["BLUESKY_LOG_FILE"]
     else:
+        bluesky_log_file_path = Path(
+            appdirs.user_log_dir(appname=appdirs_appname)
+        ) / Path("bluesky.log")
         print(
-            f"environment variable BLUESKY_LOG_FILE is not set, using default file path",
+            "environment variable BLUESKY_LOG_FILE is not set, using default file path",
             file=sys.stderr,
         )
-        bluesky_log_file_path = "/var/log/bluesky/bluesky.log"
+    if not bluesky_log_file_path.parent.exists():
+        bluesky_log_file_path.parent.mkdir(parents=True, exist_ok=True)
     print(f"bluesky log file: {bluesky_log_file_path}", file=sys.stderr)
     log_file_handler = TimedRotatingFileHandler(
-        filename=bluesky_log_file_path, when="W0", backupCount=10
+        filename=str(bluesky_log_file_path), when="W0", backupCount=10
     )
     log_file_handler.setLevel("INFO")
     log_file_format = (
@@ -303,7 +313,9 @@ def configure_bluesky_logging(ipython):
     return bluesky_log_file_path
 
 
-def configure_ipython_exc_logging(exception_logger, ipython, rotate_file_size=100000):
+def configure_ipython_exc_logging(
+    exception_logger, ipython, rotate_file_size=100000, appdirs_appname="bluesky"
+):
     """
     Set a custom exception logging function and execute logstart.
     The log file path is taken from environment variable BLUESKY_IPYTHON_LOG_FILE, if
@@ -320,38 +332,45 @@ def configure_ipython_exc_logging(exception_logger, ipython, rotate_file_size=10
         at the time configure_ipython_exc_logging() is called, if there exists a log file
         with size in bytes greater than or equal to rotate_file_size, the existing file will
         be renamed and a new log file will be created
+    appdirs_appname: str
+        appname passed to appdirs.user_log_dir(); use the default for production,
+        set to something else for testing
 
     Returns
     -------
-    bluesky_ipython_log_file_path: str
+    bluesky_ipython_log_file_path: Path
         log file path
 
     """
     ipython.set_custom_exc((BaseException,), exception_logger)
 
     if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
+        bluesky_ipython_log_file_path = Path(os.environ["BLUESKY_IPYTHON_LOG_FILE"])
         print(
             "bluesky ipython log file configured from environment"
             " variable BLUESKY_IPYTHON_LOG_FILE",
             file=sys.stderr,
         )
-        bluesky_ipython_log_file_path = os.environ["BLUESKY_IPYTHON_LOG_FILE"]
     else:
+        bluesky_ipython_log_file_path = Path(
+            appdirs.user_log_dir(appname=appdirs_appname)
+        ) / Path("bluesky_ipython.log")
         print(
             "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
             " using default file path",
             file=sys.stderr,
         )
-        bluesky_ipython_log_file_path = "/var/log/bluesky/bluesky_ipython.log"
-    # before starting ipython logging check the size of the ipython log ile
+    if not bluesky_ipython_log_file_path.parent.exists():
+        bluesky_ipython_log_file_path.parent.mkdir(parents=True, exist_ok=True)
+    # before starting ipython logging check the size of the ipython log file
     # if the ipython log file has grown large make a copy and start a new one
     # if a previous copy exists just overwrite it
     if (
-        os.path.exists(bluesky_ipython_log_file_path)
+        bluesky_ipython_log_file_path.exists()
         and os.path.getsize(bluesky_ipython_log_file_path) >= rotate_file_size
     ):
-        os.replace(
-            bluesky_ipython_log_file_path, bluesky_ipython_log_file_path + ".old"
+        bluesky_ipython_log_file_path.rename(
+            str(bluesky_ipython_log_file_path) + ".old"
         )
     ipython.magic(f"logstart -o -t {bluesky_ipython_log_file_path} append")
 
@@ -466,8 +485,9 @@ def migrate_metadata():
     Copy metadata from (old) sqlite-backed file to (new) directory of msgpack.
     """
     from bluesky.utils import get_history, PersistentDict
+
     old_md = get_history()
-    directory = os.path.expanduser('~/.config/bluesky/md')
+    directory = os.path.expanduser("~/.config/bluesky/md")
     os.makedirs(directory, exist_ok=True)
     new_md = PersistentDict(directory)
     new_md.update(old_md)
