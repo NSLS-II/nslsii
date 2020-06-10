@@ -4,6 +4,7 @@ from logging.handlers import TimedRotatingFileHandler
 import os
 from pathlib import Path
 import sys
+import warnings
 
 import appdirs
 
@@ -193,14 +194,15 @@ def configure_base(
         configure_bluesky_logging(ipython=get_ipython())
 
     if ipython_exc_logging:
-        # IPython logging must be enabled separately
         from nslsii.common.ipynb.logutils import log_exception
 
-        configure_ipython_exc_logging(
+        # IPython logging will be enabled with logstart(...)
+        configure_ipython_logging(
             exception_logger=log_exception, ipython=get_ipython()
         )
 
     # always configure %xmode minimal
+    # so short tracebacks are printed to the console
     get_ipython().magic("xmode minimal")
 
     # convenience imports
@@ -250,17 +252,19 @@ def configure_base(
 def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     """
     Configure a TimedRotatingFileHandler log handler and attach it to
-    bluesky, ophyd, nslsii, and ipython loggers.
+    bluesky, ophyd, caproto, and nslsii loggers.
 
     The log file path is taken from environment variable BLUESKY_LOG_FILE, if
-    it exists. If not the default log file location is "/var/log/bluesky/bluesky/bluesky.log".
+    that variable has been set. If not the default log file location is determined
+    by the appdirs package.
 
     Parameters
     ----------
     ipython: InteractiveShell
         IPython InteractiveShell used to attach bluesky log handler to ipython
     appdirs_appname: str
-        appname passed to appdirs.user_log_dir(); use the default for production,
+        appname passed to appdirs.user_log_dir() when the BLUESKY_LOG_FILE
+        environment variable has not been set; use the default for production,
         set to something else for testing
 
     Returns
@@ -274,7 +278,8 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     if "BLUESKY_LOG_FILE" in os.environ:
         bluesky_log_file_path = Path(os.environ["BLUESKY_LOG_FILE"])
         print(
-            "bluesky log file configured from environment variable BLUESKY_LOG_FILE",
+            f"bluesky log file path configured from environment variable"
+            f" BLUESKY_LOG_FILE: '{bluesky_log_file_path}'",
             file=sys.stderr,
         )
     else:
@@ -282,12 +287,10 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
             appdirs.user_log_dir(appname=appdirs_appname)
         ) / Path("bluesky.log")
         print(
-            "environment variable BLUESKY_LOG_FILE is not set, using default file path",
+            f"environment variable BLUESKY_LOG_FILE is not set,"
+            f" using default log file path '{bluesky_log_file_path}'",
             file=sys.stderr,
         )
-    if not bluesky_log_file_path.parent.exists():
-        bluesky_log_file_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"bluesky log file: {bluesky_log_file_path}", file=sys.stderr)
     log_file_handler = TimedRotatingFileHandler(
         filename=str(bluesky_log_file_path), when="W0", backupCount=10
     )
@@ -302,7 +305,7 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     logging.getLogger("ophyd").addHandler(log_file_handler)
     logging.getLogger("nslsii").addHandler(log_file_handler)
     ipython.log.addHandler(log_file_handler)
-    # set the loggers to send DEBUG and higher log
+    # set the loggers to send INFO and higher log
     # messages to their handlers
     logging.getLogger("bluesky").setLevel("INFO")
     logging.getLogger("caproto").setLevel("INFO")
@@ -313,14 +316,17 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     return bluesky_log_file_path
 
 
-def configure_ipython_exc_logging(
+def configure_ipython_logging(
     exception_logger, ipython, rotate_file_size=100000, appdirs_appname="bluesky"
 ):
     """
+    Configure IPython output logging with logstart and IPython exception logging with set_custom_exc(...).
+
     Set a custom exception logging function and execute logstart.
+
     The log file path is taken from environment variable BLUESKY_IPYTHON_LOG_FILE, if
-    it exists. If not the default log file location is
-    "/var/log/bluesky/bluesky/bluesky_ipython.log".
+    it that variable has been set. If not the default log file location is determined
+    by the appdirs package.
 
     Parameters
     ----------
@@ -342,13 +348,14 @@ def configure_ipython_exc_logging(
         log file path
 
     """
+    # install the specified function to log exceptions
     ipython.set_custom_exc((BaseException,), exception_logger)
 
     if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
         bluesky_ipython_log_file_path = Path(os.environ["BLUESKY_IPYTHON_LOG_FILE"])
         print(
             "bluesky ipython log file configured from environment"
-            " variable BLUESKY_IPYTHON_LOG_FILE",
+            f" variable BLUESKY_IPYTHON_LOG_FILE: '{bluesky_ipython_log_file_path}'",
             file=sys.stderr,
         )
     else:
@@ -357,11 +364,9 @@ def configure_ipython_exc_logging(
         ) / Path("bluesky_ipython.log")
         print(
             "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
-            " using default file path",
+            f" using default file path '{bluesky_ipython_log_file_path}'",
             file=sys.stderr,
         )
-    if not bluesky_ipython_log_file_path.parent.exists():
-        bluesky_ipython_log_file_path.parent.mkdir(parents=True, exist_ok=True)
     # before starting ipython logging check the size of the ipython log file
     # if the ipython log file has grown large make a copy and start a new one
     # if a previous copy exists just overwrite it
