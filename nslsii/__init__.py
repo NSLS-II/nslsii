@@ -377,7 +377,12 @@ def configure_ipython_logging(
         bluesky_ipython_log_file_path.rename(
             str(bluesky_ipython_log_file_path) + ".old"
         )
-    ipython.magic(f"logstart -o -t {bluesky_ipython_log_file_path} append")
+    # ipython gives a warning if logging fails to start, for example if the log
+    # directory does not exist. Convert that warning to an exception here.
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="error")
+        # specify the file for ipython logging output
+        ipython.magic(f"logstart -o -t {bluesky_ipython_log_file_path} append")
 
     return bluesky_ipython_log_file_path
 
