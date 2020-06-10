@@ -477,10 +477,7 @@ def migrate_metadata():
     new_md.update(old_md)
 
 
-_kafka_publisher = None
-
-
-def subscribe_kafka_publisher(RE, beamline_name):
+def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers):
     """
     Create and subscribe a Kafka Publisher to a RunEngine. Keep a reference to the Publisher.
     The Publisher will publish to Kafka topic "<beamline>.bluesky.documents".
@@ -491,32 +488,27 @@ def subscribe_kafka_publisher(RE, beamline_name):
         the RunEngine to which the Kafka Publisher will be subscribed
 
     beamline_name: str
-        beamline name, for example "csx"
+        beamline name, for example "csx", to be used in building the
+        Kafka topic to which messages will be published
+
+    bootstrap_servers: str
+        Comma-delimited list of Kafka server addresses as a string such as ``'10.0.137.8:9092'``
+
+    Returns
+    -------
+    subscription_token: int
+        use this to unsubscribe the Publisher from the RE this way: ``RE.unsubscribe(subscription_token)``
 
     """
-    global _kafka_publisher
+    topic = f"{beamline_name.lower()}.bluesky.documents"
     _kafka_publisher = Publisher(
-         topic=f"{beamline_name.lower()}.bluesky.documents",
-         bootstrap_servers='10.0.137.8:9092',
+         topic=topic,
+         bootstrap_servers=bootstrap_servers,
          key=uuid.uuid4(),
          producer_config={
              "enable.idempotence": True
          }
     )
-    RE.subscribe(_kafka_publisher)
-
-
-def unsubscribe_kafka_publisher(RE):
-    """
-    If a Kafka Publisher has been created then unsubscribe it from the specified RE.
-
-    Parameters
-    ----------
-    RE: RunEngine
-
-    """
-    global _kafka_publisher
-    if _kafka_publisher is None:
-        print("No Kafka Publisher exists")
-    else:
-        RE.unsubscribe(_kafka_publisher)
+    subscription_token = RE.subscribe(_kafka_publisher)
+    print(f'RE will publish documents to Kafka topic {topic}')
+    return subscription_token
