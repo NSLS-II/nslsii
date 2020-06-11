@@ -520,5 +520,6 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers):
          }
     )
     subscription_token = RE.subscribe(_kafka_publisher)
-    print(f'RE will publish documents to Kafka topic {topic}')
+    logging.getLogger("nslsii").info('RE will publish documents to Kafka topic %s', topic)
+
     return subscription_token
