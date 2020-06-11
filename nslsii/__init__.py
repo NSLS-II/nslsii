@@ -35,7 +35,7 @@ def configure_base(
     mpl=True,
     configure_logging=True,
     pbar=True,
-    ipython_exc_logging=True,
+    ipython_logging=True,
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -80,13 +80,12 @@ def configure_base(
         True by default. Set False to skip matplotlib ``ion()`` at event-loop
         bridging.
     configure_logging : boolean, optional
-        True by default. Set False to skip INFO-level logging to
-        /var/logs/bluesky/bluesky.log.
+        True by default. Set False to skip INFO-level logging.
     pbar : boolean, optional
         True by default. Set false to skip ProgressBarManager.
-    ipython_exc_logging : boolean, optional
-        True by default. Exception stack traces will be written to IPython
-        log file when IPython logging is enabled.
+    ipython_logging : boolean, optional
+        True by default. Console output and exception stack traces will be
+        written to IPython log file when IPython logging is enabled.
 
     Returns
     -------
@@ -193,7 +192,7 @@ def configure_base(
     if configure_logging:
         configure_bluesky_logging(ipython=get_ipython())
 
-    if ipython_exc_logging:
+    if ipython_logging:
         from nslsii.common.ipynb.logutils import log_exception
 
         # IPython logging will be enabled with logstart(...)
