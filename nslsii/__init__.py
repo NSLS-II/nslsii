@@ -36,6 +36,7 @@ def configure_base(
     configure_logging=True,
     pbar=True,
     ipython_exc_logging=True,
+    publish_documents_to_kafka=False
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -87,6 +88,8 @@ def configure_base(
     ipython_exc_logging : boolean, optional
         True by default. Exception stack traces will be written to IPython
         log file when IPython logging is enabled.
+    publish_documents_to_kafka: boolean, optional
+        False by default. If True publish bluesky documents to a Kafka message broker.
 
     Returns
     -------
@@ -199,6 +202,13 @@ def configure_base(
 
         configure_ipython_exc_logging(
             exception_logger=log_exception, ipython=get_ipython()
+        )
+
+    if publish_documents_to_kafka:
+        subscribe_kafka_publisher(
+            RE,
+            beamline_name=broker_name,
+            bootstrap_servers="10.0.137.8:9092"
         )
 
     # always configure %xmode minimal
