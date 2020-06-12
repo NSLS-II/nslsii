@@ -208,7 +208,11 @@ def configure_base(
         subscribe_kafka_publisher(
             RE,
             beamline_name=broker_name,
-            bootstrap_servers="10.0.137.8:9092,10.0.137.21:9092,10.0.137.22:9092"
+            bootstrap_servers="10.0.137.8:9092,10.0.137.21:9092,10.0.137.22:9092",
+            producer_config={
+                "enable.idempotence": True,
+                "linger.ms": 0
+            }
         )
 
     # always configure %xmode minimal
@@ -487,7 +491,7 @@ def migrate_metadata():
     new_md.update(old_md)
 
 
-def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers):
+def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config):
     """
     Create and subscribe a Kafka Publisher to a RunEngine. Keep a reference to the Publisher.
     The Publisher will publish to Kafka topic "<beamline>.bluesky.documents".
@@ -504,6 +508,9 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers):
     bootstrap_servers: str
         Comma-delimited list of Kafka server addresses as a string such as ``'10.0.137.8:9092'``
 
+    producer_config: dict
+        dictionary of Kafka Producer configuration settings
+
     Returns
     -------
     subscription_token: int
@@ -515,9 +522,7 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers):
          topic=topic,
          bootstrap_servers=bootstrap_servers,
          key=uuid.uuid4(),
-         producer_config={
-             "enable.idempotence": True
-         }
+         producer_config=producer_config
     )
     subscription_token = RE.subscribe(_kafka_publisher)
     logging.getLogger("nslsii").info('RE will publish documents to Kafka topic %s', topic)
