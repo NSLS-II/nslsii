@@ -208,7 +208,7 @@ def configure_base(
         subscribe_kafka_publisher(
             RE,
             beamline_name=broker_name,
-            bootstrap_servers="10.0.137.8:9092,10.0.137.21:9092,10.0.137.22:9092",
+            bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
             producer_config={
                 "enable.idempotence": True,
                 "linger.ms": 0
