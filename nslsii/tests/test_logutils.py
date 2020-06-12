@@ -69,7 +69,7 @@ def test_default_bluesky_logging():
 
     # log directory must exist
     # nslsii.configure_bluesky_logging() will not create it
-    user_log_dir.mkdir()
+    user_log_dir.mkdir(parents=True)
 
     log_file_path = Path(appdirs.user_log_dir(appname=test_appname)) / Path(
         "bluesky.log"
@@ -104,7 +104,7 @@ def test_default_ipython_exc_logging():
 
     # the log directory must exist already
     # nslsii.configure_ipython_exc_logging() will not create it
-    log_dir.mkdir()
+    log_dir.mkdir(parents=True)
 
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ.pop("BLUESKY_IPYTHON_LOG_FILE", default=None)
