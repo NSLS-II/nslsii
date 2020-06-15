@@ -1,4 +1,5 @@
 bluesky
+bluesky-kafka
 caproto
 databroker
 ipython

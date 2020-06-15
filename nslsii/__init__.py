@@ -3,8 +3,12 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 import sys
+import uuid
 
 from IPython import get_ipython
+
+from bluesky_kafka import Publisher
+
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -32,6 +36,7 @@ def configure_base(
     configure_logging=True,
     pbar=True,
     ipython_exc_logging=True,
+    publish_documents_to_kafka=False
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -83,6 +88,8 @@ def configure_base(
     ipython_exc_logging : boolean, optional
         True by default. Exception stack traces will be written to IPython
         log file when IPython logging is enabled.
+    publish_documents_to_kafka: boolean, optional
+        False by default. If True publish bluesky documents to a Kafka message broker.
 
     Returns
     -------
@@ -195,6 +202,17 @@ def configure_base(
 
         configure_ipython_exc_logging(
             exception_logger=log_exception, ipython=get_ipython()
+        )
+
+    if publish_documents_to_kafka:
+        subscribe_kafka_publisher(
+            RE,
+            beamline_name=broker_name,
+            bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
+            producer_config={
+                "enable.idempotence": True,
+                "linger.ms": 0
+            }
         )
 
     # always configure %xmode minimal
@@ -471,3 +489,42 @@ def migrate_metadata():
     os.makedirs(directory, exist_ok=True)
     new_md = PersistentDict(directory)
     new_md.update(old_md)
+
+
+def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config):
+    """
+    Create and subscribe a Kafka Publisher to a RunEngine. Keep a reference to the Publisher.
+    The Publisher will publish to Kafka topic "<beamline>.bluesky.documents".
+
+    Parameters
+    ----------
+    RE: RunEngine
+        the RunEngine to which the Kafka Publisher will be subscribed
+
+    beamline_name: str
+        beamline name, for example "csx", to be used in building the
+        Kafka topic to which messages will be published
+
+    bootstrap_servers: str
+        Comma-delimited list of Kafka server addresses as a string such as ``'10.0.137.8:9092'``
+
+    producer_config: dict
+        dictionary of Kafka Producer configuration settings
+
+    Returns
+    -------
+    subscription_token: int
+        use this to unsubscribe the Publisher from the RE this way: ``RE.unsubscribe(subscription_token)``
+
+    """
+    topic = f"{beamline_name.lower()}.bluesky.documents"
+    _kafka_publisher = Publisher(
+         topic=topic,
+         bootstrap_servers=bootstrap_servers,
+         key=uuid.uuid4(),
+         producer_config=producer_config
+    )
+    subscription_token = RE.subscribe(_kafka_publisher)
+    logging.getLogger("nslsii").info('RE will publish documents to Kafka topic %s', topic)
+
+    return subscription_token
