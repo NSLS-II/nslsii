@@ -7,7 +7,9 @@ from nslsii import bluesky_log_file_path
 
 def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
     """A custom IPython exception handler that logs exception tracebacks to
-    the IPython log file as well as to the IPython logger.
+    the IPython log file as well as to the nslsii.ipython logger.
+
+
 
     References:
         https://ipython.readthedocs.io/en/stable/api/generated/IPython.core.interactiveshell.html
@@ -50,7 +52,7 @@ def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
         )
     ipyshell.showtraceback((etype, evalue, tb), tb_offset=tb_offset)
 
-    # send the traceback to the IPython logger
+    # send the traceback to the nslsii.ipython logger
     logging.getLogger("nslsii.ipython").exception(evalue)
     print(
         f"See {bluesky_log_file_path} for the full traceback.",

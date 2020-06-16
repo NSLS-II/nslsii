@@ -49,7 +49,7 @@ def test_epstwostate_ioc():
                                    stdout=stdout, stdin=stdin,
                                    env=os.environ)
 
-    print(f'nslsii.iocs.epc_two_state_ioc_sim is now running')
+    print('nslsii.iocs.epc_two_state_ioc_sim is now running')
 
     time.sleep(5)
 

@@ -1,3 +1,9 @@
 [flake8]
-exclude = .git,__pycache__,build,dist,versioneer.py,nslsii/_version.py,docs/source/conf.py
-max-line-length = 100
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    versioneer.py,
+    docs/source/conf.py
+max-line-length = 115
