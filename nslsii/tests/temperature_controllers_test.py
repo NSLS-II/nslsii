@@ -33,12 +33,12 @@ def test_Eurotherm(RE):
                                    stdout=stdout, stdin=stdin,
                                    env=os.environ)
 
-    print(f'caproto.ioc_examples.thermo_sim is now running')
+    print('caproto.ioc_examples.thermo_sim is now running')
 
     # Wrap the rest in a try-except to ensure the ioc is killed before exiting
     try:
         euro = Eurotherm('thermo:', name='euro')
-        print(f'euro object is defined')
+        print('euro object is defined')
 
         # move the Eurotherm.
         RE(mv(euro, 100))
