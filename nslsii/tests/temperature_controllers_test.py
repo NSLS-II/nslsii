@@ -13,6 +13,7 @@ def RE():
     return RunEngine()
 
 
+@pytest.mark.xfail()
 def test_Eurotherm(RE):
     '''Tests the Eurotherm ophyd device.
 
