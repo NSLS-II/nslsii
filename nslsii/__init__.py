@@ -273,7 +273,8 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
 
     The log file path is taken from environment variable BLUESKY_LOG_FILE, if
     that variable has been set. If not the default log file location is determined
-    by the appdirs package.
+    by the appdirs package. The default log directory will be created if it does
+    not exist.
 
     Parameters
     ----------
@@ -300,14 +301,18 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
             file=sys.stderr,
         )
     else:
-        bluesky_log_file_path = Path(
+        bluesky_log_dir = Path(
             appdirs.user_log_dir(appname=appdirs_appname)
-        ) / Path("bluesky.log")
+        )
+        if not bluesky_log_dir.exists():
+            bluesky_log_dir.mkdir(parents=True, exist_ok=True)
+        bluesky_log_file_path = bluesky_log_dir / Path("bluesky.log")
         print(
             f"environment variable BLUESKY_LOG_FILE is not set,"
             f" using default log file path '{bluesky_log_file_path}'",
             file=sys.stderr,
         )
+
     log_file_handler = TimedRotatingFileHandler(
         filename=str(bluesky_log_file_path), when="W0", backupCount=10
     )
@@ -376,9 +381,12 @@ def configure_ipython_logging(
             file=sys.stderr,
         )
     else:
-        bluesky_ipython_log_file_path = Path(
+        bluesky_ipython_log_dir = Path(
             appdirs.user_log_dir(appname=appdirs_appname)
-        ) / Path("bluesky_ipython.log")
+        )
+        if not bluesky_ipython_log_dir.exists():
+            bluesky_ipython_log_dir.mkdir(parents=True, exist_ok=True)
+        bluesky_ipython_log_file_path = bluesky_ipython_log_dir / Path("bluesky_ipython.log")
         print(
             "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
             f" using default file path '{bluesky_ipython_log_file_path}'",

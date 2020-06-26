@@ -57,7 +57,39 @@ def test_configure_bluesky_logging_with_unwriteable_dir(tmpdir):
         configure_bluesky_logging(ipython=ip,)
 
 
-def test_default_bluesky_logging():
+def test_configure_bluesky_logging_creates_default_dir():
+    """
+    Remove environment variable BLUESKY_LOG_FILE and test that
+    the default log file path is created. This test creates a
+    directory rather than using pytest's tmp_path so the test
+    must clean up at the end.
+    """
+    test_appname = "bluesky-test"
+    log_dir = Path(appdirs.user_log_dir(appname=test_appname))
+    # remove log_dir if it exists
+    # make a reasonable effort to delete the log directory
+    # no heroics
+    if log_dir.exists():
+        for f in log_dir.iterdir():
+            f.unlink()
+        log_dir.rmdir()
+    log_file_path = log_dir / Path("bluesky.log")
+
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    os.environ.pop("BLUESKY_LOG_FILE", default=None)
+
+    bluesky_log_file_path = configure_bluesky_logging(
+        ipython=ip, appdirs_appname=test_appname
+    )
+    assert bluesky_log_file_path == log_file_path
+    assert log_file_path.exists()
+
+    # clean up the file and directory this test creates
+    bluesky_log_file_path.unlink()
+    bluesky_log_file_path.parent.rmdir()
+
+
+def test_configure_bluesky_logging_existing_default_dir():
     """
     Remove environment variable BLUESKY_LOG_FILE and test that
     the default log file path is used. This test creates a
@@ -65,16 +97,11 @@ def test_default_bluesky_logging():
     must clean up at the end.
     """
     test_appname = "bluesky-test"
-    user_log_dir = Path(appdirs.user_log_dir(appname=test_appname))
+    log_dir = Path(appdirs.user_log_dir(appname=test_appname))
+    # create the default log directory
+    log_dir.mkdir(parents=True, exist_ok=True)
 
-    # log directory must exist
-    # nslsii.configure_bluesky_logging() will not create it
-    user_log_dir.mkdir(parents=True)
-
-    log_file_path = Path(appdirs.user_log_dir(appname=test_appname)) / Path(
-        "bluesky.log"
-    )
-
+    log_file_path = log_dir / Path("bluesky.log")
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ.pop("BLUESKY_LOG_FILE", default=None)
 
@@ -97,14 +124,49 @@ def test_ipython_log_exception():
     ip.logger.log_write.assert_called_with("Exception\n", kind="output")
 
 
-def test_default_ipython_exc_logging():
+def test_ipython_exc_logging_creates_default_dir():
+    """
+    Remove environment variable BLUESKY_IPYTHON_LOG_FILE and
+    test that the default log file path is created. This test creates
+    a directory rather than using pytest's tmp_path so the test
+    must clean up at the end.
+    """
     test_appname = "bluesky-test"
     log_dir = Path(appdirs.user_log_dir(appname=test_appname))
+    # remove log_dir if it exists
+    # make a reasonable effort to delete the log directory
+    # no heroics
+    if log_dir.exists():
+        for f in log_dir.iterdir():
+            f.unlink()
+        log_dir.rmdir()
     log_file_path = log_dir / Path("bluesky_ipython.log")
 
-    # the log directory must exist already
-    # nslsii.configure_ipython_exc_logging() will not create it
-    log_dir.mkdir(parents=True)
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    os.environ.pop("BLUESKY_IPYTHON_LOG_FILE", default=None)
+    bluesky_ipython_log_file_path = configure_ipython_logging(
+        exception_logger=log_exception, ipython=ip, appdirs_appname=test_appname
+    )
+
+    assert bluesky_ipython_log_file_path == log_file_path
+    assert log_file_path.exists()
+
+    bluesky_ipython_log_file_path.unlink()
+    bluesky_ipython_log_file_path.parent.rmdir()
+
+
+def test_ipython_exc_logging_existing_default_dir():
+    """
+    Remove environment variable BLUESKY_IPYTHON_LOG_FILE and
+    test that the default log file path is used. This test creates
+    a directory rather than using pytest's tmp_path so the test
+    must clean up at the end.
+    """
+    test_appname = "bluesky-test"
+    log_dir = Path(appdirs.user_log_dir(appname=test_appname))
+    # create the default log directory
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file_path = log_dir / Path("bluesky_ipython.log")
 
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ.pop("BLUESKY_IPYTHON_LOG_FILE", default=None)
