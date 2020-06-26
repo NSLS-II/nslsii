@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import shutil
 import stat
 from unittest.mock import MagicMock
 
@@ -66,13 +67,9 @@ def test_configure_bluesky_logging_creates_default_dir():
     """
     test_appname = "bluesky-test"
     log_dir = Path(appdirs.user_log_dir(appname=test_appname))
-    # remove log_dir if it exists
-    # make a reasonable effort to delete the log directory
-    # no heroics
+    # remove log_dir if it exists to test that it will be created
     if log_dir.exists():
-        for f in log_dir.iterdir():
-            f.unlink()
-        log_dir.rmdir()
+        shutil.rmtree(path=log_dir)
     log_file_path = log_dir / Path("bluesky.log")
 
     ip = IPython.core.interactiveshell.InteractiveShell()
@@ -133,13 +130,9 @@ def test_ipython_exc_logging_creates_default_dir():
     """
     test_appname = "bluesky-test"
     log_dir = Path(appdirs.user_log_dir(appname=test_appname))
-    # remove log_dir if it exists
-    # make a reasonable effort to delete the log directory
-    # no heroics
+    # remove log_dir if it exists to test that it will be created
     if log_dir.exists():
-        for f in log_dir.iterdir():
-            f.unlink()
-        log_dir.rmdir()
+        shutil.rmtree(path=log_dir)
     log_file_path = log_dir / Path("bluesky_ipython.log")
 
     ip = IPython.core.interactiveshell.InteractiveShell()
