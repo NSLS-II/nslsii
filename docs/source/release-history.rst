@@ -2,8 +2,12 @@
 Release History
 ***************
 
-v0.0.15 (2020-06)
-=================
+v0.0.16 (2020-06-26)
+====================
+* create the default logging directory if it does not exist
+
+v0.0.15 (2020-06-16)
+====================
 * use appdirs to determine default logging directory
 * add a function to subscribe a Kafka producer to the RunEngine
 
