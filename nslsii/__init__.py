@@ -1,17 +1,20 @@
 from distutils.version import LooseVersion
+from functools import partial
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 from pathlib import Path
 import sys
 import warnings
-import uuid
 
 import appdirs
+import msgpack
+import msgpack_numpy as mpn
 
 from IPython import get_ipython
 
 from bluesky_kafka import Publisher
+from event_model import RunRouter
 
 from ._version import get_versions
 
@@ -530,13 +533,14 @@ def migrate_metadata():
 
 def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config):
     """
-    Create and subscribe a Kafka Publisher to a RunEngine. Keep a reference to the Publisher.
-    The Publisher will publish to Kafka topic "<beamline>.bluesky.documents".
+    Subscribe a RunRouter to the specified RE to create Kafka Publishers.
+    Each Publisher will publish documents from a single run to the
+    Kafka topic "<beamline_name>.bluesky.documents".
 
     Parameters
     ----------
     RE: RunEngine
-        the RunEngine to which the Kafka Publisher will be subscribed
+        the RunEngine to which the RunRouter will be subscribed
 
     beamline_name: str
         beamline name, for example "csx", to be used in building the
@@ -548,20 +552,23 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
     producer_config: dict
         dictionary of Kafka Producer configuration settings
 
-    Returns
-    -------
-    subscription_token: int
-        use this to unsubscribe the Publisher from the RE this way: ``RE.unsubscribe(subscription_token)``
-
     """
     topic = f"{beamline_name.lower()}.bluesky.documents"
-    _kafka_publisher = Publisher(
-         topic=topic,
-         bootstrap_servers=bootstrap_servers,
-         key=uuid.uuid4(),
-         producer_config=producer_config
-    )
-    subscription_token = RE.subscribe(_kafka_publisher)
+
+    def kafka_publisher_factory(name, start_doc):
+        # create a Kafka Publisher for a single run
+        kafka_publisher = Publisher(
+             topic=topic,
+             bootstrap_servers=bootstrap_servers,
+             key=start_doc["uid"],
+             producer_config=producer_config,
+             serializer=partial(msgpack.dumps, default=mpn.encode)
+        )
+
+        return [kafka_publisher], []
+
+    rr = RunRouter(factories=[kafka_publisher_factory])
+    RE.subscribe(rr)
     logging.getLogger("nslsii").info('RE will publish documents to Kafka topic %s', topic)
 
-    return subscription_token
+    return topic
