@@ -28,15 +28,23 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
     # Run a RemoteDispatcher on a separate process. Pass the documents
     # it receives over a multiprocessing.Queue back to this process so
     # we can compare with locally stored documents.
+    # The default "auto.commit.interval.ms" is 5000, but using the default
+    # means some of the Kafka messages consumed here are not committed
+    # and so are DELIVERED AGAIN the next time this test runs. The solution
+    # is setting a very short "auto.commit.interval.ms" for this test.
     def make_and_start_dispatcher(document_queue):
         def put_in_queue(name, doc):
+            print(f"got a document from Kafka {name} {doc['uid']}")
             document_queue.put((name, doc))
 
         kafka_dispatcher = RemoteDispatcher(
             topics=[kafka_topic],
             bootstrap_servers=bootstrap_servers,
             group_id="test_kafka_publisher",
-            consumer_config={"auto.offset.reset": "latest"},
+            consumer_config={
+                "auto.offset.reset": "latest",
+                "auto.commit.interval.ms": 100,
+            },
             polling_duration=1.0,
             deserializer=partial(msgpack.loads, object_hook=mpn.decode),
         )
@@ -57,6 +65,7 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
     # the KafkaPublisher will produce event_pages
     def document_accumulator_factory(start_doc_name, start_doc):
         def document_accumulator(name, doc):
+            print(f"got a document from RunEngine {name} {doc['uid']}")
             local_published_documents.append((name, doc))
 
         return [document_accumulator], []
@@ -65,22 +74,22 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
     RE.subscribe(local_run_router)
 
     # test that numpy data is transmitted correctly
-    md = {
+    md1 = {
         "numpy_data": {"nested": np.array([1, 2, 3])},
         "numpy_scalar": np.float64(4),
         "numpy_array": np.ones((3, 3)),
     }
 
-    RE(count([hw.det1]), md=md)
+    RE(count([hw.det1]), md=md1)
 
     # test that numpy data is transmitted correctly
-    md = {
+    md2 = {
         "numpy_data": {"nested": np.array([4, 5, 6])},
         "numpy_scalar": np.float64(7),
         "numpy_array": np.ones((4, 4)),
     }
 
-    RE(count([hw.det2]), md=md)
+    RE(count([hw.det2]), md=md2)
 
     # Get the documents from the queue (or timeout --- test will fail)
     kafka_published_documents = []
@@ -103,6 +112,8 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
     sanitized_remote_published_documents = [
         (name, sanitize_doc(doc)) for name, doc in kafka_published_documents
     ]
+
+    assert len(kafka_published_documents) == len(local_published_documents)
 
     assert len(sanitized_remote_published_documents) == len(
         sanitized_local_published_documents
