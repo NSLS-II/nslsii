@@ -34,7 +34,6 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
     # is setting a very short "auto.commit.interval.ms" for this test.
     def make_and_start_dispatcher(document_queue):
         def put_in_queue(name, doc):
-            print(f"got a document from Kafka {name} {doc['uid']}")
             document_queue.put((name, doc))
 
         kafka_dispatcher = RemoteDispatcher(
@@ -65,7 +64,6 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
     # the KafkaPublisher will produce event_pages
     def document_accumulator_factory(start_doc_name, start_doc):
         def document_accumulator(name, doc):
-            print(f"got a document from RunEngine {name} {doc['uid']}")
             local_published_documents.append((name, doc))
 
         return [document_accumulator], []
