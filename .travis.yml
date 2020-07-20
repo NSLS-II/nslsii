@@ -42,7 +42,7 @@ install:
 
 before_script:
   - |
-    sudo docker-compose -f scripts/bitnami-kafka-docker-compose.yml up &
+    sudo docker-compose -f scripts/bitnami-kafka-docker-compose.yml up > kafka_zookeeper.log &
     sleep 20
 
 script:
