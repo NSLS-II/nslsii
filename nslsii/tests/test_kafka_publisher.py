@@ -1,6 +1,5 @@
 from functools import partial
 import multiprocessing
-import pprint
 import queue
 import time
 
@@ -14,30 +13,29 @@ from event_model import RunRouter, sanitize_doc
 import nslsii
 
 
-def test_kafka_publisher(RE, hw):
+def test_kafka_publisher(RE, hw, bootstrap_servers):
     kafka_topic = nslsii.subscribe_kafka_publisher(
         RE=RE,
         beamline_name="test",
-        bootstrap_servers="127.0.0.1:9092",
+        bootstrap_servers=bootstrap_servers,
         producer_config={
             "acks": "all",
             "enable.idempotence": False,
             "request.timeout.ms": 5000,
-        }
+        },
     )
 
     # Run a RemoteDispatcher on a separate process. Pass the documents
-    # it receives over a Queue to this process so we can count them for our
-    # test.
-
+    # it receives over a multiprocessing.Queue back to this process so
+    # we can compare with locally stored documents.
     def make_and_start_dispatcher(document_queue):
         def put_in_queue(name, doc):
             document_queue.put((name, doc))
 
         kafka_dispatcher = RemoteDispatcher(
             topics=[kafka_topic],
-            bootstrap_servers="127.0.0.1:9092",
-            group_id="kafka-test-group-id",
+            bootstrap_servers=bootstrap_servers,
+            group_id="test_kafka_publisher",
             consumer_config={"auto.offset.reset": "latest"},
             polling_duration=1.0,
             deserializer=partial(msgpack.loads, object_hook=mpn.decode),
@@ -55,8 +53,8 @@ def test_kafka_publisher(RE, hw):
 
     local_published_documents = []
 
-    # use a RunRouter to get event_pages locally
-    # since the KafkaPublisher will produce event_pages
+    # use a RunRouter to get event_pages locally because
+    # the KafkaPublisher will produce event_pages
     def document_accumulator_factory(start_doc_name, start_doc):
         def document_accumulator(name, doc):
             local_published_documents.append((name, doc))
@@ -74,30 +72,22 @@ def test_kafka_publisher(RE, hw):
     }
 
     RE(count([hw.det1]), md=md)
-    # time.sleep(10)
 
-    # # test that numpy data is transmitted correctly
-    # md = {
-    #     "numpy_data": {"nested": np.array([4, 5, 6])},
-    #     "numpy_scalar": np.float64(7),
-    #     "numpy_array": np.ones((4, 4)),
-    # }
-    #
-    # RE(count([hw.det2]), md=md)
-    # # time.sleep(10)
+    # test that numpy data is transmitted correctly
+    md = {
+        "numpy_data": {"nested": np.array([4, 5, 6])},
+        "numpy_scalar": np.float64(7),
+        "numpy_array": np.ones((4, 4)),
+    }
+
+    RE(count([hw.det2]), md=md)
 
     # Get the documents from the queue (or timeout --- test will fail)
-    remote_published_documents = []
-    #for i in range(len(local_published_documents)):
-    #    remote_published_documents.append(queue_.get(timeout=2))
-
+    kafka_published_documents = []
     while True:
         try:
-            name, doc = queue_.get(timeout=1)
-            print("got a document from queue_")
-            print(f"name: {name}")
-            print(f"document: {pprint.pformat(doc)}")
-            remote_published_documents.append((name, doc))
+            name_, doc_ = queue_.get(timeout=1)
+            kafka_published_documents.append((name_, doc_))
         except queue.Empty:
             print("the queue is empty!")
             break
@@ -105,14 +95,16 @@ def test_kafka_publisher(RE, hw):
     dispatcher_proc.terminate()
     dispatcher_proc.join()
 
-    # sanitize_doc normalizes some document data, such as numpy arrays, that are
-    # problematic for direct comparison of documents by "assert"
+    # sanitize_doc normalizes some document data, such as numpy arrays,
+    # that are problematic for direct document comparison by "assert"
     sanitized_local_published_documents = [
         (name, sanitize_doc(doc)) for name, doc in local_published_documents
     ]
     sanitized_remote_published_documents = [
-        (name, sanitize_doc(doc)) for name, doc in remote_published_documents
+        (name, sanitize_doc(doc)) for name, doc in kafka_published_documents
     ]
 
-    assert len(sanitized_remote_published_documents) == len(sanitized_local_published_documents)
+    assert len(sanitized_remote_published_documents) == len(
+        sanitized_local_published_documents
+    )
     assert sanitized_remote_published_documents == sanitized_local_published_documents
