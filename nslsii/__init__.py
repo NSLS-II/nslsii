@@ -558,11 +558,12 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
     def kafka_publisher_factory(name, start_doc):
         # create a Kafka Publisher for a single run
         kafka_publisher = Publisher(
-             topic=topic,
-             bootstrap_servers=bootstrap_servers,
-             key=start_doc["uid"],
-             producer_config=producer_config,
-             serializer=partial(msgpack.dumps, default=mpn.encode)
+            topic=topic,
+            bootstrap_servers=bootstrap_servers,
+            key=start_doc["uid"],
+            producer_config=producer_config,
+            flush_on_stop_doc=True,
+            serializer=partial(msgpack.dumps, default=mpn.encode)
         )
 
         return [kafka_publisher], []
