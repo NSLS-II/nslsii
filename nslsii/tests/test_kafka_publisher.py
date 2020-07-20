@@ -1,5 +1,7 @@
 from functools import partial
 import multiprocessing
+import pprint
+import queue
 import time
 
 import msgpack
@@ -13,27 +15,24 @@ import nslsii
 
 
 def test_kafka_publisher(RE, hw):
-    beamline_name = "test"
     kafka_topic = nslsii.subscribe_kafka_publisher(
         RE=RE,
-        beamline_name=beamline_name,
+        beamline_name="test",
         bootstrap_servers="127.0.0.1:9092",
         producer_config={
             "acks": "all",
             "enable.idempotence": False,
             "request.timeout.ms": 5000,
-            "linger.ms": 0,
         }
     )
 
-    # COMPONENT 3
     # Run a RemoteDispatcher on a separate process. Pass the documents
     # it receives over a Queue to this process so we can count them for our
     # test.
 
-    def make_and_start_dispatcher(queue):
+    def make_and_start_dispatcher(document_queue):
         def put_in_queue(name, doc):
-            queue.put((name, doc))
+            document_queue.put((name, doc))
 
         kafka_dispatcher = RemoteDispatcher(
             topics=[kafka_topic],
@@ -58,14 +57,14 @@ def test_kafka_publisher(RE, hw):
 
     # use a RunRouter to get event_pages locally
     # since the KafkaPublisher will produce event_pages
-    def local_callback_factory(start_doc_name, start_doc):
-        def local_callback(name, doc):
+    def document_accumulator_factory(start_doc_name, start_doc):
+        def document_accumulator(name, doc):
             local_published_documents.append((name, doc))
 
-        return [local_callback], []
+        return [document_accumulator], []
 
-    local_callback_run_router = RunRouter(factories=[local_callback_factory])
-    RE.subscribe(local_callback_run_router)
+    local_run_router = RunRouter(factories=[document_accumulator_factory])
+    RE.subscribe(local_run_router)
 
     # test that numpy data is transmitted correctly
     md = {
@@ -74,23 +73,34 @@ def test_kafka_publisher(RE, hw):
         "numpy_array": np.ones((3, 3)),
     }
 
-    RE(count([hw.det]), md=md)
+    RE(count([hw.det1]), md=md)
     # time.sleep(10)
 
-    # test that numpy data is transmitted correctly
-    md = {
-        "numpy_data": {"nested": np.array([4, 5, 6])},
-        "numpy_scalar": np.float64(7),
-        "numpy_array": np.ones((4, 4)),
-    }
-
-    RE(count([hw.det]), md=md)
-    time.sleep(10)
+    # # test that numpy data is transmitted correctly
+    # md = {
+    #     "numpy_data": {"nested": np.array([4, 5, 6])},
+    #     "numpy_scalar": np.float64(7),
+    #     "numpy_array": np.ones((4, 4)),
+    # }
+    #
+    # RE(count([hw.det2]), md=md)
+    # # time.sleep(10)
 
     # Get the documents from the queue (or timeout --- test will fail)
     remote_published_documents = []
-    for i in range(len(local_published_documents)):
-        remote_published_documents.append(queue_.get(timeout=2))
+    #for i in range(len(local_published_documents)):
+    #    remote_published_documents.append(queue_.get(timeout=2))
+
+    while True:
+        try:
+            name, doc = queue_.get(timeout=1)
+            print("got a document from queue_")
+            print(f"name: {name}")
+            print(f"document: {pprint.pformat(doc)}")
+            remote_published_documents.append((name, doc))
+        except queue.Empty:
+            print("the queue is empty!")
+            break
 
     dispatcher_proc.terminate()
     dispatcher_proc.join()
@@ -98,10 +108,11 @@ def test_kafka_publisher(RE, hw):
     # sanitize_doc normalizes some document data, such as numpy arrays, that are
     # problematic for direct comparison of documents by "assert"
     sanitized_local_published_documents = [
-        sanitize_doc(doc) for doc in local_published_documents
+        (name, sanitize_doc(doc)) for name, doc in local_published_documents
     ]
     sanitized_remote_published_documents = [
-        sanitize_doc(doc) for doc in remote_published_documents
+        (name, sanitize_doc(doc)) for name, doc in remote_published_documents
     ]
 
+    assert len(sanitized_remote_published_documents) == len(sanitized_local_published_documents)
     assert sanitized_remote_published_documents == sanitized_local_published_documents
