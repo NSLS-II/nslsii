@@ -43,7 +43,7 @@ def configure_base(
     configure_logging=True,
     pbar=True,
     ipython_logging=True,
-    publish_documents_to_kafka=False
+    publish_documents_to_kafka=False,
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -206,19 +206,14 @@ def configure_base(
         from nslsii.common.ipynb.logutils import log_exception
 
         # IPython logging will be enabled with logstart(...)
-        configure_ipython_logging(
-            exception_logger=log_exception, ipython=get_ipython()
-        )
+        configure_ipython_logging(exception_logger=log_exception, ipython=get_ipython())
 
     if publish_documents_to_kafka:
         subscribe_kafka_publisher(
             RE,
             beamline_name=broker_name,
             bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
-            producer_config={
-                "enable.idempotence": True,
-                "linger.ms": 0
-            }
+            producer_config={"enable.idempotence": True},
         )
 
     # always configure %xmode minimal
@@ -304,9 +299,7 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
             file=sys.stderr,
         )
     else:
-        bluesky_log_dir = Path(
-            appdirs.user_log_dir(appname=appdirs_appname)
-        )
+        bluesky_log_dir = Path(appdirs.user_log_dir(appname=appdirs_appname))
         if not bluesky_log_dir.exists():
             bluesky_log_dir.mkdir(parents=True, exist_ok=True)
         bluesky_log_file_path = bluesky_log_dir / Path("bluesky.log")
@@ -384,12 +377,12 @@ def configure_ipython_logging(
             file=sys.stderr,
         )
     else:
-        bluesky_ipython_log_dir = Path(
-            appdirs.user_log_dir(appname=appdirs_appname)
-        )
+        bluesky_ipython_log_dir = Path(appdirs.user_log_dir(appname=appdirs_appname))
         if not bluesky_ipython_log_dir.exists():
             bluesky_ipython_log_dir.mkdir(parents=True, exist_ok=True)
-        bluesky_ipython_log_file_path = bluesky_ipython_log_dir / Path("bluesky_ipython.log")
+        bluesky_ipython_log_file_path = bluesky_ipython_log_dir / Path(
+            "bluesky_ipython.log"
+        )
         print(
             "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
             f" using default file path '{bluesky_ipython_log_file_path}'",
@@ -563,13 +556,15 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             key=start_doc["uid"],
             producer_config=producer_config,
             flush_on_stop_doc=True,
-            serializer=partial(msgpack.dumps, default=mpn.encode)
+            serializer=partial(msgpack.dumps, default=mpn.encode),
         )
 
         return [kafka_publisher], []
 
     rr = RunRouter(factories=[kafka_publisher_factory])
     RE.subscribe(rr)
-    logging.getLogger("nslsii").info('RE will publish documents to Kafka topic %s', topic)
+    logging.getLogger("nslsii").info(
+        "RE will publish documents to Kafka topic %s", topic
+    )
 
     return topic
