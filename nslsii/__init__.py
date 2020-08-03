@@ -545,6 +545,15 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
     producer_config: dict
         dictionary of Kafka Producer configuration settings
 
+    Returns
+    -------
+    topic: str
+        the Kafka topic on which bluesky documents will be published
+
+    runrouter_token: int
+        subscription token corresponding to the RunRouter subscribed to the RunEngine
+        by this function
+
     """
     topic = f"{beamline_name.lower()}.bluesky.documents"
 
@@ -559,12 +568,30 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             serializer=partial(msgpack.dumps, default=mpn.encode),
         )
 
-        return [kafka_publisher], []
+        try:
+            # call Producer.list_topics to test if we can connect to a Kafka broker
+            # TODO: add list_topics method to KafkaPublisher
+            cluster_metadata = kafka_publisher._producer.list_topics(topic=topic, timeout=5.0)
+            logging.getLogger("nslsii").info("connected to Kafka broker(s): %s", cluster_metadata)
+            return [kafka_publisher], []
+        # TODO: raise BlueskyException or similar from KafkaPublisher.list_topics
+        except Exception as ke:
+            # For now failure to connect to a Kafka broker will not be considered a
+            # because we are not relying on Kafka. When and if we do rely on Kafka
+            # for storing documents we will need a more robust response here.
+            nslsii_logger = logging.getLogger("nslsii")
+            nslsii_logger.error("failed to connect to Kafka broker(s) at %s", bootstrap_servers)
+            nslsii_logger.exception(ke)
+
+            # documents will not be published to Kafka brokers
+            return [], []
 
     rr = RunRouter(factories=[kafka_publisher_factory])
-    RE.subscribe(rr)
+    runrouter_token = RE.subscribe(rr)
+
+    # log this only once
     logging.getLogger("nslsii").info(
         "RE will publish documents to Kafka topic %s", topic
     )
 
-    return topic
+    return topic, runrouter_token
