@@ -14,18 +14,18 @@ import nslsii
 
 
 def test_kafka_publisher(RE, hw, bootstrap_servers):
-    topic, runrouter_token = kafka_topic = nslsii.subscribe_kafka_publisher(
+    kafka_topic, runrouter_token = nslsii.subscribe_kafka_publisher(
         RE=RE,
         beamline_name="test",
         bootstrap_servers=bootstrap_servers,
         producer_config={
             "acks": "all",
             "enable.idempotence": False,
-            "request.timeout.ms": 5000,
+            "request.timeout.ms": 1000,
         },
     )
 
-    assert topic == "test.bluesky.documents"
+    assert kafka_topic == "test.bluesky.documents"
     assert isinstance(runrouter_token, int)
 
     # Run a RemoteDispatcher on a separate process. Pass the documents
