@@ -120,6 +120,10 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
     )
     assert sanitized_remote_published_documents == sanitized_local_published_documents
 
+    # test that we got the correct subscription token for the Kafka Publisher
+    # KeyError is raised if the token is not known
+    RE.unsubscribe(token=runrouter_token)
+
 
 def test_publisher_with_no_broker(RE, hw):
     # specify a bootstrap server that does not exist
