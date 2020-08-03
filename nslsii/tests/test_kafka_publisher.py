@@ -127,7 +127,7 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
 
 def test_publisher_with_no_broker(RE, hw):
     # specify a bootstrap server that does not exist
-    kafka_topic = nslsii.subscribe_kafka_publisher(
+    nslsii.subscribe_kafka_publisher(
         RE=RE,
         beamline_name="test",
         bootstrap_servers="100.100.100.100:9092",
