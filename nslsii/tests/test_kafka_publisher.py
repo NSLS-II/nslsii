@@ -135,7 +135,7 @@ def test_publisher_with_no_broker(RE, hw):
             "acks": "all",
             "enable.idempotence": False,
             "request.timeout.ms": 1000,
-        }
+        },
     )
 
     # use a RunRouter to get event_pages locally because

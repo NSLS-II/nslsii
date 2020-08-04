@@ -571,8 +571,12 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
         try:
             # call Producer.list_topics to test if we can connect to a Kafka broker
             # TODO: add list_topics method to KafkaPublisher
-            cluster_metadata = kafka_publisher._producer.list_topics(topic=topic, timeout=5.0)
-            logging.getLogger("nslsii").info("connected to Kafka broker(s): %s", cluster_metadata)
+            cluster_metadata = kafka_publisher._producer.list_topics(
+                topic=topic, timeout=5.0
+            )
+            logging.getLogger("nslsii").info(
+                "connected to Kafka broker(s): %s", cluster_metadata
+            )
             return [kafka_publisher], []
         # TODO: raise BlueskyException or similar from KafkaPublisher.list_topics
         except Exception as ke:
@@ -580,7 +584,9 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             # because we are not relying on Kafka. When and if we do rely on Kafka
             # for storing documents we will need a more robust response here.
             nslsii_logger = logging.getLogger("nslsii")
-            nslsii_logger.error("failed to connect to Kafka broker(s) at %s", bootstrap_servers)
+            nslsii_logger.error(
+                "failed to connect to Kafka broker(s) at %s", bootstrap_servers
+            )
             nslsii_logger.exception(ke)
 
             # documents will not be published to Kafka brokers
