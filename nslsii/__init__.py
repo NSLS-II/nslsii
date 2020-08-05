@@ -1,17 +1,20 @@
 from distutils.version import LooseVersion
+from functools import partial
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 from pathlib import Path
 import sys
 import warnings
-import uuid
 
 import appdirs
+import msgpack
+import msgpack_numpy as mpn
 
 from IPython import get_ipython
 
 from bluesky_kafka import Publisher
+from event_model import RunRouter
 
 from ._version import get_versions
 
@@ -40,7 +43,7 @@ def configure_base(
     configure_logging=True,
     pbar=True,
     ipython_logging=True,
-    publish_documents_to_kafka=False
+    publish_documents_to_kafka=False,
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -203,19 +206,14 @@ def configure_base(
         from nslsii.common.ipynb.logutils import log_exception
 
         # IPython logging will be enabled with logstart(...)
-        configure_ipython_logging(
-            exception_logger=log_exception, ipython=get_ipython()
-        )
+        configure_ipython_logging(exception_logger=log_exception, ipython=get_ipython())
 
     if publish_documents_to_kafka:
         subscribe_kafka_publisher(
             RE,
             beamline_name=broker_name,
             bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
-            producer_config={
-                "enable.idempotence": True,
-                "linger.ms": 0
-            }
+            producer_config={"enable.idempotence": True},
         )
 
     # always configure %xmode minimal
@@ -301,9 +299,7 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
             file=sys.stderr,
         )
     else:
-        bluesky_log_dir = Path(
-            appdirs.user_log_dir(appname=appdirs_appname)
-        )
+        bluesky_log_dir = Path(appdirs.user_log_dir(appname=appdirs_appname))
         if not bluesky_log_dir.exists():
             bluesky_log_dir.mkdir(parents=True, exist_ok=True)
         bluesky_log_file_path = bluesky_log_dir / Path("bluesky.log")
@@ -381,12 +377,12 @@ def configure_ipython_logging(
             file=sys.stderr,
         )
     else:
-        bluesky_ipython_log_dir = Path(
-            appdirs.user_log_dir(appname=appdirs_appname)
-        )
+        bluesky_ipython_log_dir = Path(appdirs.user_log_dir(appname=appdirs_appname))
         if not bluesky_ipython_log_dir.exists():
             bluesky_ipython_log_dir.mkdir(parents=True, exist_ok=True)
-        bluesky_ipython_log_file_path = bluesky_ipython_log_dir / Path("bluesky_ipython.log")
+        bluesky_ipython_log_file_path = bluesky_ipython_log_dir / Path(
+            "bluesky_ipython.log"
+        )
         print(
             "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
             f" using default file path '{bluesky_ipython_log_file_path}'",
@@ -530,13 +526,14 @@ def migrate_metadata():
 
 def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config):
     """
-    Create and subscribe a Kafka Publisher to a RunEngine. Keep a reference to the Publisher.
-    The Publisher will publish to Kafka topic "<beamline>.bluesky.documents".
+    Subscribe a RunRouter to the specified RE to create Kafka Publishers.
+    Each Publisher will publish documents from a single run to the
+    Kafka topic "<beamline_name>.bluesky.documents".
 
     Parameters
     ----------
     RE: RunEngine
-        the RunEngine to which the Kafka Publisher will be subscribed
+        the RunEngine to which the RunRouter will be subscribed
 
     beamline_name: str
         beamline name, for example "csx", to be used in building the
@@ -550,18 +547,57 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
 
     Returns
     -------
-    subscription_token: int
-        use this to unsubscribe the Publisher from the RE this way: ``RE.unsubscribe(subscription_token)``
+    topic: str
+        the Kafka topic on which bluesky documents will be published
+
+    runrouter_token: int
+        subscription token corresponding to the RunRouter subscribed to the RunEngine
+        by this function
 
     """
     topic = f"{beamline_name.lower()}.bluesky.documents"
-    _kafka_publisher = Publisher(
-         topic=topic,
-         bootstrap_servers=bootstrap_servers,
-         key=uuid.uuid4(),
-         producer_config=producer_config
-    )
-    subscription_token = RE.subscribe(_kafka_publisher)
-    logging.getLogger("nslsii").info('RE will publish documents to Kafka topic %s', topic)
 
-    return subscription_token
+    def kafka_publisher_factory(name, start_doc):
+        # create a Kafka Publisher for a single run
+        kafka_publisher = Publisher(
+            topic=topic,
+            bootstrap_servers=bootstrap_servers,
+            key=start_doc["uid"],
+            producer_config=producer_config,
+            flush_on_stop_doc=True,
+            serializer=partial(msgpack.dumps, default=mpn.encode),
+        )
+
+        try:
+            # call Producer.list_topics to test if we can connect to a Kafka broker
+            # TODO: add list_topics method to KafkaPublisher
+            cluster_metadata = kafka_publisher._producer.list_topics(
+                topic=topic, timeout=5.0
+            )
+            logging.getLogger("nslsii").info(
+                "connected to Kafka broker(s): %s", cluster_metadata
+            )
+            return [kafka_publisher], []
+        # TODO: raise BlueskyException or similar from KafkaPublisher.list_topics
+        except Exception as ke:
+            # For now failure to connect to a Kafka broker will not be considered a
+            # because we are not relying on Kafka. When and if we do rely on Kafka
+            # for storing documents we will need a more robust response here.
+            nslsii_logger = logging.getLogger("nslsii")
+            nslsii_logger.error(
+                "failed to connect to Kafka broker(s) at %s", bootstrap_servers
+            )
+            nslsii_logger.exception(ke)
+
+            # documents will not be published to Kafka brokers
+            return [], []
+
+    rr = RunRouter(factories=[kafka_publisher_factory])
+    runrouter_token = RE.subscribe(rr)
+
+    # log this only once
+    logging.getLogger("nslsii").info(
+        "RE will publish documents to Kafka topic %s", topic
+    )
+
+    return topic, runrouter_token

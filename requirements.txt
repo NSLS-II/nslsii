@@ -6,6 +6,8 @@ databroker
 ipython
 ipywidgets
 matplotlib
+msgpack >=1.0.0
+msgpack-numpy
 numpy
 ophyd
 psutil
