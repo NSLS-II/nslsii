@@ -431,7 +431,8 @@ class Xspress3Channel(ADBase):
 
     rois = DDC(make_rois(range(1, 17)))
     vis_enabled = Cpt(EpicsSignal, 'PluginControlVal')
-
+    extra_rois_enabled = Cpt(EpicsSignal, 'PluginControlValExtraROI')
+    
     def __init__(self, prefix, *, channel_num=None, **kwargs):
         self.channel_num = int(channel_num)
 
