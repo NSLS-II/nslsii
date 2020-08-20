@@ -148,6 +148,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         self.settings.acquire.put(0, wait=True)
 
         total_points = self.parent.total_points.get()
+        if total_points < 1:
+            raise RuntimeError("You must set the total points")
         spec_per_point = self.parent.spectra_per_point.get()
         total_capture = total_points * spec_per_point
 
@@ -484,7 +486,7 @@ class Xspress3Detector(DetectorBase):
 
     external_trig = Cpt(Signal, value=False,
                         doc='Use external triggering')
-    total_points = Cpt(Signal, value=2,
+    total_points = Cpt(Signal, value=-1,
                        doc='The total number of points to acquire overall')
     spectra_per_point = Cpt(Signal, value=1,
                             doc='Number of spectra per point')
