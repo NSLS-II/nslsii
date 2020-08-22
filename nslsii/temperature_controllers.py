@@ -29,13 +29,13 @@ class Eurotherm(Device):
         self._cid = None
 
     # Setup some new signals required for the moving indicator logic
-    equilibrium_time = Cpt(Signal, value=5)
-    timeout = Cpt(Signal, value=500)
-    tolerance = Cpt(Signal, value=1)
+    equilibrium_time = Cpt(Signal, value=5, kind='config')
+    timeout = Cpt(Signal, value=500, kind='config')
+    tolerance = Cpt(Signal, value=1, kind='config')
 
     # Add the readback and setpoint components
-    setpoint = Cpt(EpicsSignal, 'T-SP')
-    readback = Cpt(EpicsSignal, 'T-RB')
+    setpoint = Cpt(EpicsSignal, 'T-SP', kind='normal')
+    readback = Cpt(EpicsSignal, 'T-RB', kind='hinted')
 
     # define the new set method with the new moving indicator
     def set(self, value):
