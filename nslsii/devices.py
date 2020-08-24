@@ -9,6 +9,8 @@ _time_fmtstr = '%Y-%m-%d %H:%M:%S'
 class TwoButtonShutter(Device):
     # TODO: this needs to be fixed in EPICS as these names make no sense
     # the value coming out of the PV does not match what is shown in CSS
+    RETRY_PERIOD = 0.5
+    MAX_RETRIES = 10
     open_cmd = Cpt(EpicsSignal, 'Cmd:Opn-Cmd', string=True)
     open_val = 'Open'
 
@@ -60,14 +62,14 @@ class TwoButtonShutter(Device):
             nonlocal count
             value = cmd_enums[int(value)]
             count += 1
-            if count > 10:
+            if count > self.MAX_RETRIES:
                 cmd_sig.clear_sub(cmd_retry_cb)
                 self._set_st = None
                 self.status.clear_sub(shutter_cb)
                 st._finished(success=False)
             if value == 'None':
                 if not st.done:
-                    time.sleep(.5)
+                    time.sleep(self.RETRY_PERIOD)
                     cmd_sig.set(1)
 
                     ts = datetime.datetime.fromtimestamp(timestamp) \
