@@ -568,6 +568,21 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             serializer=partial(msgpack.dumps, default=mpn.encode),
         )
 
+        def handle_publisher_exceptions(name_, doc_):
+            """
+            Do not let exceptions from the Kafka producer kill the RunEngine.
+            """
+            try:
+                kafka_publisher(name_, doc_)
+            except Exception as ex:
+                logger = logging.getLogger("nslsii")
+                logger.error(
+                    "an error occurred while publishing a Kafka message\nname: %s\ndoc %s",
+                    name_,
+                    doc_,
+                )
+                logger.exception(ex)
+
         try:
             # call Producer.list_topics to test if we can connect to a Kafka broker
             # TODO: add list_topics method to KafkaPublisher
@@ -577,7 +592,7 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             logging.getLogger("nslsii").info(
                 "connected to Kafka broker(s): %s", cluster_metadata
             )
-            return [kafka_publisher], []
+            return [handle_publisher_exceptions], []
         # TODO: raise BlueskyException or similar from KafkaPublisher.list_topics
         except Exception as ke:
             # For now failure to connect to a Kafka broker will not be considered a
