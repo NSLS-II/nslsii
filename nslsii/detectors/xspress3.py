@@ -197,9 +197,9 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                                                self.file_name.get(),
                                                self.file_number.get())
 
-        if not self.file_path_exists.value:
+        if not self.file_path_exists.get():
             raise IOError("Path {} does not exits on IOC!! Please Check"
-                          .format(self.file_path.value))
+                          .format(self.file_path.get()))
 
         logger.debug('Inserting the filestore resource: %s', self._fn)
         self._generate_resource({})
