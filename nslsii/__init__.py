@@ -213,7 +213,12 @@ def configure_base(
             RE,
             beamline_name=broker_name,
             bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
-            producer_config={"enable.idempotence": True},
+            producer_config={
+                "acks": 0,
+                "message.timeout.ms": 3000,
+                "queue.buffering.max.kbytes": 10 * 1048576,  # default is 1048576
+                "compression.codec": "snappy"
+            },
         )
 
     # always configure %xmode minimal
