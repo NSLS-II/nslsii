@@ -576,17 +576,19 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
         def handle_publisher_exceptions(name_, doc_):
             """
             Do not let exceptions from the Kafka producer kill the RunEngine.
+            This is for testing and is not sufficient for Kafka in production.
+            TODO: improve exception handling for production
             """
             try:
                 kafka_publisher(name_, doc_)
             except Exception as ex:
                 logger = logging.getLogger("nslsii")
-                logger.error(
-                    "an error occurred while publishing a Kafka message\nname: %s\ndoc %s",
+                logger.exception(
+                    "an error occurred when %s published %s\nname: %s\ndoc %s",
+                    kafka_publisher,
                     name_,
                     doc_,
                 )
-                logger.exception(ex)
 
         try:
             # call Producer.list_topics to test if we can connect to a Kafka broker
@@ -599,15 +601,14 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             )
             return [handle_publisher_exceptions], []
         # TODO: raise BlueskyException or similar from KafkaPublisher.list_topics
-        except Exception as ke:
+        except Exception:
             # For now failure to connect to a Kafka broker will not be considered a
-            # because we are not relying on Kafka. When and if we do rely on Kafka
-            # for storing documents we will need a more robust response here.
+            # significant problem because we are not relying on Kafka. When and if
+            # we do rely on Kafka for storing documents we will need a more robust
+            # response here.
+            # TODO: improve exception handling for production
             nslsii_logger = logging.getLogger("nslsii")
-            nslsii_logger.error(
-                "failed to connect to Kafka broker(s) at %s", bootstrap_servers
-            )
-            nslsii_logger.exception(ke)
+            nslsii_logger.exception("%s failed to connect to Kafka", kafka_publisher)
 
             # documents will not be published to Kafka brokers
             return [], []
