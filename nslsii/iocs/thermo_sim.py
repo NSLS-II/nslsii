@@ -52,7 +52,7 @@ class Thermo(PVGroup):
                     setpoint)
 
         T = t_rbv(T0=self._T0,
-                  **{k: getattr(self, k).get()
+                  **{k: getattr(self, k).value
                      for k in ['setpoint', 'K', 'omega', 'Tvar']})
 
         await instance.write(value=T)
