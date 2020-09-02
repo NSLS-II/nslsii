@@ -2,7 +2,9 @@ from __future__ import print_function, division
 import time
 import time as ttime
 import logging
+import uuid
 
+from pathlib import PurePath
 from .utils import makedirs
 
 from collections import OrderedDict
@@ -13,7 +15,7 @@ from ophyd.areadetector import (DetectorBase, CamBase,
                                 EpicsSignalWithRBV as SignalWithRBV)
 from ophyd import (Signal, EpicsSignal, EpicsSignalRO, DerivedSignal)
 
-from ophyd import (Component as Cpt, FormattedComponent as FC,
+from ophyd import (Device, Component as Cpt, FormattedComponent as FC,
                    DynamicDeviceComponent as DDC)
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
@@ -115,6 +117,9 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
             # this needs a fail-safe, RE will now hang forever here
             # as we eat all SIGINT to ensure that cleanup happens in
             # orderly manner.
+            # If we are here this is a sign that we have not configured the xs3
+            # correctly and it is expecting to capture more points than it
+            # was triggered to take.
             while self.capture.get() == 1:
                 i += 1
                 if (i % 50) == 0:
@@ -122,18 +127,22 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                 time.sleep(0.1)
                 if i > 150:
                     logger.warning('Still capturing data .... giving up.')
+                    logger.warning('Check that the xspress3 is configured to take the right '
+                                   'number of frames '
+                                   f'(it is trying to take {self.parent.settings.num_images.get()})')
                     self.capture.put(0)
                     break
 
         except KeyboardInterrupt:
+            self.capture.put(0)
             logger.warning('Still capturing data .... interrupted.')
 
         return super().unstage()
 
     def generate_datum(self, key, timestamp, datum_kwargs):
         sn, n = next((f'channel{j}', j)
-                     for j in self.channels
-                     if getattr(self.parent, f'channel{j}').name == key)
+                      for j in self.channels
+                      if getattr(self.parent, f'channel{j}').name == key)
         datum_kwargs.update({'frame': self.parent._abs_trigger_count,
                              'channel': int(sn[7:])})
         self.mds_keys[n] = key
@@ -294,6 +303,7 @@ class Xspress3ROISettings(PluginBase):
             root = root.parent
 
 
+
 class Xspress3ROI(ADBase):
     '''A configurable Xspress3 EPICS ROI'''
 
@@ -319,6 +329,7 @@ class Xspress3ROI(ADBase):
             if not isinstance(root.parent, ADBase):
                 return root
             root = root.parent
+
 
     def __init__(self, prefix, *, roi_num=0, use_sum=False,
                  read_attrs=None, configuration_attrs=None, parent=None,
