@@ -213,7 +213,12 @@ def configure_base(
             RE,
             beamline_name=broker_name,
             bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
-            producer_config={"enable.idempotence": True},
+            producer_config={
+                "acks": 0,
+                "message.timeout.ms": 3000,
+                "queue.buffering.max.kbytes": 10 * 1048576,  # default is 1048576
+                "compression.codec": "snappy"
+            },
         )
 
     # always configure %xmode minimal
@@ -568,6 +573,23 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             serializer=partial(msgpack.dumps, default=mpn.encode),
         )
 
+        def handle_publisher_exceptions(name_, doc_):
+            """
+            Do not let exceptions from the Kafka producer kill the RunEngine.
+            This is for testing and is not sufficient for Kafka in production.
+            TODO: improve exception handling for production
+            """
+            try:
+                kafka_publisher(name_, doc_)
+            except Exception as ex:
+                logger = logging.getLogger("nslsii")
+                logger.exception(
+                    "an error occurred when %s published %s\nname: %s\ndoc %s",
+                    kafka_publisher,
+                    name_,
+                    doc_,
+                )
+
         try:
             # call Producer.list_topics to test if we can connect to a Kafka broker
             # TODO: add list_topics method to KafkaPublisher
@@ -577,17 +599,16 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             logging.getLogger("nslsii").info(
                 "connected to Kafka broker(s): %s", cluster_metadata
             )
-            return [kafka_publisher], []
+            return [handle_publisher_exceptions], []
         # TODO: raise BlueskyException or similar from KafkaPublisher.list_topics
-        except Exception as ke:
+        except Exception:
             # For now failure to connect to a Kafka broker will not be considered a
-            # because we are not relying on Kafka. When and if we do rely on Kafka
-            # for storing documents we will need a more robust response here.
+            # significant problem because we are not relying on Kafka. When and if
+            # we do rely on Kafka for storing documents we will need a more robust
+            # response here.
+            # TODO: improve exception handling for production
             nslsii_logger = logging.getLogger("nslsii")
-            nslsii_logger.error(
-                "failed to connect to Kafka broker(s) at %s", bootstrap_servers
-            )
-            nslsii_logger.exception(ke)
+            nslsii_logger.exception("%s failed to connect to Kafka", kafka_publisher)
 
             # documents will not be published to Kafka brokers
             return [], []
