@@ -2,7 +2,7 @@
 Release History
 ***************
 
-v0.0.18 (2020-09-04)
+v0.1.0 (2020-09-04)
 ====================
 * synchronize xspress3 code with hxntools
 * new TwoButtonShutter configuration
