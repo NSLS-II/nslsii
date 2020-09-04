@@ -2,6 +2,13 @@
 Release History
 ***************
 
+v0.0.18 (2020-09-04)
+====================
+* synchronize xspress3 code with hxntools
+* new TwoButtonShutter configuration
+* change Signal.value to Signal.get()
+* handle Kafka exceptions
+
 v0.0.17 (2020-08-06)
 ====================
 * update the function that subscribes a Kafka producer to the RunEngine
