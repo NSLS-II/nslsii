@@ -6,6 +6,7 @@ import time
 import msgpack
 import msgpack_numpy as mpn
 import numpy as np
+import pytest
 
 from bluesky.plans import count
 from bluesky_kafka import RemoteDispatcher
@@ -13,11 +14,12 @@ from event_model import RunRouter, sanitize_doc
 import nslsii
 
 
-def test_kafka_publisher(RE, hw, bootstrap_servers):
+@pytest.mark.xfail
+def test_kafka_publisher(RE, hw, kafka_bootstrap_servers):
     kafka_topic, runrouter_token = nslsii.subscribe_kafka_publisher(
         RE=RE,
         beamline_name="test",
-        bootstrap_servers=bootstrap_servers,
+        bootstrap_servers=kafka_bootstrap_servers,
         producer_config={
             "acks": "all",
             "enable.idempotence": False,
@@ -41,7 +43,7 @@ def test_kafka_publisher(RE, hw, bootstrap_servers):
 
         kafka_dispatcher = RemoteDispatcher(
             topics=[kafka_topic],
-            bootstrap_servers=bootstrap_servers,
+            bootstrap_servers=kafka_bootstrap_servers,
             group_id="test_kafka_publisher",
             consumer_config={
                 "auto.offset.reset": "latest",
