@@ -588,7 +588,7 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
             """
             try:
                 kafka_publisher(name_, doc_)
-            except Exception as ex:
+            except Exception:
                 logger = logging.getLogger("nslsii")
                 logger.exception(
                     "an error occurred when %s published %s\nname: %s\ndoc %s",
