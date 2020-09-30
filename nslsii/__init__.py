@@ -172,7 +172,8 @@ def configure_base(
         # Register bluesky IPython magics.
         from bluesky.magics import BlueskyMagics
 
-        get_ipython().register_magics(BlueskyMagics)
+        if get_ipython():
+            get_ipython().register_magics(BlueskyMagics)
 
     if bec:
         # Set up the BestEffortCallback.
@@ -205,7 +206,7 @@ def configure_base(
     if configure_logging:
         configure_bluesky_logging(ipython=get_ipython())
 
-    if ipython_logging:
+    if ipython_logging and get_ipython():
         from nslsii.common.ipynb.logutils import log_exception
 
         # IPython logging will be enabled with logstart(...)
@@ -224,7 +225,7 @@ def configure_base(
             },
         )
 
-    if tb_minimize:
+    if tb_minimize and get_ipython():
         # configure %xmode minimal
         # so short tracebacks are printed to the console
         get_ipython().magic("xmode minimal")
@@ -331,14 +332,16 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     logging.getLogger("caproto").addHandler(log_file_handler)
     logging.getLogger("ophyd").addHandler(log_file_handler)
     logging.getLogger("nslsii").addHandler(log_file_handler)
-    ipython.log.addHandler(log_file_handler)
+    if ipython:
+        ipython.log.addHandler(log_file_handler)
     # set the loggers to send INFO and higher log
     # messages to their handlers
     logging.getLogger("bluesky").setLevel("INFO")
     logging.getLogger("caproto").setLevel("INFO")
     logging.getLogger("ophyd").setLevel("INFO")
     logging.getLogger("nslsii").setLevel("INFO")
-    ipython.log.setLevel("INFO")
+    if ipython:
+        ipython.log.setLevel("INFO")
 
     return bluesky_log_file_path
 
