@@ -111,6 +111,9 @@ def configure_base(
 
     >>>> configure_base(get_ipython().user_ns, 'chx');
     """
+
+    ipython = get_ipython()
+
     ns = {}  # We will update user_ns with this at the end.
     # Protect against double-subscription.
     SENTINEL = "__nslsii_configure_base_has_been_run"
@@ -172,8 +175,8 @@ def configure_base(
         # Register bluesky IPython magics.
         from bluesky.magics import BlueskyMagics
 
-        if get_ipython():
-            get_ipython().register_magics(BlueskyMagics)
+        if ipython:
+            ipython.register_magics(BlueskyMagics)
 
     if bec:
         # Set up the BestEffortCallback.
@@ -204,13 +207,13 @@ def configure_base(
         setup_ophyd()
 
     if configure_logging:
-        configure_bluesky_logging(ipython=get_ipython())
+        configure_bluesky_logging(ipython=ipython)
 
-    if ipython_logging and get_ipython():
+    if ipython_logging and ipython:
         from nslsii.common.ipynb.logutils import log_exception
 
         # IPython logging will be enabled with logstart(...)
-        configure_ipython_logging(exception_logger=log_exception, ipython=get_ipython())
+        configure_ipython_logging(exception_logger=log_exception, ipython=ipython)
 
     if publish_documents_to_kafka:
         subscribe_kafka_publisher(
@@ -225,10 +228,10 @@ def configure_base(
             },
         )
 
-    if tb_minimize and get_ipython():
+    if tb_minimize and ipython:
         # configure %xmode minimal
         # so short tracebacks are printed to the console
-        get_ipython().magic("xmode minimal")
+        ipython.magic("xmode minimal")
 
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
