@@ -619,6 +619,7 @@ class XspressTrigger(BlueskyInterface):
     def unstage(self):
         ret = super().unstage()
         self._acquisition_signal.clear_sub(self._acquire_changed)
+        self._status = None
         return ret
 
     def _acquire_changed(self, value=None, old_value=None, **kwargs):
