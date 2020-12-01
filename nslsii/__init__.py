@@ -280,7 +280,12 @@ def configure_base(
 def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     """
     Configure a TimedRotatingFileHandler log handler and attach it to
-    bluesky, ophyd, caproto, and nslsii loggers.
+    bluesky, ophyd, caproto, and nslsii loggers. In addition set the
+    ``propagate`` field on each logger to ``False`` so log messages will
+    not propagate to higher level loggers such as a root logger
+    configured by a user. If you want log messages from these loggers
+    to propagate to higher level loggers simply set the ``propagate``
+    field to ``True`` in client code.
 
     The log file path is taken from environment variable BLUESKY_LOG_FILE, if
     that variable has been set. If not the default log file location is determined
@@ -345,6 +350,14 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
     logging.getLogger("nslsii").setLevel("INFO")
     if ipython:
         ipython.log.setLevel("INFO")
+    # configure loggers so that log messages do not
+    # propagate to higher level loggers
+    logging.getLogger("bluesky").propagate = False
+    logging.getLogger("caproto").propagate = False
+    logging.getLogger("ophyd").propagate = False
+    logging.getLogger("nslsii").propagate = False
+    if ipython:
+        ipython.log.propagate = False
 
     return bluesky_log_file_path
 
