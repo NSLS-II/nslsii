@@ -277,15 +277,16 @@ def configure_base(
     return list(ns)
 
 
-def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
+def configure_bluesky_logging(ipython, appdirs_appname="bluesky", propagate_log_messages=False):
     """
     Configure a TimedRotatingFileHandler log handler and attach it to
-    bluesky, ophyd, caproto, and nslsii loggers. In addition set the
-    ``propagate`` field on each logger to ``False`` so log messages will
-    not propagate to higher level loggers such as a root logger
-    configured by a user. If you want log messages from these loggers
-    to propagate to higher level loggers simply set the ``propagate``
-    field to ``True`` in client code.
+    bluesky, ophyd, caproto, and nslsii loggers. In addition, by default set
+    the ``propagate`` field on each logger to ``False`` so log messages will
+    not propagate to higher level loggers such as a root logger configured
+    by a user. If you want log messages from these loggers to propagate to
+    higher level loggers simply set ``propagate_log_messages=True`` when
+    calling this function, or set the ``propagate`` field to ``True`` in
+    client code.
 
     The log file path is taken from environment variable BLUESKY_LOG_FILE, if
     that variable has been set. If not the default log file location is determined
@@ -300,6 +301,11 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
         appname passed to appdirs.user_log_dir() when the BLUESKY_LOG_FILE
         environment variable has not been set; use the default for production,
         set to something else for testing
+    propagate_log_messages: bool
+        the ``propagate`` field on the bluesky, caproto, nslsii, ophyd, and ipython
+        loggers will be set to this value; if False (the default) log messages
+        from these loggers will not propagate to higher-level loggers
+        (such as a root logger)
 
     Returns
     -------
@@ -336,28 +342,30 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky"):
         "  %(module)s:%(lineno)d] %(message)s"
     )
     log_file_handler.setFormatter(logging.Formatter(fmt=log_file_format))
+
     logging.getLogger("bluesky").addHandler(log_file_handler)
     logging.getLogger("caproto").addHandler(log_file_handler)
     logging.getLogger("ophyd").addHandler(log_file_handler)
     logging.getLogger("nslsii").addHandler(log_file_handler)
-    if ipython:
-        ipython.log.addHandler(log_file_handler)
+
     # set the loggers to send INFO and higher log
     # messages to their handlers
     logging.getLogger("bluesky").setLevel("INFO")
     logging.getLogger("caproto").setLevel("INFO")
     logging.getLogger("ophyd").setLevel("INFO")
     logging.getLogger("nslsii").setLevel("INFO")
-    if ipython:
-        ipython.log.setLevel("INFO")
+
     # configure loggers so that log messages do not
     # propagate to higher level loggers
-    logging.getLogger("bluesky").propagate = False
-    logging.getLogger("caproto").propagate = False
-    logging.getLogger("ophyd").propagate = False
-    logging.getLogger("nslsii").propagate = False
+    logging.getLogger("bluesky").propagate = propagate_log_messages
+    logging.getLogger("caproto").propagate = propagate_log_messages
+    logging.getLogger("ophyd").propagate = propagate_log_messages
+    logging.getLogger("nslsii").propagate = propagate_log_messages
+
     if ipython:
-        ipython.log.propagate = False
+        ipython.log.addHandler(log_file_handler)
+        ipython.log.setLevel("INFO")
+        ipython.log.propagate = propagate_log_messages
 
     return bluesky_log_file_path
 
