@@ -137,12 +137,16 @@ def test_configure_bluesky_logging_propagate_false(tmpdir):
         ipython=ip,
     )
 
-    logging.getLogger("bluesky").info("test_configure_bluesky_logging_propagate_false")
+    logging.getLogger("bluesky").info("bluesky log message")
+    logging.getLogger("caproto").info("caproto log message")
+    logging.getLogger("nslsii").info("nslsii log message")
+    logging.getLogger("ophyd").info("ophyd log message")
+    ip.log.info("ipython log message")
 
     assert bluesky_log_file_path == log_file_path
     assert log_file_path.exists()
 
-    # the log message sent to the bluesky logger should not
+    # the log messages sent above should not
     # propagate to the root logger
     assert len(root_logger_stream.getvalue()) == 0
 
@@ -150,8 +154,8 @@ def test_configure_bluesky_logging_propagate_false(tmpdir):
 def test_configure_bluesky_logging_propagate_true(tmpdir):
     """
     Configure a root logger and set ``propagate=True`` on
-    the bluesky logger. Assert that a log message propagates
-    from the bluesky logger to the root logger.
+    the bluesky loggers. Assert that a log message propagates
+    from the bluesky loggers to the root logger.
     """
     root_logger_stream = io.StringIO()
     logging.getLogger().addHandler(logging.StreamHandler(stream=root_logger_stream))
@@ -162,19 +166,26 @@ def test_configure_bluesky_logging_propagate_true(tmpdir):
     os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
     bluesky_log_file_path = configure_bluesky_logging(
         ipython=ip,
+        propagate_log_messages=True
     )
 
-    logging.getLogger("bluesky").propagate = True
-    logging.getLogger("bluesky").info("test_configure_bluesky_logging_propagate_true")
+    logging.getLogger("bluesky").info("bluesky log message")
+    logging.getLogger("caproto").info("caproto log message")
+    logging.getLogger("nslsii").info("nslsii log message")
+    logging.getLogger("ophyd").info("ophyd log message")
+    ip.log.info("ipython log message")
 
     assert bluesky_log_file_path == log_file_path
     assert log_file_path.exists()
 
     # the log message sent to the bluesky logger should
     # propagate to the root logger
-    assert root_logger_stream.getvalue().endswith(
-        "test_configure_bluesky_logging_propagate_true\n"
-    )
+    root_logger_output = root_logger_stream.getvalue()
+    assert "bluesky log message" in root_logger_output
+    assert "caproto log message" in root_logger_output
+    assert "nslsii log message" in root_logger_output
+    assert "ophyd log message" in root_logger_output
+    assert "ipython log message" in root_logger_output
 
 
 def test_ipython_log_exception():
