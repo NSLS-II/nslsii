@@ -343,24 +343,10 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky", propagate_log_
     )
     log_file_handler.setFormatter(logging.Formatter(fmt=log_file_format))
 
-    logging.getLogger("bluesky").addHandler(log_file_handler)
-    logging.getLogger("caproto").addHandler(log_file_handler)
-    logging.getLogger("ophyd").addHandler(log_file_handler)
-    logging.getLogger("nslsii").addHandler(log_file_handler)
-
-    # set the loggers to send INFO and higher log
-    # messages to their handlers
-    logging.getLogger("bluesky").setLevel("INFO")
-    logging.getLogger("caproto").setLevel("INFO")
-    logging.getLogger("ophyd").setLevel("INFO")
-    logging.getLogger("nslsii").setLevel("INFO")
-
-    # configure loggers so that log messages do not
-    # propagate to higher level loggers
-    logging.getLogger("bluesky").propagate = propagate_log_messages
-    logging.getLogger("caproto").propagate = propagate_log_messages
-    logging.getLogger("ophyd").propagate = propagate_log_messages
-    logging.getLogger("nslsii").propagate = propagate_log_messages
+    for logger_name in ("bluesky", "caproto", "ophyd", "nslsii"):
+        logging.getLogger(logger_name).addHandler(log_file_handler)
+        logging.getLogger(logger_name).setLevel("INFO")
+        logging.getLogger(logger_name).propagate = propagate_log_messages
 
     if ipython:
         ipython.log.addHandler(log_file_handler)
