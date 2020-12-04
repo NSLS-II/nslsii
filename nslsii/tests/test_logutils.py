@@ -1,4 +1,6 @@
+import io
 import os
+import logging
 from pathlib import Path
 import shutil
 import stat
@@ -21,7 +23,9 @@ def test_configure_bluesky_logging(tmpdir):
 
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
-    bluesky_log_file_path = configure_bluesky_logging(ipython=ip,)
+    bluesky_log_file_path = configure_bluesky_logging(
+        ipython=ip,
+    )
     assert bluesky_log_file_path == log_file_path
     assert log_file_path.exists()
 
@@ -37,7 +41,9 @@ def test_configure_bluesky_logging_with_nonexisting_dir(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
     with pytest.raises(FileNotFoundError):
-        configure_bluesky_logging(ipython=ip,)
+        configure_bluesky_logging(
+            ipython=ip,
+        )
 
 
 def test_configure_bluesky_logging_with_unwriteable_dir(tmpdir):
@@ -55,7 +61,9 @@ def test_configure_bluesky_logging_with_unwriteable_dir(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
     with pytest.raises(PermissionError):
-        configure_bluesky_logging(ipython=ip,)
+        configure_bluesky_logging(
+            ipython=ip,
+        )
 
 
 def test_configure_bluesky_logging_creates_default_dir():
@@ -111,6 +119,73 @@ def test_configure_bluesky_logging_existing_default_dir():
     # clean up the file and directory this test creates
     bluesky_log_file_path.unlink()
     bluesky_log_file_path.parent.rmdir()
+
+
+def test_configure_bluesky_logging_propagate_false(tmpdir):
+    """
+    Configure a root logger. Assert that a log message does
+    not propagate from the bluesky logger to the root logger.
+    """
+    root_logger_stream = io.StringIO()
+    logging.getLogger().addHandler(logging.StreamHandler(stream=root_logger_stream))
+
+    log_file_path = Path(tmpdir) / Path("bluesky.log")
+
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
+    bluesky_log_file_path = configure_bluesky_logging(
+        ipython=ip,
+    )
+
+    logging.getLogger("bluesky").info("bluesky log message")
+    logging.getLogger("caproto").info("caproto log message")
+    logging.getLogger("nslsii").info("nslsii log message")
+    logging.getLogger("ophyd").info("ophyd log message")
+    ip.log.info("ipython log message")
+
+    assert bluesky_log_file_path == log_file_path
+    assert log_file_path.exists()
+
+    # the log messages sent above should not
+    # propagate to the root logger
+    assert len(root_logger_stream.getvalue()) == 0
+
+
+def test_configure_bluesky_logging_propagate_true(tmpdir):
+    """
+    Configure a root logger and set ``propagate=True`` on
+    the bluesky loggers. Assert that a log message propagates
+    from the bluesky loggers to the root logger.
+    """
+    root_logger_stream = io.StringIO()
+    logging.getLogger().addHandler(logging.StreamHandler(stream=root_logger_stream))
+
+    log_file_path = Path(tmpdir) / Path("bluesky.log")
+
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
+    bluesky_log_file_path = configure_bluesky_logging(
+        ipython=ip,
+        propagate_log_messages=True
+    )
+
+    logging.getLogger("bluesky").info("bluesky log message")
+    logging.getLogger("caproto").info("caproto log message")
+    logging.getLogger("nslsii").info("nslsii log message")
+    logging.getLogger("ophyd").info("ophyd log message")
+    ip.log.info("ipython log message")
+
+    assert bluesky_log_file_path == log_file_path
+    assert log_file_path.exists()
+
+    # the log message sent to the bluesky logger should
+    # propagate to the root logger
+    root_logger_output = root_logger_stream.getvalue()
+    assert "bluesky log message" in root_logger_output
+    assert "caproto log message" in root_logger_output
+    assert "nslsii log message" in root_logger_output
+    assert "ophyd log message" in root_logger_output
+    assert "ipython log message" in root_logger_output
 
 
 def test_ipython_log_exception():
@@ -180,7 +255,8 @@ def test_configure_ipython_exc_logging(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_IPYTHON_LOG_FILE"] = str(log_file_path)
     bluesky_ipython_log_file_path = configure_ipython_logging(
-        exception_logger=log_exception, ipython=ip,
+        exception_logger=log_exception,
+        ipython=ip,
     )
     assert bluesky_ipython_log_file_path == log_file_path
     assert log_file_path.exists()
@@ -194,7 +270,8 @@ def test_configure_ipython_exc_logging_with_nonexisting_dir(tmpdir):
     os.environ["BLUESKY_IPYTHON_LOG_FILE"] = str(log_file_path)
     with pytest.raises(UserWarning):
         configure_ipython_logging(
-            exception_logger=log_exception, ipython=ip,
+            exception_logger=log_exception,
+            ipython=ip,
         )
 
 
@@ -208,7 +285,8 @@ def test_configure_ipython_exc_logging_with_unwriteable_dir(tmpdir):
     os.environ["BLUESKY_IPYTHON_LOG_FILE"] = str(log_file_path)
     with pytest.raises(PermissionError):
         configure_ipython_logging(
-            exception_logger=log_exception, ipython=ip,
+            exception_logger=log_exception,
+            ipython=ip,
         )
 
 
@@ -221,7 +299,8 @@ def test_configure_ipython_exc_logging_file_exists(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_IPYTHON_LOG_FILE"] = str(log_file_path)
     bluesky_ipython_log_file_path = configure_ipython_logging(
-        exception_logger=log_exception, ipython=ip,
+        exception_logger=log_exception,
+        ipython=ip,
     )
     assert bluesky_ipython_log_file_path == log_file_path
     assert log_file_path.exists()
