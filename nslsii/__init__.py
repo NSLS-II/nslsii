@@ -344,9 +344,10 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky", propagate_log_
     log_file_handler.setFormatter(logging.Formatter(fmt=log_file_format))
 
     for logger_name in ("bluesky", "caproto", "ophyd", "nslsii"):
-        logging.getLogger(logger_name).addHandler(log_file_handler)
-        logging.getLogger(logger_name).setLevel("INFO")
-        logging.getLogger(logger_name).propagate = propagate_log_messages
+        logger = logging.getLogger(logger_name)
+        logger.addHandler(log_file_handler)
+        logger.setLevel("INFO")
+        logger.propagate = propagate_log_messages
 
     if ipython:
         ipython.log.addHandler(log_file_handler)
