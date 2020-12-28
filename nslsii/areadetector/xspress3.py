@@ -1,21 +1,13 @@
-from __future__ import print_function, division
-import time
-import time as ttime
-import logging
-
 from collections import OrderedDict
-
-import h5py
+import logging
+import time
 
 from ophyd.areadetector import (
-    DetectorBase,
-    CamBase,
     EpicsSignalWithRBV as SignalWithRBV,
 )
 from ophyd import Signal, EpicsSignal, EpicsSignalRO, DerivedSignal
 
 from ophyd import (
-    Device,
     Component as Cpt,
     FormattedComponent as FC,  # noqa: F401
     DynamicDeviceComponent as DDC,
@@ -30,10 +22,10 @@ from ophyd.status import DeviceStatus
 
 from databroker.assets.handlers import (
     Xspress3HDF5Handler,
-    XS3_XRF_DATA_KEY as XRF_DATA_KEY,
+    # XS3_XRF_DATA_KEY as XRF_DATA_KEY,
 )
 
-from .utils import makedirs
+from ..detectors.utils import makedirs
 
 
 logger = logging.getLogger(__name__)
@@ -273,54 +265,54 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         return desc
 
 
-class Xspress3DetectorSettings(CamBase):
-    """Quantum Detectors Xspress3 detector"""
+# class Xspress3DetectorSettings(CamBase):
+#     """Quantum Detectors Xspress3 detector"""
 
-    def __init__(self, prefix, *, read_attrs=None, configuration_attrs=None, **kwargs):
-        if read_attrs is None:
-            read_attrs = []
-        if configuration_attrs is None:
-            configuration_attrs = [
-                "config_path",
-                "config_save_path",
-            ]
-        super().__init__(
-            prefix,
-            read_attrs=read_attrs,
-            configuration_attrs=configuration_attrs,
-            **kwargs,
-        )
+#     def __init__(self, prefix, *, read_attrs=None, configuration_attrs=None, **kwargs):
+#         if read_attrs is None:
+#             read_attrs = []
+#         if configuration_attrs is None:
+#             configuration_attrs = [
+#                 "config_path",
+#                 "config_save_path",
+#             ]
+#         super().__init__(
+#             prefix,
+#             read_attrs=read_attrs,
+#             configuration_attrs=configuration_attrs,
+#             **kwargs,
+#         )
 
-    config_path = Cpt(SignalWithRBV, "CONFIG_PATH", string=True)
-    config_save_path = Cpt(SignalWithRBV, "CONFIG_SAVE_PATH", string=True)
-    connect = Cpt(EpicsSignal, "CONNECT")
-    connected = Cpt(EpicsSignal, "CONNECTED")
-    ctrl_dtc = Cpt(SignalWithRBV, "CTRL_DTC")
-    ctrl_mca_roi = Cpt(SignalWithRBV, "CTRL_MCA_ROI")
-    debounce = Cpt(SignalWithRBV, "DEBOUNCE")
-    disconnect = Cpt(EpicsSignal, "DISCONNECT")
-    erase = Cpt(EpicsSignal, "ERASE")
-    # erase_array_counters = Cpt(EpicsSignal, 'ERASE_ArrayCounters')
-    # erase_attr_reset = Cpt(EpicsSignal, 'ERASE_AttrReset')
-    # erase_proc_reset_filter = Cpt(EpicsSignal, 'ERASE_PROC_ResetFilter')
-    frame_count = Cpt(EpicsSignalRO, "FRAME_COUNT_RBV")
-    invert_f0 = Cpt(SignalWithRBV, "INVERT_F0")
-    invert_veto = Cpt(SignalWithRBV, "INVERT_VETO")
-    max_frames = Cpt(EpicsSignalRO, "MAX_FRAMES_RBV")
-    max_frames_driver = Cpt(EpicsSignalRO, "MAX_FRAMES_DRIVER_RBV")
-    max_num_channels = Cpt(EpicsSignalRO, "MAX_NUM_CHANNELS_RBV")
-    max_spectra = Cpt(SignalWithRBV, "MAX_SPECTRA")
-    xsp_name = Cpt(EpicsSignal, "NAME")
-    num_cards = Cpt(EpicsSignalRO, "NUM_CARDS_RBV")
-    num_channels = Cpt(SignalWithRBV, "NUM_CHANNELS")
-    num_frames_config = Cpt(SignalWithRBV, "NUM_FRAMES_CONFIG")
-    reset = Cpt(EpicsSignal, "RESET")
-    restore_settings = Cpt(EpicsSignal, "RESTORE_SETTINGS")
-    run_flags = Cpt(SignalWithRBV, "RUN_FLAGS")
-    save_settings = Cpt(EpicsSignal, "SAVE_SETTINGS")
-    trigger_signal = Cpt(EpicsSignal, "TRIGGER")
-    # update = Cpt(EpicsSignal, 'UPDATE')
-    # update_attr = Cpt(EpicsSignal, 'UPDATE_AttrUpdate')
+#     config_path = Cpt(SignalWithRBV, "CONFIG_PATH", string=True)
+#     config_save_path = Cpt(SignalWithRBV, "CONFIG_SAVE_PATH", string=True)
+#     connect = Cpt(EpicsSignal, "CONNECT")
+#     connected = Cpt(EpicsSignal, "CONNECTED")
+#     ctrl_dtc = Cpt(SignalWithRBV, "CTRL_DTC")
+#     ctrl_mca_roi = Cpt(SignalWithRBV, "CTRL_MCA_ROI")
+#     debounce = Cpt(SignalWithRBV, "DEBOUNCE")
+#     disconnect = Cpt(EpicsSignal, "DISCONNECT")
+#     erase = Cpt(EpicsSignal, "ERASE")
+#     # erase_array_counters = Cpt(EpicsSignal, 'ERASE_ArrayCounters')
+#     # erase_attr_reset = Cpt(EpicsSignal, 'ERASE_AttrReset')
+#     # erase_proc_reset_filter = Cpt(EpicsSignal, 'ERASE_PROC_ResetFilter')
+#     frame_count = Cpt(EpicsSignalRO, "FRAME_COUNT_RBV")
+#     invert_f0 = Cpt(SignalWithRBV, "INVERT_F0")
+#     invert_veto = Cpt(SignalWithRBV, "INVERT_VETO")
+#     max_frames = Cpt(EpicsSignalRO, "MAX_FRAMES_RBV")
+#     max_frames_driver = Cpt(EpicsSignalRO, "MAX_FRAMES_DRIVER_RBV")
+#     max_num_channels = Cpt(EpicsSignalRO, "MAX_NUM_CHANNELS_RBV")
+#     max_spectra = Cpt(SignalWithRBV, "MAX_SPECTRA")
+#     xsp_name = Cpt(EpicsSignal, "NAME")
+#     num_cards = Cpt(EpicsSignalRO, "NUM_CARDS_RBV")
+#     num_channels = Cpt(SignalWithRBV, "NUM_CHANNELS")
+#     num_frames_config = Cpt(SignalWithRBV, "NUM_FRAMES_CONFIG")
+#     reset = Cpt(EpicsSignal, "RESET")
+#     restore_settings = Cpt(EpicsSignal, "RESTORE_SETTINGS")
+#     run_flags = Cpt(SignalWithRBV, "RUN_FLAGS")
+#     save_settings = Cpt(EpicsSignal, "SAVE_SETTINGS")
+#     trigger_signal = Cpt(EpicsSignal, "TRIGGER")
+#     # update = Cpt(EpicsSignal, 'UPDATE')
+#     # update_attr = Cpt(EpicsSignal, 'UPDATE_AttrUpdate')
 
 
 class Xspress3ROISettings(PluginBase):
@@ -663,7 +655,7 @@ class XspressTrigger(BlueskyInterface):
     """
 
     # TODO **
-    # count_time = self.settings.acquire_period
+    # count_time = self.cam.acquire_period
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -697,7 +689,7 @@ class XspressTrigger(BlueskyInterface):
 
         self._status = DeviceStatus(self)
         self._acquisition_signal.put(1, wait=False)
-        trigger_time = ttime.time()
+        trigger_time = time.time()
 
         for sn in self.read_attrs:
             if sn.startswith("channel") and "." not in sn:
