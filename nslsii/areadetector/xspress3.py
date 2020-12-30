@@ -485,7 +485,51 @@ def make_rois(rois):
     return defn
 
 
+# start new IOC classes
+
+# each channel has these things?
+# these are general areadetector plugins
+# but for now they are being used just for xspress3
+class Mca(ADBase):
+    array_data = Cpt(EpicsSignal, "ArrayData")
+
+
+class McaSum(ADBase):
+    array_data = Cpt(EpicsSignal, "ArrayData")
+
+
+class McaRoi(ADBase):
+    # can have up to 48 ROIs
+    roi_name = Cpt(EpicsSignal, "1:Name")
+    min_x = Cpt(EpicsSignal, "1:MinX")
+    size_x = Cpt(EpicsSignal, "1:SizeX")
+    total_rbv = Cpt(EpicsSignal, "1:Total_RBV")
+
+
+class Sca(ADBase):
+    # includes Dead Time correction, for example
+    # sca numbers go from 0 to 10
+    clock_ticks = Cpt(EpicsSignal, "0:Value_RBV")
+    #dead_time_correction = Cpt(EpicsSignal)
+
+
 class Xspress3Channel(ADBase):
+    # can have up to 16 channels
+    mca_1 = Cpt(Mca, "MCA1:")
+    mca_sum_1 = Cpt(McaSum, "MCASUM1:")
+    mca_1_roi = Cpt(McaRoi, "MCA1ROI:")
+    sca_1 = Cpt(Sca, "C1SCA:")
+
+    def __init__(self, prefix, *, channel_num, **kwargs):
+        super().__init__(prefix, **kwargs)
+
+        self.channel_num = int(channel_num)
+
+# end new IOC classes
+
+
+# TODO: remove? this may not work with the new IOC
+class OldXspress3Channel(ADBase):
     roi_name_format = "Det{self.channel_num}_{roi_name}"
     roi_sum_name_format = "Det{self.channel_num}_{roi_name}_sum"
 
