@@ -11,6 +11,7 @@ from ophyd import (
     Component as Cpt,
     FormattedComponent as FC,  # noqa: F401
     DynamicDeviceComponent as DDC,
+    DynamicDeviceComponent as DynamicDeviceCpt
 )
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
@@ -505,6 +506,21 @@ class McaRoi(ADBase):
     size_x = Cpt(EpicsSignal, "1:SizeX")
     total_rbv = Cpt(EpicsSignal, "1:Total_RBV")
 
+    def __init__(self, prefix, **kwargs):
+        super().__init__(prefix, **kwargs)
+
+    @staticmethod
+    def build_cpt_args(mcaroi_indices):
+        """
+        TODO: are these names universal or are they facility- or beamline-specific?
+        """
+        mcaroi_attribute_name_to_cpt_args = {
+            f"mcaroi{mcaroi_i:02d}": (McaRoi, f"{mcaroi_i:d}:", dict())
+            for mcaroi_i in mcaroi_indices
+        }
+        print(mcaroi_attribute_name_to_cpt_args)
+        return mcaroi_attribute_name_to_cpt_args
+
 
 class Sca(ADBase):
     # includes Dead Time correction, for example
@@ -514,10 +530,22 @@ class Sca(ADBase):
 
 
 class Xspress3Channel(ADBase):
-    # can have up to 16 channels
+    """
+    Xspress3 devices can have up to 16 channels.
+    """
+
+    # one MCA per channel?
     mca_1 = Cpt(Mca, "MCA1:")
+
+    # one MCASUM per channel?
     mca_sum_1 = Cpt(McaSum, "MCASUM1:")
+
+    # up to 48 MCAROIs per channel
     mca_1_roi = Cpt(McaRoi, "MCA1ROI:")
+    # this is how to create a tree of many components
+    mca_rois = DynamicDeviceCpt(McaRoi.build_cpt_args(range(1, 48+1)))
+ 
+    # one SCA per channel?
     sca_1 = Cpt(Sca, "C1SCA:")
 
     def __init__(self, prefix, *, channel_num, **kwargs):
