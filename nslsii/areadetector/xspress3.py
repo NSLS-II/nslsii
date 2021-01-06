@@ -501,10 +501,10 @@ class McaSum(ADBase):
 
 class McaRoi(ADBase):
     # can have up to 48 ROIs
-    roi_name = Cpt(EpicsSignal, "1:Name")
-    min_x = Cpt(EpicsSignal, "1:MinX")
-    size_x = Cpt(EpicsSignal, "1:SizeX")
-    total_rbv = Cpt(EpicsSignal, "1:Total_RBV")
+    roi_name = Cpt(EpicsSignal, "Name")
+    min_x = Cpt(EpicsSignal, "MinX")
+    size_x = Cpt(EpicsSignal, "SizeX")
+    total_rbv = Cpt(EpicsSignal, "Total_RBV")
 
     def __init__(self, prefix, **kwargs):
         super().__init__(prefix, **kwargs)
@@ -515,10 +515,10 @@ class McaRoi(ADBase):
         TODO: are these names universal or are they facility- or beamline-specific?
         """
         mcaroi_attribute_name_to_cpt_args = {
-            f"mcaroi{mcaroi_i:02d}": (McaRoi, f"{mcaroi_i:d}:", dict())
+            f"mcaroi{mcaroi_i:02d}": (McaRoi, f"MCA1ROI:{mcaroi_i:d}:", dict())
             for mcaroi_i in mcaroi_indices
         }
-        print(mcaroi_attribute_name_to_cpt_args)
+        #print(mcaroi_attribute_name_to_cpt_args)
         return mcaroi_attribute_name_to_cpt_args
 
 
@@ -535,6 +535,8 @@ class Xspress3Channel(ADBase):
     """
 
     # one MCA per channel?
+    # yes, channel 1 is MCA1, channel 2 is MCA2
+    # and also for MCASUM1, MCA1ROI, C1SCA
     mca_1 = Cpt(Mca, "MCA1:")
 
     # one MCASUM per channel?
@@ -544,7 +546,7 @@ class Xspress3Channel(ADBase):
     mca_1_roi = Cpt(McaRoi, "MCA1ROI:")
     # this is how to create a tree of many components
     mca_rois = DynamicDeviceCpt(McaRoi.build_cpt_args(range(1, 48+1)))
- 
+
     # one SCA per channel?
     sca_1 = Cpt(Sca, "C1SCA:")
 
