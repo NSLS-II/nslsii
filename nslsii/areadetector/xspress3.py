@@ -474,8 +474,18 @@ class McaRoi(ADBase):
 class Sca(ADBase):
     # includes Dead Time correction, for example
     # sca numbers go from 0 to 10
-    clock_ticks = Cpt(EpicsSignalRO, "0:Value_RBV")
-    # dead_time_correction = Cpt(EpicsSignal)
+    clock_ticks = Cpt(EpicsSignal, "0:Value_RBV")
+    reset_ticks = Cpt(EpicsSignal, "1:Value_RBV")
+    reset_counts = Cpt(EpicsSignal, "2:Value_RBV")
+    all_event = Cpt(EpicsSignal, "3:Value_RBV")
+    all_good = Cpt(EpicsSignal, "4:Value_RBV")
+    window_1 = Cpt(EpicsSignal, "5:Value_RBV")
+    window_2 = Cpt(EpicsSignal, "6:Value_RBV")
+    pileup = Cpt(EpicsSignal, "7:Value_RBV")
+    event_width = Cpt(EpicsSignal, "8:Value_RBV")
+    dt_factor = Cpt(EpicsSignal, "9:Value_RBV")
+    dt_percent = Cpt(EpicsSignal, "10:Value_RBV")
+    #dead_time_correction = Cpt(EpicsSignal)
 
 
 class Xspress3Channel(ADBase):
