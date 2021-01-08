@@ -2,22 +2,21 @@ from collections import OrderedDict
 import logging
 import time
 
-from ophyd.areadetector import (
-    EpicsSignalWithRBV as SignalWithRBV,
-)
+from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
 from ophyd import Signal, EpicsSignal, EpicsSignalRO, DerivedSignal
 
 from ophyd import (
     Component as Cpt,
     FormattedComponent as FC,  # noqa: F401
     DynamicDeviceComponent as DDC,
-    DynamicDeviceComponent as DynamicDeviceCpt
+    DynamicDeviceComponent as DynamicDeviceCpt,
 )
 from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 
 from ophyd.areadetector.plugins import HDF5Plugin
 from ophyd.areadetector import ADBase
+from ophyd.areadetector import Xspress3Detector as AdXspress3Detector
 from ophyd.device import BlueskyInterface, Staged
 from ophyd.status import DeviceStatus
 
@@ -266,56 +265,6 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         return desc
 
 
-# class Xspress3DetectorSettings(CamBase):
-#     """Quantum Detectors Xspress3 detector"""
-
-#     def __init__(self, prefix, *, read_attrs=None, configuration_attrs=None, **kwargs):
-#         if read_attrs is None:
-#             read_attrs = []
-#         if configuration_attrs is None:
-#             configuration_attrs = [
-#                 "config_path",
-#                 "config_save_path",
-#             ]
-#         super().__init__(
-#             prefix,
-#             read_attrs=read_attrs,
-#             configuration_attrs=configuration_attrs,
-#             **kwargs,
-#         )
-
-#     config_path = Cpt(SignalWithRBV, "CONFIG_PATH", string=True)
-#     config_save_path = Cpt(SignalWithRBV, "CONFIG_SAVE_PATH", string=True)
-#     connect = Cpt(EpicsSignal, "CONNECT")
-#     connected = Cpt(EpicsSignal, "CONNECTED")
-#     ctrl_dtc = Cpt(SignalWithRBV, "CTRL_DTC")
-#     ctrl_mca_roi = Cpt(SignalWithRBV, "CTRL_MCA_ROI")
-#     debounce = Cpt(SignalWithRBV, "DEBOUNCE")
-#     disconnect = Cpt(EpicsSignal, "DISCONNECT")
-#     erase = Cpt(EpicsSignal, "ERASE")
-#     # erase_array_counters = Cpt(EpicsSignal, 'ERASE_ArrayCounters')
-#     # erase_attr_reset = Cpt(EpicsSignal, 'ERASE_AttrReset')
-#     # erase_proc_reset_filter = Cpt(EpicsSignal, 'ERASE_PROC_ResetFilter')
-#     frame_count = Cpt(EpicsSignalRO, "FRAME_COUNT_RBV")
-#     invert_f0 = Cpt(SignalWithRBV, "INVERT_F0")
-#     invert_veto = Cpt(SignalWithRBV, "INVERT_VETO")
-#     max_frames = Cpt(EpicsSignalRO, "MAX_FRAMES_RBV")
-#     max_frames_driver = Cpt(EpicsSignalRO, "MAX_FRAMES_DRIVER_RBV")
-#     max_num_channels = Cpt(EpicsSignalRO, "MAX_NUM_CHANNELS_RBV")
-#     max_spectra = Cpt(SignalWithRBV, "MAX_SPECTRA")
-#     xsp_name = Cpt(EpicsSignal, "NAME")
-#     num_cards = Cpt(EpicsSignalRO, "NUM_CARDS_RBV")
-#     num_channels = Cpt(SignalWithRBV, "NUM_CHANNELS")
-#     num_frames_config = Cpt(SignalWithRBV, "NUM_FRAMES_CONFIG")
-#     reset = Cpt(EpicsSignal, "RESET")
-#     restore_settings = Cpt(EpicsSignal, "RESTORE_SETTINGS")
-#     run_flags = Cpt(SignalWithRBV, "RUN_FLAGS")
-#     save_settings = Cpt(EpicsSignal, "SAVE_SETTINGS")
-#     trigger_signal = Cpt(EpicsSignal, "TRIGGER")
-#     # update = Cpt(EpicsSignal, 'UPDATE')
-#     # update_attr = Cpt(EpicsSignal, 'UPDATE_AttrUpdate')
-
-
 class Xspress3ROISettings(PluginBase):
     """Full areaDetector plugin settings"""
 
@@ -518,15 +467,15 @@ class McaRoi(ADBase):
             f"mcaroi{mcaroi_i:02d}": (McaRoi, f"MCA1ROI:{mcaroi_i:d}:", dict())
             for mcaroi_i in mcaroi_indices
         }
-        #print(mcaroi_attribute_name_to_cpt_args)
+        # print(mcaroi_attribute_name_to_cpt_args)
         return mcaroi_attribute_name_to_cpt_args
 
 
 class Sca(ADBase):
     # includes Dead Time correction, for example
     # sca numbers go from 0 to 10
-    clock_ticks = Cpt(EpicsSignal, "0:Value_RBV")
-    #dead_time_correction = Cpt(EpicsSignal)
+    clock_ticks = Cpt(EpicsSignalRO, "0:Value_RBV")
+    # dead_time_correction = Cpt(EpicsSignal)
 
 
 class Xspress3Channel(ADBase):
@@ -537,23 +486,66 @@ class Xspress3Channel(ADBase):
     # one MCA per channel?
     # yes, channel 1 is MCA1, channel 2 is MCA2
     # and also for MCASUM1, MCA1ROI, C1SCA
-    mca_1 = Cpt(Mca, "MCA1:")
+    mca = Cpt(Mca, "MCA{channel_num}:")
 
     # one MCASUM per channel?
-    mca_sum_1 = Cpt(McaSum, "MCASUM1:")
+    mca_sum = Cpt(McaSum, "MCASUM{channel_num}:")
 
     # up to 48 MCAROIs per channel
-    mca_1_roi = Cpt(McaRoi, "MCA1ROI:")
+    # mca_1_roi = Cpt(McaRoi, "MCA{channel_num}ROI:")
     # this is how to create a tree of many components
-    mca_rois = DynamicDeviceCpt(McaRoi.build_cpt_args(range(1, 48+1)))
+    mca_rois = DynamicDeviceCpt(McaRoi.build_cpt_args(range(1, 4 + 1)))
 
     # one SCA per channel?
-    sca_1 = Cpt(Sca, "C1SCA:")
+    sca = Cpt(Sca, "C{channel_num}SCA:")
 
     def __init__(self, prefix, *, channel_num, **kwargs):
         super().__init__(prefix, **kwargs)
 
         self.channel_num = int(channel_num)
+
+        # the Mca, McaSum, McaRois, and Sca have been
+        # instantiated at this point, but their PV names
+        # still contain {channel_num}
+        # now it is time to replace {channel_num} with
+        # self.channel_num in the PV names
+        for _, _, signal in self.walk_signals():
+            print(f"original signal: {signal}")
+            if hasattr(signal, "_read_pvname"):
+                signal._read_pvname = signal._read_pvname.format(
+                    channel_num=self.channel_num
+                )
+            if hasattr(signal, "_setpoint_pvname"):
+                signal._setpoint_pvname = signal._setpoint_pvname.format(
+                    channel_num=self.channel_num
+                )
+            print(f"  signal: {signal}")
+
+
+class Xspress3Detector(AdXspress3Detector):
+    """
+
+    """
+    
+    # access individual channels like this:
+    #    xs = Xspress3Detector(...)
+    #    xs.channels.channel_1.mca.array_data
+    #    xs.channels.channel_2.sca.clock_ticks
+    
+    # derived classes can redefine `channels` and
+    # this definition will be discarded
+    channels = DynamicDeviceCpt(
+        {
+            "channel_1": (Xspress3Channel, "", dict(channel_num=1)),
+            "channel_2": (Xspress3Channel, "", dict(channel_num=2)),
+            "channel_3": (Xspress3Channel, "", dict(channel_num=3)),
+            "channel_4": (Xspress3Channel, "", dict(channel_num=3)),
+        }
+    )
+
+    def __init__(self, prefix, **kwargs):
+        super().__init__(prefix, **kwargs)
+
 
 # end new IOC classes
 
