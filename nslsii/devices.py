@@ -51,7 +51,7 @@ class TwoButtonShutter(Device):
         def shutter_cb(value, timestamp, **kwargs):
             try:
                 value = enums[int(value)]
-            except ValueError:
+            except (ValueError, TypeError):
                 # we are here because value is a str not int
                 # just move on
                 ...
@@ -67,7 +67,7 @@ class TwoButtonShutter(Device):
             nonlocal count
             try:
                 value = cmd_enums[int(value)]
-            except ValueError:
+            except (ValueError, TypeError):
                 # we are here because value is a str not int
                 # just move on
                 ...
