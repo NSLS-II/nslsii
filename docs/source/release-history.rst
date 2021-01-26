@@ -2,6 +2,17 @@
 Release History
 ***************
 
+v0.1.2 (2021-01-26)
+===================
+* fix the ``TwoButtonShutter`` class to be compatible with ophyd 1.6.0+
+
+v0.1.1 (2020-10-26)
+===================
+* update manifest and license files
+* make minimal traceback reporting optional
+* changes to allow 'nslsii' to load without IPython
+* update the status of the xspress3 detector on unstaging
+
 v0.1.0 (2020-09-04)
 ===================
 * synchronize xspress3 code with hxntools
