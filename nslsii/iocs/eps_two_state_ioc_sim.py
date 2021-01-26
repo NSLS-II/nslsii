@@ -2,6 +2,25 @@
 from caproto.server import pvproperty, PVGroup
 from caproto.server import template_arg_parser, run
 from caproto import ChannelType
+import contextvars
+import functools
+
+internal_process = contextvars.ContextVar('internal_process',
+                                          default=False)
+
+
+def no_reentry(func):
+    @functools.wraps(func)
+    async def inner(*args, **kwargs):
+        if internal_process.get():
+            return
+        try:
+            internal_process.set(True)
+            return (await func(*args, **kwargs))
+        finally:
+            internal_process.set(False)
+
+    return inner
 
 
 class EPSTwoStateIOC(PVGroup):
@@ -53,10 +72,9 @@ class EPSTwoStateIOC(PVGroup):
 
     # Pos-Sts two-state PV
 
-    _pos_states = ['Open', 'Closed']  # two position states
-    _pos_sts_val = _pos_states[0]
+    _pos_states = ['Open', 'Not Open']  # two position states
 
-    pos_sts = pvproperty(value=_pos_sts_val,
+    pos_sts = pvproperty(value="Open",
                          enum_strings=_pos_states,
                          dtype=ChannelType.ENUM,
                          read_only=True,
@@ -67,11 +85,11 @@ class EPSTwoStateIOC(PVGroup):
     _cmd_states = ['None', 'Done']  # two command states
 
     state1_cmd = pvproperty(value=_cmd_states[0],
-                            enum_strings=_cmd_states,
+                            enum_strings=['None', 'Open'],
                             dtype=ChannelType.ENUM,
                             name='Cmd:Opn-Cmd')
     state2_cmd = pvproperty(value=_cmd_states[0],
-                            enum_strings=_cmd_states,
+                            enum_strings=['None', 'Close'],
                             dtype=ChannelType.ENUM,
                             name='Cmd:Cls-Cmd')
 
@@ -129,19 +147,31 @@ class EPSTwoStateIOC(PVGroup):
     async def sts_error_sts(self, instance, async_lib):
         await instance.write(value=self._sts_error_val)
 
+    @state1_cmd.startup
+    async def state1_cmd(self, instance, async_lib):
+        instance.async_lib = async_lib
+
     @state1_cmd.putter
+    @no_reentry
     async def state1_cmd(self, instance, value):
-        rv = await self._state_cmd_put(instance, value,
-                                       self._pos_states[0],
-                                       self.fail_to_state1)
-        return rv
+        if value == 'Open':
+            await self.state1_cmd.write(value)
+            await instance.async_lib.library.sleep(1)
+            await self.pos_sts.write('Open')
+        return 'None'
+
+    @state2_cmd.startup
+    async def state2_cmd(self, instance, async_lib):
+        instance.async_lib = async_lib
 
     @state2_cmd.putter
+    @no_reentry
     async def state2_cmd(self, instance, value):
-        rv = await self._state_cmd_put(instance, value,
-                                       self._pos_states[1],
-                                       self.fail_to_state2)
-        return rv
+        if value == 'Close':
+            await self.state2_cmd.write(value)
+            await instance.async_lib.library.sleep(1)
+            await self.pos_sts.write('Not Open')
+        return 'None'
 
     @enbl_sts.putter
     async def enbl_sts(self, instance, value):
