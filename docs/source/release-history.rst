@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.1.2 (2021-01-26)
+===================
+* fix the ``TwoButtonShutter`` class to be compatible with ophyd 1.6.0+
+
 v0.1.1 (2020-10-26)
 ===================
 * update manifest and license files
