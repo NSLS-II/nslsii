@@ -49,7 +49,12 @@ class TwoButtonShutter(Device):
         enums = self.status.enum_strs
 
         def shutter_cb(value, timestamp, **kwargs):
-            value = enums[int(value)]
+            try:
+                value = enums[int(value)]
+            except (ValueError, TypeError):
+                # we are here because value is a str not int
+                # just move on
+                ...
             if value == target_val:
                 self._set_st = None
                 self.status.clear_sub(shutter_cb)
@@ -60,7 +65,12 @@ class TwoButtonShutter(Device):
 
         def cmd_retry_cb(value, timestamp, **kwargs):
             nonlocal count
-            value = cmd_enums[int(value)]
+            try:
+                value = cmd_enums[int(value)]
+            except (ValueError, TypeError):
+                # we are here because value is a str not int
+                # just move on
+                ...
             count += 1
             if count > self.MAX_ATTEMPTS:
                 cmd_sig.clear_sub(cmd_retry_cb)
@@ -87,7 +97,7 @@ class TwoButtonShutter(Device):
 
         return st
 
-    def stop(self, success):
+    def stop(self, *, success=False):
         import time
         prev_st = self._set_st
         if prev_st is not None:
