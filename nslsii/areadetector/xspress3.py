@@ -187,7 +187,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         if ext_trig:
             logger.debug("Setting up external triggering")
-            self.stage_sigs[self.cam.trigger_mode] = "TTL Veto Only"
+            ## OKS test only self.stage_sigs[self.cam.trigger_mode] = "TTL Veto Only"
+            self.stage_sigs[self.cam.trigger_mode] = "Internal"
             self.stage_sigs[self.cam.num_images] = total_capture
         else:
             logger.debug("Setting up internal triggering")
