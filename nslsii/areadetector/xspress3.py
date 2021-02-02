@@ -522,7 +522,7 @@ class Xspress3Channel(ADBase):
         # now it is time to replace {channel_num} with
         # self.channel_num in the PV names
         for _, _, signal in self.walk_signals():
-            print(f"original signal: {signal}")
+            #print(f"original signal: {signal}")
             if hasattr(signal, "_read_pvname"):
                 # using {}-string-formatting fails when the
                 # PV name has literal {}s, so use something else
@@ -541,7 +541,7 @@ class Xspress3Channel(ADBase):
                 #signal._setpoint_pvname = signal._setpoint_pvname.format(
                 #    channel_num=self.channel_num
                 #)
-            print(f"  signal: {signal}")
+            #print(f"  signal: {signal}")
 
 
 class Xspress3Detector(AdXspress3Detector):
