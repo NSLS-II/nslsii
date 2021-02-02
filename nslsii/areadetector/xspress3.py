@@ -462,6 +462,8 @@ class McaRoi(ADBase):
     def build_cpt_args(mcaroi_indices):
         """
         TODO: are these names universal or are they facility- or beamline-specific?
+
+        These will look like "xs.channel1.mca_rois.mcaroi01".
         """
         mcaroi_attribute_name_to_cpt_args = {
             f"mcaroi{mcaroi_i:02d}": (McaRoi, f"MCA1ROI:{mcaroi_i:d}:", dict())
@@ -522,13 +524,23 @@ class Xspress3Channel(ADBase):
         for _, _, signal in self.walk_signals():
             print(f"original signal: {signal}")
             if hasattr(signal, "_read_pvname"):
-                signal._read_pvname = signal._read_pvname.format(
-                    channel_num=self.channel_num
+                # using {}-string-formatting fails when the
+                # PV name has literal {}s, so use something else
+                signal._read_pvname = signal._read_pvname.replace(
+                    "{channel_num}",
+                    str(self.channel_num)
                 )
+                #signal._read_pvname = signal._read_pvname.format(
+                #    channel_num=self.channel_num
+                #)
             if hasattr(signal, "_setpoint_pvname"):
-                signal._setpoint_pvname = signal._setpoint_pvname.format(
-                    channel_num=self.channel_num
+                signal._setpoint_pvname = signal._setpoint_pvname.replace(
+                    "{channel_num}",
+                    str(self.channel_num)
                 )
+                #signal._setpoint_pvname = signal._setpoint_pvname.format(
+                #    channel_num=self.channel_num
+                #)
             print(f"  signal: {signal}")
 
 
@@ -552,6 +564,17 @@ class Xspress3Detector(AdXspress3Detector):
             "channel_4": (Xspress3Channel, "", dict(channel_num=3)),
         }
     )
+
+    external_trig = Cpt(Signal, value=False,
+                        doc='Use external triggering')
+    total_points = Cpt(Signal, value=-1,
+                       doc='The total number of points to acquire overall')
+    spectra_per_point = Cpt(Signal, value=1,
+                            doc='Number of spectra per point')
+    make_directories = Cpt(Signal, value=False,
+                           doc='Make directories on the DAQ side')
+    rewindable = Cpt(Signal, value=False,
+                     doc='Xspress3 cannot safely be rewound in bluesky')
 
     def __init__(self, prefix, **kwargs):
         super().__init__(prefix, **kwargs)
