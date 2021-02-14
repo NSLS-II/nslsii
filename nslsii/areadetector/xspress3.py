@@ -187,8 +187,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         if ext_trig:
             logger.debug("Setting up external triggering")
-            ## OKS test only self.stage_sigs[self.cam.trigger_mode] = "TTL Veto Only"
-            self.stage_sigs[self.cam.trigger_mode] = "Internal"
+            self.stage_sigs[self.cam.trigger_mode] = "TTL Veto Only"
+            #self.stage_sigs[self.cam.trigger_mode] = "Internal"
             self.stage_sigs[self.cam.num_images] = total_capture
         else:
             logger.debug("Setting up internal triggering")
@@ -456,8 +456,62 @@ class McaRoi(ADBase):
     size_x = Cpt(EpicsSignal, "SizeX")
     total_rbv = Cpt(EpicsSignal, "Total_RBV")
 
+    use = Cpt(SignalWithRBV, "Use")
+
     def __init__(self, prefix, **kwargs):
         super().__init__(prefix, **kwargs)
+
+    def configure(self, ev_min, ev_size):
+        """Configure the ROI with min and size eV
+
+        Parameters
+        ----------
+        ev_min : int
+            minimum electron volts for ROI
+        ev_size : int
+            size, or width, electron volts for ROI
+        """
+        ev_min = int(ev_min)
+        ev_size = int(ev_size)
+
+        # enable_callbacks PV
+        #enable = 1 if ev_high > ev_low else 0
+        use_roi = 1
+        changed = any(
+            [
+                self.min_x.get() != ev_min,
+                self.size_x.get() != ev_size,
+                self.use.get() != use_roi,
+            ]
+        )
+
+        if not changed:
+            return
+
+        logger.debug(
+            "Setting up EPICS ROI: name=%s ev=(%s, %s) "
+            "use=%s prefix=%s channel=%s",
+            self.name,
+            ev_min,
+            ev_size,
+            use_roi,
+            self.prefix,
+            # have to go up two levels to find the channel object
+            self.parent.parent.channel_num,
+        )
+        #if ev_high <= self.ev_low.get():
+        #    self.ev_low.put(0)
+
+        self.min_x.put(ev_min)
+        self.size_x.put(ev_size)
+        self.use.put(use_roi)
+    
+    def clear(self):
+        """Clear and disable this ROI"""
+        # it is enough to just disable the plugin
+        #self.min_x.put(0)
+        #self.size_x.put(0)
+        self.use.put(0)
 
     @staticmethod
     def build_cpt_args(mcaroi_indices):
@@ -467,7 +521,10 @@ class McaRoi(ADBase):
         These will look like "xs.channel1.mca_rois.mcaroi01".
         """
         mcaroi_attribute_name_to_cpt_args = {
-            f"mcaroi{mcaroi_i:02d}": (McaRoi, f"MCA1ROI:{mcaroi_i:d}:", dict())
+            f"mcaroi{mcaroi_i:02d}": (
+                McaRoi,
+                f"MCA<channel_num>ROI:{mcaroi_i:d}:", dict()
+            )
             for mcaroi_i in mcaroi_indices
         }
         # print(mcaroi_attribute_name_to_cpt_args)
@@ -495,54 +552,93 @@ class Xspress3Channel(ADBase):
     """
     Xspress3 devices can have up to 16 channels.
     """
+    roi_name_format = "Det{self.channel_num}_{roi_name}"
+    roi_total_name_format = "Det{self.channel_num}_{roi_name}_total"
 
     # one MCA per channel?
     # yes, channel 1 is MCA1, channel 2 is MCA2
     # and also for MCASUM1, MCA1ROI, C1SCA
-    mca = Cpt(Mca, "MCA{channel_num}:")
+    mca = Cpt(Mca, "MCA<channel_num>:")
 
     # one MCASUM per channel?
-    mca_sum = Cpt(McaSum, "MCASUM{channel_num}:")
+    mca_sum = Cpt(McaSum, "MCASUM<channel_num>:")
 
     # up to 48 MCAROIs per channel
-    # mca_1_roi = Cpt(McaRoi, "MCA{channel_num}ROI:")
+    # mca_1_roi = Cpt(McaRoi, "MCA<channel_num>ROI:")
     # this is how to create a tree of many components
     mca_rois = DynamicDeviceCpt(McaRoi.build_cpt_args(range(1, 4 + 1)))
 
     # one SCA per channel?
-    sca = Cpt(Sca, "C{channel_num}SCA:")
+    sca = Cpt(Sca, "C<channel_num>SCA:")
 
     def __init__(self, prefix, *, channel_num, **kwargs):
         super().__init__(prefix, **kwargs)
 
         self.channel_num = int(channel_num)
-
+        #print(f"channel_num: {channel_num}")
         # the Mca, McaSum, McaRois, and Sca have been
         # instantiated at this point, but their PV names
-        # still contain {channel_num}
-        # now it is time to replace {channel_num} with
+        # still contain <channel_num>
+        # now it is time to replace <channel_num> with
         # self.channel_num in the PV names
         for _, _, signal in self.walk_signals():
             #print(f"original signal: {signal}")
             if hasattr(signal, "_read_pvname"):
                 # using {}-string-formatting fails when the
-                # PV name has literal {}s, so use something else
+                # PV name has literal {}s, so use another method
                 signal._read_pvname = signal._read_pvname.replace(
-                    "{channel_num}",
+                    "<channel_num>",
                     str(self.channel_num)
                 )
-                #signal._read_pvname = signal._read_pvname.format(
-                #    channel_num=self.channel_num
-                #)
             if hasattr(signal, "_setpoint_pvname"):
                 signal._setpoint_pvname = signal._setpoint_pvname.replace(
-                    "{channel_num}",
+                    "<channel_num>",
                     str(self.channel_num)
                 )
-                #signal._setpoint_pvname = signal._setpoint_pvname.format(
-                #    channel_num=self.channel_num
-                #)
             #print(f"  signal: {signal}")
+
+    def set_roi(self, index, ev_min, ev_size, *, name=None):
+        """Set specified ROI to (ev_min, ev_size)
+
+        Parameters
+        ----------
+        index : int or Xspress3ROI
+            The roi index or instance to set
+        ev_min : int
+            low eV setting
+        ev_size : int
+            roi width eV setting
+        name : str, optional
+            The unformatted ROI name to set. Each channel specifies its own
+            `roi_name_format` and `roi_sum_name_format` in which the name
+            parameter will get expanded.
+        """
+        if isinstance(index, Xspress3ROI):
+            roi = index
+        else:
+            if index <= 0:
+                raise ValueError("ROI index starts from 1")
+            #roi = list(self.all_rois)[index - 1]
+            #roi = self.mca_rois[index - 1]
+            roi = getattr(self.mca_rois, f"mcaroi{index:02d}")
+
+        roi.configure(ev_min, ev_size)
+        if name is not None:
+            roi_name = self.roi_name_format.format(self=self, roi_name=name)
+            roi.roi_name.name = roi_name
+            # do we need to set similar names?
+            ## roi.value.name = roi_name
+            ## roi.value_sum.name = self.roi_sum_name_format.format(
+            ##     self=self, roi_name=name
+            ## )
+            roi.total_rbv.name = self.roi_total_name_format.format(
+                self=self, roi_name=roi_name
+            )
+
+    def clear_all_rois(self):
+        """Clear all ROIs"""
+        for roi in self.mca_rois:
+            roi.clear()
 
 
 class Xspress3Detector(AdXspress3Detector):
@@ -562,7 +658,7 @@ class Xspress3Detector(AdXspress3Detector):
             "channel_1": (Xspress3Channel, "", dict(channel_num=1)),
             "channel_2": (Xspress3Channel, "", dict(channel_num=2)),
             "channel_3": (Xspress3Channel, "", dict(channel_num=3)),
-            "channel_4": (Xspress3Channel, "", dict(channel_num=3)),
+            "channel_4": (Xspress3Channel, "", dict(channel_num=4)),
         }
     )
 
