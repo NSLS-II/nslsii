@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import functools
 import logging
 import time
 
@@ -8,15 +9,13 @@ from ophyd import Signal, EpicsSignal, EpicsSignalRO, DerivedSignal
 from ophyd import (
     Component as Cpt,
     FormattedComponent as FC,  # noqa: F401
-    DynamicDeviceComponent as DDC,
     DynamicDeviceComponent as DynamicDeviceCpt,
 )
-from ophyd.areadetector.plugins import PluginBase
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 
 from ophyd.areadetector.plugins import HDF5Plugin
 from ophyd.areadetector import ADBase
-from ophyd.areadetector import Xspress3Detector as AdXspress3Detector
+from ophyd.areadetector import Xspress3Detector
 from ophyd.device import BlueskyInterface, Staged
 from ophyd.status import DeviceStatus
 
@@ -74,6 +73,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         basename,
         *,
         config_time=0.5,
+        # TODO: is this correct for the new xspress3 IOC?
         mds_key_format="{self.cam.name}_ch{chan}",
         parent=None,
         **kwargs,
@@ -94,7 +94,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         )
         # this was in original code, but I kinda-sorta nuked because
         # it was not needed for SRX and I could not guess what it did
-        self._master = None
+        # self._master = None
 
         self._config_time = config_time
         self.mds_keys = {
@@ -164,17 +164,17 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
     def stage(self):
         # if should external trigger
-        ext_trig = self.parent.external_trig.get()
+        external_trig_reading = self.parent.external_trig.get()
 
         logger.debug("Stopping xspress3 acquisition")
         # really force it to stop acquiring
         self.cam.acquire.put(0, wait=True)
 
-        total_points = self.parent.total_points.get()
-        if total_points < 1:
+        total_points_reading = self.parent.total_points.get()
+        if total_points_reading < 1:
             raise RuntimeError("You must set the total points")
         spec_per_point = self.parent.spectra_per_point.get()
-        total_capture = total_points * spec_per_point
+        total_capture = total_points_reading * spec_per_point
 
         # stop previous acquisition
         self.stage_sigs[self.cam.acquire] = 0
@@ -185,10 +185,10 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         self.stage_sigs.pop(self.cam.num_images, None)
         self.stage_sigs[self.num_capture_calc_disable] = 1
 
-        if ext_trig:
+        if external_trig_reading:
             logger.debug("Setting up external triggering")
             self.stage_sigs[self.cam.trigger_mode] = "TTL Veto Only"
-            #self.stage_sigs[self.cam.trigger_mode] = "Internal"
+            # self.stage_sigs[self.cam.trigger_mode] = "Internal"
             self.stage_sigs[self.cam.num_images] = total_capture
         else:
             logger.debug("Setting up internal triggering")
@@ -266,180 +266,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         return desc
 
 
-class Xspress3ROISettings(PluginBase):
-    """Full areaDetector plugin settings"""
-
-    array_data = Cpt(EpicsSignalRO, "ArrayData_RBV")
-
-    @property
-    def ad_root(self):
-        root = self.parent
-        while True:
-            if not isinstance(root.parent, ADBase):
-                return root
-            root = root.parent
-
-
-class Xspress3ROI(ADBase):
-    """A configurable Xspress3 EPICS ROI"""
-
-    # prefix: C{channel}_   MCA_ROI{self.roi_num}
-    bin_low = FC(SignalWithRBV, "{self.channel.prefix}{self.bin_suffix}_LLM")
-    bin_high = FC(SignalWithRBV, "{self.channel.prefix}{self.bin_suffix}_HLM")
-
-    # derived from the bin signals, low and high electron volt settings:
-    ev_low = Cpt(EvSignal, parent_attr="bin_low")
-    ev_high = Cpt(EvSignal, parent_attr="bin_high")
-
-    # C{channel}_  ROI{self.roi_num}
-    value = Cpt(EpicsSignalRO, "Value_RBV")
-    value_sum = Cpt(EpicsSignalRO, "ValueSum_RBV")
-
-    enable = Cpt(SignalWithRBV, "EnableCallbacks")
-    # ad_plugin = Cpt(Xspress3ROISettings, '')
-
-    @property
-    def ad_root(self):
-        root = self.parent
-        while True:
-            if not isinstance(root.parent, ADBase):
-                return root
-            root = root.parent
-
-    def __init__(
-        self,
-        prefix,
-        *,
-        roi_num=0,
-        use_sum=False,
-        read_attrs=None,
-        configuration_attrs=None,
-        parent=None,
-        bin_suffix=None,
-        **kwargs,
-    ):
-
-        if read_attrs is None:
-            if use_sum:
-                read_attrs = ["value_sum"]
-            else:
-                read_attrs = ["value", "value_sum"]
-
-        if configuration_attrs is None:
-            configuration_attrs = ["ev_low", "ev_high", "enable"]
-
-        rois = parent
-        channel = rois.parent
-        self._channel = channel
-        self._roi_num = roi_num
-        self._use_sum = use_sum
-        self._ad_plugin = getattr(rois, "ad_attr{:02d}".format(roi_num))
-
-        if bin_suffix is None:
-            bin_suffix = "MCA_ROI{}".format(roi_num)
-
-        self.bin_suffix = bin_suffix
-
-        super().__init__(
-            prefix,
-            parent=parent,
-            read_attrs=read_attrs,
-            configuration_attrs=configuration_attrs,
-            **kwargs,
-        )
-
-    @property
-    def settings(self):
-        """Full areaDetector settings"""
-        return self._ad_plugin
-
-    @property
-    def channel(self):
-        """The Xspress3Channel instance associated with the ROI"""
-        return self._channel
-
-    @property
-    def channel_num(self):
-        """The channel number associated with the ROI"""
-        return self._channel.channel_num
-
-    @property
-    def roi_num(self):
-        """The ROI number"""
-        return self._roi_num
-
-    def clear(self):
-        """Clear and disable this ROI"""
-        self.configure(0, 0)
-
-    def configure(self, ev_low, ev_high):
-        """Configure the ROI with low and high eV
-
-        Parameters
-        ----------
-        ev_low : int
-            low electron volts for ROI
-        ev_high : int
-            high electron volts for ROI
-        """
-        ev_low = int(ev_low)
-        ev_high = int(ev_high)
-
-        enable = 1 if ev_high > ev_low else 0
-        changed = any(
-            [
-                self.ev_high.get() != ev_high,
-                self.ev_low.get() != ev_low,
-                self.enable.get() != enable,
-            ]
-        )
-
-        if not changed:
-            return
-
-        logger.debug(
-            "Setting up EPICS ROI: name=%s ev=(%s, %s) "
-            "enable=%s prefix=%s channel=%s",
-            self.name,
-            ev_low,
-            ev_high,
-            enable,
-            self.prefix,
-            self._channel,
-        )
-        if ev_high <= self.ev_low.get():
-            self.ev_low.put(0)
-
-        self.ev_high.put(ev_high)
-        self.ev_low.put(ev_low)
-        self.enable.put(enable)
-
-
-def make_rois(rois):
-    defn = OrderedDict()
-    for roi in rois:
-        attr = "roi{:02d}".format(roi)
-        #             cls          prefix                kwargs
-        defn[attr] = (Xspress3ROI, "ROI{}:".format(roi), dict(roi_num=roi))
-        # e.g., device.rois.roi01 = Xspress3ROI('ROI1:', roi_num=1)
-
-        # AreaDetector NDPluginAttribute information
-        attr = "ad_attr{:02d}".format(roi)
-        defn[attr] = (Xspress3ROISettings, "ROI{}:".format(roi), dict(read_attrs=[]))
-        # e.g., device.rois.roi01 = Xspress3ROI('ROI1:', roi_num=1)
-
-        # TODO: 'roi01' and 'ad_attr_01' have the same prefix and could
-        # technically be combined. Is this desirable?
-
-    defn["num_rois"] = (Signal, None, dict(value=len(rois)))
-    # e.g., device.rois.num_rois.get() => 16
-    return defn
-
-
 # start new IOC classes
-
-# each channel has these things?
-# these are general areadetector plugins
+# are these general areadetector plugins?
 # but for now they are being used just for xspress3
 class Mca(ADBase):
     array_data = Cpt(EpicsSignal, "ArrayData")
@@ -450,18 +278,14 @@ class McaSum(ADBase):
 
 
 class McaRoi(ADBase):
-    # can have up to 48 ROIs
     roi_name = Cpt(EpicsSignal, "Name")
     min_x = Cpt(EpicsSignal, "MinX")
     size_x = Cpt(EpicsSignal, "SizeX")
-    total_rbv = Cpt(EpicsSignal, "Total_RBV")
+    total_rbv = Cpt(EpicsSignalRO, "Total_RBV")
 
     use = Cpt(SignalWithRBV, "Use")
 
-    def __init__(self, prefix, **kwargs):
-        super().__init__(prefix, **kwargs)
-
-    def configure(self, ev_min, ev_size):
+    def configure_roi(self, ev_min, ev_size):
         """Configure the ROI with min and size eV
 
         Parameters
@@ -469,15 +293,16 @@ class McaRoi(ADBase):
         ev_min : int
             minimum electron volts for ROI
         ev_size : int
-            size, or width, electron volts for ROI
+            ROI size (width) in electron volts
         """
         ev_min = int(ev_min)
         ev_size = int(ev_size)
 
-        # enable_callbacks PV
-        #enable = 1 if ev_high > ev_low else 0
+        # assume if this ROI is being configured
+        # that it should be read, meaning the
+        # "use" PV must be set to 1
         use_roi = 1
-        changed = any(
+        configuration_changed = any(
             [
                 self.min_x.get() != ev_min,
                 self.size_x.get() != ev_size,
@@ -485,124 +310,67 @@ class McaRoi(ADBase):
             ]
         )
 
-        if not changed:
-            return
+        if configuration_changed:
+            logger.debug(
+                "Setting up Xspress3 ROI: name=%s ev_min=%s ev_size=%s "
+                "use=%s prefix=%s channel=%s",
+                self.name,
+                ev_min,
+                ev_size,
+                use_roi,
+                self.prefix,
+                # self.parent is the ?? class
+                # self.parent.parent is the ?? class
+                # TODO: I don't like the assumption that self has a parent
+                self.parent.parent.channel_num,
+            )
 
-        logger.debug(
-            "Setting up EPICS ROI: name=%s ev=(%s, %s) "
-            "use=%s prefix=%s channel=%s",
-            self.name,
-            ev_min,
-            ev_size,
-            use_roi,
-            self.prefix,
-            # have to go up two levels to find the channel object
-            self.parent.parent.channel_num,
-        )
-        #if ev_high <= self.ev_low.get():
-        #    self.ev_low.put(0)
+            self.min_x.put(ev_min)
+            self.size_x.put(ev_size)
+            self.use.put(use_roi)
+        else:
+            # nothing has changed
+            pass
 
-        self.min_x.put(ev_min)
-        self.size_x.put(ev_size)
-        self.use.put(use_roi)
-    
     def clear(self):
         """Clear and disable this ROI"""
-        # it is enough to just disable the plugin
-        #self.min_x.put(0)
-        #self.size_x.put(0)
+        # it is enough to just disable the ROI
+        # self.min_x.put(0)
+        # self.size_x.put(0)
         self.use.put(0)
-
-    @staticmethod
-    def build_cpt_args(mcaroi_indices):
-        """
-        TODO: are these names universal or are they facility- or beamline-specific?
-
-        These will look like "xs.channel1.mca_rois.mcaroi01".
-        """
-        mcaroi_attribute_name_to_cpt_args = {
-            f"mcaroi{mcaroi_i:02d}": (
-                McaRoi,
-                f"MCA<channel_num>ROI:{mcaroi_i:d}:", dict()
-            )
-            for mcaroi_i in mcaroi_indices
-        }
-        # print(mcaroi_attribute_name_to_cpt_args)
-        return mcaroi_attribute_name_to_cpt_args
 
 
 class Sca(ADBase):
     # includes Dead Time correction, for example
     # sca numbers go from 0 to 10
-    clock_ticks = Cpt(EpicsSignal, "0:Value_RBV")
-    reset_ticks = Cpt(EpicsSignal, "1:Value_RBV")
-    reset_counts = Cpt(EpicsSignal, "2:Value_RBV")
-    all_event = Cpt(EpicsSignal, "3:Value_RBV")
-    all_good = Cpt(EpicsSignal, "4:Value_RBV")
-    window_1 = Cpt(EpicsSignal, "5:Value_RBV")
-    window_2 = Cpt(EpicsSignal, "6:Value_RBV")
-    pileup = Cpt(EpicsSignal, "7:Value_RBV")
-    event_width = Cpt(EpicsSignal, "8:Value_RBV")
-    dt_factor = Cpt(EpicsSignal, "9:Value_RBV")
-    dt_percent = Cpt(EpicsSignal, "10:Value_RBV")
-    #dead_time_correction = Cpt(EpicsSignal)
+    clock_ticks = Cpt(EpicsSignalRO, "0:Value_RBV")
+    reset_ticks = Cpt(EpicsSignalRO, "1:Value_RBV")
+    reset_counts = Cpt(EpicsSignalRO, "2:Value_RBV")
+    all_event = Cpt(EpicsSignalRO, "3:Value_RBV")
+    all_good = Cpt(EpicsSignalRO, "4:Value_RBV")
+    window_1 = Cpt(EpicsSignalRO, "5:Value_RBV")
+    window_2 = Cpt(EpicsSignalRO, "6:Value_RBV")
+    pileup = Cpt(EpicsSignalRO, "7:Value_RBV")
+    event_width = Cpt(EpicsSignalRO, "8:Value_RBV")
+    dt_factor = Cpt(EpicsSignalRO, "9:Value_RBV")
+    dt_percent = Cpt(EpicsSignalRO, "10:Value_RBV")
 
 
-class Xspress3Channel(ADBase):
-    """
-    Xspress3 devices can have up to 16 channels.
-    """
+class Xspress3ChannelBase(ADBase):
+    """"""
+
     roi_name_format = "Det{self.channel_num}_{roi_name}"
     roi_total_name_format = "Det{self.channel_num}_{roi_name}_total"
 
-    # one MCA per channel?
-    # yes, channel 1 is MCA1, channel 2 is MCA2
-    # and also for MCASUM1, MCA1ROI, C1SCA
-    mca = Cpt(Mca, "MCA<channel_num>:")
+    def __init__(self, prefix, *args, **kwargs):
+        super().__init__(prefix, *args, **kwargs)
 
-    # one MCASUM per channel?
-    mca_sum = Cpt(McaSum, "MCASUM<channel_num>:")
-
-    # up to 48 MCAROIs per channel
-    # mca_1_roi = Cpt(McaRoi, "MCA<channel_num>ROI:")
-    # this is how to create a tree of many components
-    mca_rois = DynamicDeviceCpt(McaRoi.build_cpt_args(range(1, 4 + 1)))
-
-    # one SCA per channel?
-    sca = Cpt(Sca, "C<channel_num>SCA:")
-
-    def __init__(self, prefix, *, channel_num, **kwargs):
-        super().__init__(prefix, **kwargs)
-
-        self.channel_num = int(channel_num)
-        #print(f"channel_num: {channel_num}")
-        # the Mca, McaSum, McaRois, and Sca have been
-        # instantiated at this point, but their PV names
-        # still contain <channel_num>
-        # now it is time to replace <channel_num> with
-        # self.channel_num in the PV names
-        for _, _, signal in self.walk_signals():
-            #print(f"original signal: {signal}")
-            if hasattr(signal, "_read_pvname"):
-                # using {}-string-formatting fails when the
-                # PV name has literal {}s, so use another method
-                signal._read_pvname = signal._read_pvname.replace(
-                    "<channel_num>",
-                    str(self.channel_num)
-                )
-            if hasattr(signal, "_setpoint_pvname"):
-                signal._setpoint_pvname = signal._setpoint_pvname.replace(
-                    "<channel_num>",
-                    str(self.channel_num)
-                )
-            #print(f"  signal: {signal}")
-
-    def set_roi(self, index, ev_min, ev_size, *, name=None):
-        """Set specified ROI to (ev_min, ev_size)
+    def set_roi(self, index_or_roi, *, ev_min, ev_size, name=None):
+        """Configure MCAROI with energy range and optionally name.
 
         Parameters
         ----------
-        index : int or Xspress3ROI
+        index_or_roi : int
             The roi index or instance to set
         ev_min : int
             low eV setting
@@ -613,24 +381,18 @@ class Xspress3Channel(ADBase):
             `roi_name_format` and `roi_sum_name_format` in which the name
             parameter will get expanded.
         """
-        if isinstance(index, Xspress3ROI):
-            roi = index
+        if isinstance(index_or_roi, McaRoi):
+            roi = index_or_roi
         else:
-            if index <= 0:
-                raise ValueError("ROI index starts from 1")
-            #roi = list(self.all_rois)[index - 1]
-            #roi = self.mca_rois[index - 1]
-            roi = getattr(self.mca_rois, f"mcaroi{index:02d}")
+            if index_or_roi <= 0:
+                raise ValueError("MCAROI index starts from 1")
+            roi = getattr(self.mcarois, f"mcaroi{index_or_roi:02d}")
 
-        roi.configure(ev_min, ev_size)
+        roi.configure_roi(ev_min, ev_size)
+
         if name is not None:
             roi_name = self.roi_name_format.format(self=self, roi_name=name)
             roi.roi_name.name = roi_name
-            # do we need to set similar names?
-            ## roi.value.name = roi_name
-            ## roi.value_sum.name = self.roi_sum_name_format.format(
-            ##     self=self, roi_name=name
-            ## )
             roi.total_rbv.name = self.roi_total_name_format.format(
                 self=self, roi_name=roi_name
             )
@@ -641,205 +403,142 @@ class Xspress3Channel(ADBase):
             roi.clear()
 
 
-class Xspress3Detector(AdXspress3Detector):
-    """
+# cache returned class objects to avoid
+# building redundant classes
+@functools.lru_cache
+def build_channel_class(channel_num, roi_count):
+    """Build an Xspress3 channel class with the specified channel number and ROI count.
+
+    The complication of using dynamically generated classes
+    is the price for the relative ease of including the channel
+    number in MCAROI PVs and the ability to specify the number
+    of ROIs that will be used rather than defaulting to the
+    maximum of 48 per channel.
+
+    Parameters
+    ----------
+    channel_num: int
+        the channel number, 1-16
+    roi_count: int
+        the number of MCAROI PVs, 1-48
+
+    Returns
+    -------
+    a dynamically generated class similar to this:
+        class Xspress3Channel_2_with_4_rois(Xspress3ChannelBase):
+            channel_num = 2
+            sca = Sca(...)
+            mca = Mca(...)
+            mca_sum = McaSum(...)
+            mcarois = DDC(...4 McaRois...)
 
     """
-    
-    # access individual channels like this:
-    #    xs = Xspress3Detector(...)
-    #    xs.channels.channel_1.mca.array_data
-    #    xs.channels.channel_2.sca.clock_ticks
-    
-    # derived classes can redefine `channels` and
-    # this definition will be discarded
-    channels = DynamicDeviceCpt(
+
+    return type(
+        f"Xspress3Channel_{channel_num}_with_{roi_count}_rois",
+        (Xspress3ChannelBase,),
         {
-            "channel_1": (Xspress3Channel, "", dict(channel_num=1)),
-            "channel_2": (Xspress3Channel, "", dict(channel_num=2)),
-            "channel_3": (Xspress3Channel, "", dict(channel_num=3)),
-            "channel_4": (Xspress3Channel, "", dict(channel_num=4)),
-        }
+            "channel_num": channel_num,
+            "sca": Cpt(Sca, f"C{channel_num}SCA:"),
+            "mca": Cpt(Mca, f"MCA{channel_num}:"),
+            "mca_sum": Cpt(McaSum, f"MCA{channel_num}SUM:"),
+            "mcarois": DynamicDeviceCpt(
+                defn=OrderedDict(
+                    {
+                        f"mcaroi{mcaroi_i:02d}": (
+                            McaRoi,
+                            # MCAROI PV names look like "MCA1ROI:2:"
+                            f"MCA{channel_num}ROI:{mcaroi_i:d}:",
+                            # no keyword parameters
+                            dict(),
+                        )
+                        for mcaroi_i in range(1, roi_count + 1)
+                    }
+                )
+            ),
+        },
     )
 
-    external_trig = Cpt(Signal, value=False,
-                        doc='Use external triggering')
-    total_points = Cpt(Signal, value=-1,
-                       doc='The total number of points to acquire overall')
-    spectra_per_point = Cpt(Signal, value=1,
-                            doc='Number of spectra per point')
-    make_directories = Cpt(Signal, value=False,
-                           doc='Make directories on the DAQ side')
-    rewindable = Cpt(Signal, value=False,
-                     doc='Xspress3 cannot safely be rewound in bluesky')
 
-    def __init__(self, prefix, **kwargs):
-        super().__init__(prefix, **kwargs)
+# cache returned class objects to
+# avoid building redundant classes
+@functools.lru_cache
+def build_detector_class(channel_count, roi_count, parent_classes=None):
+    """Build an Xspress3 detector class with the specified number of channels and rois.
+
+    The complication of using dynamically generated detector classes
+    is the price for being able to easily specify the exact number of
+    channels and ROIs per channel present on the detector.
+
+    TODO: TOM, can we get rid of these soft signals by rewriting Xspress3FileStore?
+    Detector classes generated by this function include these "soft" signals
+    which are not part of the Xspress3 IOC but are used by the Xspress3FileStore:
+        external_trig
+        total_points
+        spectra_per_point
+        make_directories
+        rewindable
+
+    Parameters
+    ----------
+    channel_count: int
+        number of channels for the detector, 1-16
+    roi_count: int
+        number of ROIs per channel, 1-48
+    parent_classes: list-like, optional
+        list of parent classes for the generated detector class to be
+        included with ophyd.areadetector.Xspress3Detector
+
+    Returns
+    -------
+    a dynamically generated class similar to this:
+        class Xspress3Detector_4_channel_3roi(Xspress3Detector, SomeMixinClass, ...):
+            external_trig = Cpt(Signal, value=False)
+            total_points = Cpt(Signal, value=-1)
+            spectra_per_point = Cpt(Signal, value=1)
+            make_directories = Cpt(Signal, value=False)
+            rewindable = Cpt(Signal, value=False)
+            channels = DDC(...4 Xspress3Channels with 3 ROIs each...)
+    """
+    if parent_classes is None:
+        parent_classes = []
+
+    return type(
+        f"Xspress3Detector_{channel_count}channel_{roi_count}roi",
+        (Xspress3Detector, *parent_classes),
+        {
+            "external_trig": Cpt(Signal, value=False, doc="Use external triggering"),
+            "total_points": Cpt(
+                Signal, value=-1, doc="The total number of points to acquire overall"
+            ),
+            "spectra_per_point": Cpt(
+                Signal, value=1, doc="Number of spectra per point"
+            ),
+            "make_directories": Cpt(
+                Signal, value=False, doc="Make directories on the DAQ side"
+            ),
+            "rewindable": Cpt(
+                Signal, value=False, doc="Xspress3 cannot safely be rewound in bluesky"
+            ),
+            "channels": DynamicDeviceCpt(
+                defn=OrderedDict(
+                    {
+                        f"channel_{c}": (
+                            build_channel_class(channel_num=c, roi_count=roi_count),
+                            # there is no discrete Xspress3 channel prefix
+                            # so specify an empty string here
+                            "",
+                            dict(),
+                        )
+                        for c in range(1, channel_count + 1)
+                    }
+                )
+            ),
+        },
+    )
 
 
 # end new IOC classes
-
-
-# TODO: remove? this may not work with the new IOC
-class OldXspress3Channel(ADBase):
-    roi_name_format = "Det{self.channel_num}_{roi_name}"
-    roi_sum_name_format = "Det{self.channel_num}_{roi_name}_sum"
-
-    rois = DDC(make_rois(range(1, 17)))
-    vis_enabled = Cpt(EpicsSignal, "PluginControlVal")
-
-    def __init__(self, prefix, *, channel_num=None, **kwargs):
-        self.channel_num = int(channel_num)
-
-        super().__init__(prefix, **kwargs)
-
-    @property
-    def all_rois(self):
-        for roi in range(1, self.rois.num_rois.get() + 1):
-            yield getattr(self.rois, "roi{:02d}".format(roi))
-
-    def set_roi(self, index, ev_low, ev_high, *, name=None):
-        """Set specified ROI to (ev_low, ev_high)
-
-        Parameters
-        ----------
-        index : int or Xspress3ROI
-            The roi index or instance to set
-        ev_low : int
-            low eV setting
-        ev_high : int
-            high eV setting
-        name : str, optional
-            The unformatted ROI name to set. Each channel specifies its own
-            `roi_name_format` and `roi_sum_name_format` in which the name
-            parameter will get expanded.
-        """
-        if isinstance(index, Xspress3ROI):
-            roi = index
-        else:
-            if index <= 0:
-                raise ValueError("ROI index starts from 1")
-            roi = list(self.all_rois)[index - 1]
-
-        roi.configure(ev_low, ev_high)
-        if name is not None:
-            roi_name = self.roi_name_format.format(self=self, roi_name=name)
-            roi.name = roi_name
-            roi.value.name = roi_name
-            roi.value_sum.name = self.roi_sum_name_format.format(
-                self=self, roi_name=name
-            )
-
-    def clear_all_rois(self):
-        """Clear all ROIs"""
-        for roi in self.all_rois:
-            roi.clear()
-
-
-# class Xspress3Detector(DetectorBase):
-#     settings = Cpt(Xspress3DetectorSettings, '')
-
-#     external_trig = Cpt(Signal, value=False,
-#                         doc='Use external triggering')
-#     total_points = Cpt(Signal, value=-1,
-#                        doc='The total number of points to acquire overall')
-#     spectra_per_point = Cpt(Signal, value=1,
-#                             doc='Number of spectra per point')
-#     make_directories = Cpt(Signal, value=False,
-#                            doc='Make directories on the DAQ side')
-#     rewindable = Cpt(Signal, value=False,
-#                      doc='Xspress3 cannot safely be rewound in bluesky')
-
-#     # XF:03IDC-ES{Xsp:1}           C1_   ...
-#     # channel1 = Cpt(Xspress3Channel, 'C1_', channel_num=1)
-
-#     data_key = XRF_DATA_KEY
-
-#     def __init__(self, prefix, *, read_attrs=None, configuration_attrs=None,
-#                  name=None, parent=None,
-#                  # to remove?
-#                  file_path='', ioc_file_path='', default_channels=None,
-#                  channel_prefix=None,
-#                  roi_sums=False,
-#                  # to remove?
-#                  **kwargs):
-
-#         if read_attrs is None:
-#             read_attrs = ['channel1', ]
-
-#         if configuration_attrs is None:
-#             configuration_attrs = ['channel1.rois', 'settings']
-
-#         super().__init__(prefix, read_attrs=read_attrs,
-#                          configuration_attrs=configuration_attrs,
-#                          name=name, parent=parent, **kwargs)
-
-#         # get all sub-device instances
-#         sub_devices = {attr: getattr(self, attr)
-#                        for attr in self._sub_devices}
-
-#         # filter those sub-devices, just giving channels
-#         channels = {dev.channel_num: dev
-#                     for attr, dev in sub_devices.items()
-#                     if isinstance(dev, Xspress3Channel)
-#                     }
-
-#         # make an ordered dictionary with the channels in order
-#         self._channels = OrderedDict(sorted(channels.items()))
-
-#     @property
-#     def channels(self):
-#         return self._channels.copy()
-
-#     @property
-#     def all_rois(self):
-#         for ch_num, channel in self._channels.items():
-#             for roi in channel.all_rois:
-#                 yield roi
-
-#     @property
-#     def enabled_rois(self):
-#         for roi in self.all_rois:
-#             if roi.enable.get():
-#                 yield roi
-
-#     def read_hdf5(self, fn, *, rois=None, max_retries=2):
-#         '''Read ROI data from an HDF5 file using the current ROI configuration
-
-#         Parameters
-#         ----------
-#         fn : str
-#             HDF5 filename to load
-#         rois : sequence of Xspress3ROI instances, optional
-
-#         '''
-#         if rois is None:
-#             rois = self.enabled_rois
-
-#         num_points = self.settings.num_images.get()
-#         if isinstance(fn, h5py.File):
-#             hdf = fn
-#         else:
-#             hdf = h5py.File(fn, 'r')
-
-#         RoiTuple = Xspress3ROI.get_device_tuple()
-
-#         handler = Xspress3HDF5Handler(hdf, key=self.data_key)
-#         for roi in self.enabled_rois:
-#             roi_data = handler.get_roi(chan=roi.channel_num,
-#                                        bin_low=roi.bin_low.get(),
-#                                        bin_high=roi.bin_high.get(),
-#                                        max_points=num_points)
-
-#             roi_info = RoiTuple(bin_low=roi.bin_low.get(),
-#                                 bin_high=roi.bin_high.get(),
-#                                 ev_low=roi.ev_low.get(),
-#                                 ev_high=roi.ev_high.get(),
-#                                 value=roi_data,
-#                                 value_sum=None,
-#                                 enable=None)
-
-#             yield roi.name, roi_info
 
 
 class XspressTrigger(BlueskyInterface):
