@@ -396,6 +396,9 @@ class Xspress3ChannelBase(ADBase):
             roi.total_rbv.name = self.roi_total_name_format.format(
                 self=self, roi_name=roi_name
             )
+            # apply the ophyd name to the PV roi_name
+            # this is new behavior
+            roi.roi_name.put(roi_name)
 
     def clear_all_rois(self):
         """Clear all ROIs"""
@@ -405,7 +408,7 @@ class Xspress3ChannelBase(ADBase):
 
 # cache returned class objects to avoid
 # building redundant classes
-@functools.lru_cache
+@functools.lru_cache(100)
 def build_channel_class(channel_num, roi_count):
     """Build an Xspress3 channel class with the specified channel number and ROI count.
 
@@ -462,7 +465,7 @@ def build_channel_class(channel_num, roi_count):
 
 # cache returned class objects to
 # avoid building redundant classes
-@functools.lru_cache
+@functools.lru_cache(100)
 def build_detector_class(channel_count, roi_count, parent_classes=None):
     """Build an Xspress3 detector class with the specified number of channels and rois.
 
