@@ -441,7 +441,7 @@ def build_channel_class(channel_num, roi_count):
             "channel_num": channel_num,
             "sca": Cpt(Sca, f"C{channel_num}SCA:"),
             "mca": Cpt(Mca, f"MCA{channel_num}:"),
-            "mca_sum": Cpt(McaSum, f"MCA{channel_num}SUM:"),
+            "mca_sum": Cpt(McaSum, f"MCASUM{channel_num}:"),
             "mcarois": DynamicDeviceCpt(
                 defn=OrderedDict(
                     {
