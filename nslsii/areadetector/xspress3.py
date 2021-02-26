@@ -64,8 +64,10 @@ class EvSignal(DerivedSignal):
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
     """Xspress3 acquisition -> filestore"""
 
+    # TODO: these PVs may be obsolete
     num_capture_calc = Cpt(EpicsSignal, "NumCapture_CALC")
     num_capture_calc_disable = Cpt(EpicsSignal, "NumCapture_CALC.DISA")
+
     filestore_spec = Xspress3HDF5Handler.HANDLER_NAME
 
     def __init__(
