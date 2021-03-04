@@ -130,7 +130,7 @@ def test_instantiate_channel_class():
 
     assert channel_2.mca.array_data.pvname == "Xsp3:MCA2:ArrayData"
 
-    assert channel_2.mca_sum.array_data.pvname == "Xsp3:MCA2SUM:ArrayData"
+    assert channel_2.mca_sum.array_data.pvname == "Xsp3:MCASUM2:ArrayData"
 
     assert channel_2.mcarois.mcaroi01.total_rbv.pvname == "Xsp3:MCA2ROI:1:Total_RBV"
     assert channel_2.mcarois.mcaroi02.total_rbv.pvname == "Xsp3:MCA2ROI:2:Total_RBV"
@@ -172,19 +172,19 @@ def test_instantiate_detector_class():
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
     assert detector.channels.channel_1.sca.clock_ticks.pvname == "Xsp3:C1SCA:0:Value_RBV"
-    assert detector.channels.channel_1.mca_sum.array_data.pvname == "Xsp3:MCA1SUM:ArrayData"
+    assert detector.channels.channel_1.mca_sum.array_data.pvname == "Xsp3:MCASUM1:ArrayData"
     assert detector.channels.channel_1.mca.array_data.pvname == "Xsp3:MCA1:ArrayData"
     assert detector.channels.channel_1.mcarois.mcaroi01.total_rbv.pvname == "Xsp3:MCA1ROI:1:Total_RBV"
     assert detector.channels.channel_1.mcarois.mcaroi02.total_rbv.pvname == "Xsp3:MCA1ROI:2:Total_RBV"
 
     assert detector.channels.channel_2.sca.clock_ticks.pvname == "Xsp3:C2SCA:0:Value_RBV"
-    assert detector.channels.channel_2.mca_sum.array_data.pvname == "Xsp3:MCA2SUM:ArrayData"
+    assert detector.channels.channel_2.mca_sum.array_data.pvname == "Xsp3:MCASUM2:ArrayData"
     assert detector.channels.channel_2.mca.array_data.pvname == "Xsp3:MCA2:ArrayData"
     assert detector.channels.channel_2.mcarois.mcaroi01.total_rbv.pvname == "Xsp3:MCA2ROI:1:Total_RBV"
     assert detector.channels.channel_2.mcarois.mcaroi02.total_rbv.pvname == "Xsp3:MCA2ROI:2:Total_RBV"
 
     assert detector.channels.channel_3.sca.clock_ticks.pvname == "Xsp3:C3SCA:0:Value_RBV"
-    assert detector.channels.channel_3.mca_sum.array_data.pvname == "Xsp3:MCA3SUM:ArrayData"
+    assert detector.channels.channel_3.mca_sum.array_data.pvname == "Xsp3:MCASUM3:ArrayData"
     assert detector.channels.channel_3.mca.array_data.pvname == "Xsp3:MCA3:ArrayData"
     assert detector.channels.channel_3.mcarois.mcaroi01.total_rbv.pvname == "Xsp3:MCA3ROI:1:Total_RBV"
     assert detector.channels.channel_3.mcarois.mcaroi02.total_rbv.pvname == "Xsp3:MCA3ROI:2:Total_RBV"
