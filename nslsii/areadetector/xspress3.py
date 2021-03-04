@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import functools
 import logging
+import re
 import time
 
 from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
@@ -439,6 +440,20 @@ def build_channel_class(channel_num, roi_count):
 
     """
 
+    mcaroi_name_re = re.compile(r"mcaroi\d{2}")
+
+    def get_mcarois(self):
+        """
+        Iterate over MCAROI objects on the Xspress3Channel mcarois attribute.
+
+        Yields
+        ------
+          mcaroi name, McaRoi instance
+        """
+        for attr_name, attr in self.mcarois._signals.items():
+            if mcaroi_name_re.match(attr_name):
+                yield attr_name, attr
+
     return type(
         f"Xspress3Channel_{channel_num}_with_{roi_count}_rois",
         (Xspress3ChannelBase,),
@@ -461,6 +476,7 @@ def build_channel_class(channel_num, roi_count):
                     }
                 )
             ),
+            "get_mcarois": get_mcarois,
         },
     )
 

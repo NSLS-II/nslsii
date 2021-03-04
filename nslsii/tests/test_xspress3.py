@@ -1,6 +1,13 @@
+from collections import OrderedDict
 from pathlib import Path
 
 import h5py
+import pytest
+
+from bluesky import RunEngine
+from bluesky.plans import count
+from ophyd import Component, Device, DynamicDeviceComponent
+from ophyd.sim import SynSignal
 
 from nslsii.areadetector.xspress3 import (
     Mca,
@@ -8,10 +15,9 @@ from nslsii.areadetector.xspress3 import (
     McaRoi,
     Sca,
     Xspress3HDF5Handler,
-    Xspress3ChannelBase,
-    Xspress3Detector,
+    Xspress3FileStore,
     build_channel_class,
-    build_detector_class
+    build_detector_class,
 )
 
 
@@ -135,6 +141,14 @@ def test_instantiate_channel_class():
     assert channel_2.mcarois.mcaroi01.total_rbv.pvname == "Xsp3:MCA2ROI:1:Total_RBV"
     assert channel_2.mcarois.mcaroi02.total_rbv.pvname == "Xsp3:MCA2ROI:2:Total_RBV"
     assert channel_2.mcarois.mcaroi03.total_rbv.pvname == "Xsp3:MCA2ROI:3:Total_RBV"
+
+
+def test_get_mcarois():
+    channel_class = build_channel_class(channel_num=2, roi_count=2)
+    channel_2 = channel_class(prefix="Xsp3:", name="channel_2")
+
+    mcaroi_list = [mcaroi for mcaroi_name, mcaroi in channel_2.get_mcarois()]
+    assert len(mcaroi_list) == 2
 
 
 def test_build_detector_class():
