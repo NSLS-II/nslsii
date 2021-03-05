@@ -31,6 +31,57 @@ def test_xspress3_hdf5_handler(tmpdir):
         Xspress3HDF5Handler(filename=h5_file_path)
 
 
+@pytest.mark.skip()
+def test_xspress3_filestore(tmpdir):
+    """
+
+    Parameters
+    ----------
+    tmpdir:
+
+    Returns
+    -------
+
+
+    """
+
+    class SimulatedXspress3McaRoi:
+        total_rbv = Component(SynSignal, "Total_RBV")
+
+        def __init__(self):
+            self.total_rbv.sim_set_func(lambda: 0.1)
+
+    class SimulatedXspress3Channel(Device):
+        mcarois = DynamicDeviceComponent(
+            defn=OrderedDict(
+                {"mcaroi01": (SimulatedXspress3McaRoi, "MCA1ROI:1:", dict())}
+            )
+        )
+
+    class SimulatedXspress3Detector(Device):
+        hdf5plugin = Component(
+            Xspress3FileStore,
+            "HDF5:",
+            read_path_template="/read/path/template/",
+            write_path_template="/write/path/template/",
+            root=tmpdir,
+        )
+
+        cam = None
+
+        channels = DynamicDeviceComponent(
+            defn=OrderedDict({"channel_1": (SimulatedXspress3Channel, "", dict())})
+        )
+
+        def trigger(self):
+            return self.channels.channel_1.mcarois.mcaroi01.trigger()
+
+    simulated_xspress3 = SimulatedXspress3Detector(name="simulated_xspress3")
+
+    RE = RunEngine()
+    RE(count([simulated_xspress3]))
+
+
 def test_mca_init():
     """
     Test initialization.
