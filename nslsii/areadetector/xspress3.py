@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import functools
+import hashlib
 import logging
 import re
 import time
@@ -409,90 +410,178 @@ class Xspress3ChannelBase(ADBase):
             roi.clear()
 
 
+def _validate_mcaroi_numbers(mcaroi_numbers):
+    """
+    Raise ValueError if any MCAROI number is
+     1. not an integer
+     2. outside the allowed interval [1,48]
+
+    Parameters
+    ----------
+    mcaroi_numbers: Sequence
+        MCAROI number candidates
+
+    """
+    non_integer_values = [
+        mcaroi_number
+        for mcaroi_number in mcaroi_numbers
+        if not isinstance(mcaroi_number, int)
+    ]
+    if len(non_integer_values) > 0:
+        raise ValueError(
+            f"MCAROI numbers include non-integer values: {non_integer_values}"
+        )
+
+    out_of_bounds_numbers = [
+        mcaroi_number
+        for mcaroi_number in mcaroi_numbers
+        if not 1 <= mcaroi_number <= 48
+    ]
+    if len(out_of_bounds_numbers) > 0:
+        raise ValueError(
+            f"MCAROI numbers {out_of_bounds_numbers} are outside the allowed interval [1,48]"
+        )
+
+
 # cache returned class objects to avoid
 # building redundant classes
 @functools.lru_cache(100)
-def build_channel_class(channel_num, roi_count):
-    """Build an Xspress3 channel class with the specified channel number and ROI count.
+def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=None):
+    """Build an Xspress3 channel class with the specified channel number and MCAROI numbers.
 
     The complication of using dynamically generated classes
     is the price for the relative ease of including the channel
     number in MCAROI PVs and the ability to specify the number
-    of ROIs that will be used rather than defaulting to the
+    of MCAROIs that will be used rather than defaulting to the
     maximum of 48 per channel.
 
     Parameters
     ----------
-    channel_num: int
+    channel_number: int
         the channel number, 1-16
-    roi_count: int
-        the number of MCAROI PVs, 1-48
+    mcaroi_numbers: Sequence of int
+         sequence of MCAROI numbers, allowed values are 1-48
+    channel_parent_classes: list-like, optional
+        in addition to nslsii.areadetector.xspress3.Xspress3ChannelBase these
+        classes will be parents of the generated channel class
 
     Returns
     -------
     a dynamically generated class similar to this:
-        class Xspress3Channel_2_with_4_rois(Xspress3ChannelBase):
+        class GeneratedXspress3Channel_94e52ec5(Xspress3ChannelBase):
             channel_num = 2
-            sca = Sca(...)
-            mca = Mca(...)
-            mca_sum = McaSum(...)
+            sca = Cpt(Sca, ...)
+            mca = Cpt(Mca, ...)
+            mca_sum = Cpt(McaSum, ...)
             mcarois = DDC(...4 McaRois...)
 
+            def iterate_mcarois(self):
+                ...
+
     """
+    if channel_parent_classes is None:
+        channel_parent_classes = []
+
+    _validate_channel_numbers(channel_numbers=(channel_number, ))
+
+    # create a tuple in case the mcaroi_numbers parameter can be iterated only once
+    mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers])
+    _validate_mcaroi_numbers(mcaroi_numbers)
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
-    def get_mcarois(self):
+    # this function will become a method of the generated channel class
+    def iterate_mcarois(self):
         """
-        Iterate over MCAROI objects on the Xspress3Channel mcarois attribute.
+        Iterate over MCAROI children of the Xspress3Channel.mcarois attribute.
 
         Yields
         ------
-          mcaroi name, McaRoi instance
+        mcaroi name, McaRoi instance
         """
-        for attr_name, attr in self.mcarois._signals.items():
-            if mcaroi_name_re.match(attr_name):
-                yield attr_name, attr
+        for mcaroi_name, mcaroi in self.mcarois._signals.items():
+            if mcaroi_name_re.match(mcaroi_name):
+                yield mcaroi_name, mcaroi
+
+    # rather than build the mcaroi numbers directly in to the name of the
+    # generated class use shake.hexdigest(4) for a short, unique-ish, reproducible
+    # class name suffix based on all the parameters used to generate the channel class
+    shake = hashlib.shake_128()
+    shake.update(f"{mcaroi_numbers}".encode())
+    channel_class_suffix = shake.hexdigest(4)
 
     return type(
-        f"Xspress3Channel_{channel_num}_with_{roi_count}_rois",
-        (Xspress3ChannelBase,),
+        f"GeneratedXspress3Channel_{channel_class_suffix}",
+        (Xspress3ChannelBase, *channel_parent_classes),
         {
-            "channel_num": channel_num,
-            "sca": Cpt(Sca, f"C{channel_num}SCA:"),
-            "mca": Cpt(Mca, f"MCA{channel_num}:"),
-            "mca_sum": Cpt(McaSum, f"MCASUM{channel_num}:"),
+            "channel_num": channel_number,
+            "sca": Cpt(Sca, f"C{channel_number}SCA:"),
+            "mca": Cpt(Mca, f"MCA{channel_number}:"),
+            "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
             "mcarois": DynamicDeviceCpt(
                 defn=OrderedDict(
                     {
                         f"mcaroi{mcaroi_i:02d}": (
                             McaRoi,
                             # MCAROI PV names look like "MCA1ROI:2:"
-                            f"MCA{channel_num}ROI:{mcaroi_i:d}:",
+                            f"MCA{channel_number}ROI:{mcaroi_i:d}:",
                             # no keyword parameters
                             dict(),
                         )
-                        for mcaroi_i in range(1, roi_count + 1)
+                        for mcaroi_i in mcaroi_numbers
                     }
                 )
             ),
-            "get_mcarois": get_mcarois,
+            "iterate_mcarois": iterate_mcarois,
         },
     )
+
+
+def _validate_channel_numbers(channel_numbers):
+    """
+    Raise ValueError if any channel number is
+     1. not an integer
+     2. outside the allowed interval [1,16]
+
+    Parameters
+    ----------
+    channel_numbers: Sequence
+        channel number candidates
+
+    """
+    non_integer_values = [
+        channel_number
+        for channel_number in channel_numbers
+        if not isinstance(channel_number, int)
+    ]
+    if len(non_integer_values) > 0:
+        raise ValueError(
+            f"channel number(s) {non_integer_values} are not integers"
+        )
+
+    out_of_bounds_numbers = [
+        channel_number
+        for channel_number in channel_numbers
+        if not 1 <= channel_number <= 16
+    ]
+    if len(out_of_bounds_numbers) > 0:
+        raise ValueError(
+            f"channel number(s) {out_of_bounds_numbers} are outside the allowed interval [1,16]"
+        )
 
 
 # cache returned class objects to
 # avoid building redundant classes
 @functools.lru_cache(100)
-def build_detector_class(channel_count, roi_count, parent_classes=None):
-    """Build an Xspress3 detector class with the specified number of channels and rois.
+def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classes=None):
+    """Build an Xspress3 detector class with the specified channel and roi numbers.
 
     The complication of using dynamically generated detector classes
     is the price for being able to easily specify the exact number of
     channels and ROIs per channel present on the detector.
 
     Detector classes generated by this function include these "soft" signals
-    which are not part of the Xspress3 IOC but are used by the Xspress3FileStore:
+    which are not part of the Xspress3 IOC but are used by Xspress3FileStore:
         external_trig
         total_points
         spectra_per_point
@@ -501,45 +590,65 @@ def build_detector_class(channel_count, roi_count, parent_classes=None):
 
     Parameters
     ----------
-    channel_count: int
-        number of channels for the detector, 1-16
-    roi_count: int
-        number of ROIs per channel, 1-48
-    parent_classes: list-like, optional
-        list of parent classes for the generated detector class to be
-        included with ophyd.areadetector.Xspress3Detector
+    channel_numbers: Sequence of int
+        sequence of channel numbers for the detector, 1-16
+    mcaroi_numbers: Sequence of int
+        sequence of MCAROI numbers for each channel, 1-48
+    detector_parent_classes: list-like, optional
+        in addition to ophyd.areadetector.Xspress3Detector these
+        classes will be parents of the generated detector class
 
     Returns
     -------
     a dynamically generated class similar to this:
-        class Xspress3Detector_4_channel_3roi(Xspress3Detector, SomeMixinClass, ...):
+        class GeneratedXspress3Detector_83d41db4(Xspress3Detector, SomeMixinClass, ...):
             external_trig = Cpt(Signal, value=False)
             total_points = Cpt(Signal, value=-1)
             spectra_per_point = Cpt(Signal, value=1)
             make_directories = Cpt(Signal, value=False)
             rewindable = Cpt(Signal, value=False)
             channels = DDC(...4 Xspress3Channels with 3 ROIs each...)
+
+            def iterate_channels(self):
+                ...
     """
-    if parent_classes is None:
-        parent_classes = []
+    if detector_parent_classes is None:
+        detector_parent_classes = tuple()
+
+    # in case channel_numbers can be iterated only once, create a tuple
+    channel_numbers = tuple([channel_number for channel_number in channel_numbers])
+
+    # in case the mcaroi_numbers parameter can be iterated only once, create a tuple
+    mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers])
 
     channel_name_re = re.compile(r"channel_\d{1,2}")
 
-    def get_channels(self):
+    # this function will become a method of the generated detector class
+    def iterate_channels(self):
         """
         Iterate over channel objects found on the channels attribute.
 
         Yields
         ------
-          Channel object name, Channel object
+        Channel object name, Channel object
         """
         for signal_name, signal in self.channels._signals.items():
             if channel_name_re.match(signal_name):
                 yield signal_name, signal
 
+    # rather than build the channel numbers and mcaroi numbers directly in to
+    # the name of the generated class use shake.hexdigest(4) for a short, unique-ish,
+    # reproducible class name suffix based on all the parameters used to generate
+    # the detector class
+    shaker = hashlib.shake_128()
+    shaker.update(
+        f"{channel_numbers}+{mcaroi_numbers}+{detector_parent_classes}".encode()
+    )
+    detector_class_suffix = shaker.hexdigest(4)
+
     return type(
-        f"Xspress3Detector_{channel_count}channel_{roi_count}roi",
-        (Xspress3Detector, *parent_classes),
+        f"GeneratedXspress3Detector_{detector_class_suffix}",
+        (Xspress3Detector, *detector_parent_classes),
         {
             "external_trig": Cpt(Signal, value=False, doc="Use external triggering"),
             "total_points": Cpt(
@@ -558,17 +667,19 @@ def build_detector_class(channel_count, roi_count, parent_classes=None):
                 defn=OrderedDict(
                     {
                         f"channel_{c}": (
-                            build_channel_class(channel_num=c, roi_count=roi_count),
+                            build_channel_class(
+                                channel_number=c, mcaroi_numbers=mcaroi_numbers
+                            ),
                             # there is no discrete Xspress3 channel prefix
                             # so specify an empty string here
                             "",
                             dict(),
                         )
-                        for c in range(1, channel_count + 1)
+                        for c in channel_numbers
                     }
                 )
             ),
-            "get_channels": get_channels,
+            "iterate_channels": iterate_channels,
         },
     )
 
