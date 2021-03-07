@@ -732,8 +732,8 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
     mcaroi_numbers: Sequence of int
         sequence of MCAROI numbers for each channel, 1-48
     detector_parent_classes: list-like, optional
-        in addition to ophyd.areadetector.Xspress3Detector these
-        classes will be parents of the generated detector class
+        sequence of all parent classes for the generated detector class,
+        by default the only parent is ophyd.areadetector.Xspress3Detector
 
     Returns
     -------
@@ -750,7 +750,7 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
                 ...
     """
     if detector_parent_classes is None:
-        detector_parent_classes = tuple()
+        detector_parent_classes = tuple([Xspress3Detector])
 
     # in case channel_numbers can be iterated only once, create a tuple
     channel_numbers = tuple([channel_number for channel_number in channel_numbers])
@@ -758,7 +758,7 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
     # in case the mcaroi_numbers parameter can be iterated only once, create a tuple
     mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers])
 
-    channel_name_re = re.compile(r"channel_\d{1,2}")
+    channel_attr_name_re = re.compile(r"channel\d{2}")
 
     # this function will become a method of the generated detector class
     def iterate_channels(self):
@@ -767,11 +767,12 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
 
         Yields
         ------
-        Channel object name, Channel object
+        Channel attribute name, Channel object
         """
-        for signal_name, signal in self.channels._signals.items():
-            if channel_name_re.match(signal_name):
-                yield signal_name, signal
+
+        for channel_attr_name in self.channels.__dir__():
+            if channel_attr_name_re.match(channel_attr_name):
+                yield channel_attr_name, getattr(self.channels, channel_attr_name)
 
     # rather than build the channel numbers and mcaroi numbers directly in to
     # the name of the generated class use shake.hexdigest(4) for a short, unique-ish,
@@ -785,7 +786,7 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
 
     return type(
         f"GeneratedXspress3Detector_{detector_class_suffix}",
-        (Xspress3Detector, *detector_parent_classes),
+        detector_parent_classes,
         {
             "external_trig": Cpt(Signal, value=False, doc="Use external triggering"),
             "total_points": Cpt(
@@ -803,11 +804,12 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
             "channels": DynamicDeviceCpt(
                 defn=OrderedDict(
                     {
-                        f"channel_{c}": (
+                        f"channel{c:02d}": (
                             build_channel_class(
                                 channel_number=c, mcaroi_numbers=mcaroi_numbers
                             ),
-                            # there is no discrete Xspress3 channel prefix
+                            # there is no discrete channel prefix
+                            # for the Xspress3 IOC
                             # so specify an empty string here
                             "",
                             dict(),
