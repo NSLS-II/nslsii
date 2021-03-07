@@ -694,9 +694,7 @@ def _validate_channel_numbers(channel_numbers):
         if not isinstance(channel_number, int)
     ]
     if len(non_integer_values) > 0:
-        raise ValueError(
-            f"channel number(s) {non_integer_values} are not integers"
-        )
+        raise ValueError(f"channel number(s) {non_integer_values} are not integers")
 
     out_of_bounds_numbers = [
         channel_number
