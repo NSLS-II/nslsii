@@ -63,7 +63,7 @@ def test_xspress3_filestore(tmpdir):
     class SimulatedXspress3Detector(Device):
         hdf5plugin = Component(
             Xspress3FileStore,
-            "HDF5:",
+            "HDF1:",
             read_path_template="/read/path/template/",
             write_path_template="/write/path/template/",
             root=tmpdir,
@@ -151,8 +151,8 @@ def test_build_channel_class():
     """
     channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2, 3))
 
-    assert hasattr(channel_class, "channel_num")
-    assert getattr(channel_class, "channel_num") == 2
+    assert hasattr(channel_class, "channel_number")
+    assert getattr(channel_class, "channel_number") == 2
 
     assert hasattr(channel_class, "sca")
     assert hasattr(channel_class, "mca")
@@ -193,7 +193,36 @@ def test_instantiate_channel_class():
     assert channel_2.mcarois.mcaroi48.total_rbv.pvname == "Xsp3:MCA2ROI:48:Total_RBV"
 
 
-def test_get_mcarois():
+def test_get_mcaroi():
+    channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2))
+    channel02 = channel_class(prefix="Xsp3:", name="channel02")
+
+    mcaroi01 = channel02.get_mcaroi(number=1)
+    assert mcaroi01.total_rbv.pvname == "Xsp3:MCA2ROI:1:Total_RBV"
+
+    mcaroi02 = channel02.get_mcaroi(number=2)
+    assert mcaroi02.total_rbv.pvname == "Xsp3:MCA2ROI:2:Total_RBV"
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("no MCAROI on channel 2 with prefix 'Xsp3:' has number 3"),
+    ):
+        channel02.get_mcaroi(number=3)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("MCAROI numbers include non-integer values: [1.0]"),
+    ):
+        channel02.get_mcaroi(number=1.0)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("MCAROI numbers [0] are outside the allowed interval [1,48]"),
+    ):
+        channel02.get_mcaroi(number=0)
+
+
+def test_iterate_mcarois():
     channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2))
     channel_2 = channel_class(prefix="Xsp3:", name="channel_2")
 
@@ -205,14 +234,18 @@ def test_validate_mcaroi_numbers():
     # channel number is too low
     with pytest.raises(
         ValueError,
-        match=re.escape("channel number(s) [0] are outside the allowed interval [1,16]"),
+        match=re.escape(
+            "channel number(s) [0] are outside the allowed interval [1,16]"
+        ),
     ):
         build_channel_class(channel_number=0, mcaroi_numbers=())
 
     # channel number is too high
     with pytest.raises(
         ValueError,
-        match=re.escape("channel number(s) [17] are outside the allowed interval [1,16]"),
+        match=re.escape(
+            "channel number(s) [17] are outside the allowed interval [1,16]"
+        ),
     ):
         build_channel_class(channel_number=17, mcaroi_numbers=())
 
@@ -234,14 +267,15 @@ def test_build_detector_class():
     assert Xspress3Detector in detector_class.__mro__
     assert hasattr(detector_class, "channels")
 
-    # there should be 3 channel attributes: channel_1, channel_2, channel_3
-    expected_channel_attr_names = {f"channel_{channel_i}" for channel_i in (1, 2, 3)}
+    # there should be 3 channel attributes: channel01, channel02, channel03
+    expected_channel_attr_names = {f"channel{channel_i:02d}" for channel_i in (1, 2, 3)}
 
+    channel_attr_name_re = re.compile(r"channel\d{2}")
     # there should be no other channel_n attributes
     all_channel_attr_names = {
         attr_name
         for attr_name in detector_class.channels.__dir__()
-        if attr_name.startswith("channel_")
+        if channel_attr_name_re.match(attr_name)
     }
 
     assert expected_channel_attr_names == all_channel_attr_names
@@ -254,66 +288,70 @@ def test_instantiate_detector_class():
     """
 
     # use this to test detector_parent_classes
-    class ParentClass:
+    class AnotherParentClass:
         pass
 
     detector_class = build_detector_class(
         channel_numbers=(14, 15, 16),
         mcaroi_numbers=(47, 48),
-        detector_parent_classes=(ParentClass,),
+        detector_parent_classes=(
+            Xspress3Detector,
+            AnotherParentClass,
+        ),
     )
-    assert ParentClass in detector_class.__mro__
+    assert Xspress3Detector in detector_class.__mro__
+    assert AnotherParentClass in detector_class.__mro__
 
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
     assert (
-        detector.channels.channel_14.sca.clock_ticks.pvname == "Xsp3:C14SCA:0:Value_RBV"
+        detector.channels.channel14.sca.clock_ticks.pvname == "Xsp3:C14SCA:0:Value_RBV"
     )
     assert (
-        detector.channels.channel_14.mca_sum.array_data.pvname
+        detector.channels.channel14.mca_sum.array_data.pvname
         == "Xsp3:MCASUM14:ArrayData"
     )
-    assert detector.channels.channel_14.mca.array_data.pvname == "Xsp3:MCA14:ArrayData"
+    assert detector.channels.channel14.mca.array_data.pvname == "Xsp3:MCA14:ArrayData"
     assert (
-        detector.channels.channel_14.mcarois.mcaroi47.total_rbv.pvname
+        detector.channels.channel14.mcarois.mcaroi47.total_rbv.pvname
         == "Xsp3:MCA14ROI:47:Total_RBV"
     )
     assert (
-        detector.channels.channel_14.mcarois.mcaroi48.total_rbv.pvname
+        detector.channels.channel14.mcarois.mcaroi48.total_rbv.pvname
         == "Xsp3:MCA14ROI:48:Total_RBV"
     )
 
     assert (
-        detector.channels.channel_15.sca.clock_ticks.pvname == "Xsp3:C15SCA:0:Value_RBV"
+        detector.channels.channel15.sca.clock_ticks.pvname == "Xsp3:C15SCA:0:Value_RBV"
     )
     assert (
-        detector.channels.channel_15.mca_sum.array_data.pvname
+        detector.channels.channel15.mca_sum.array_data.pvname
         == "Xsp3:MCASUM15:ArrayData"
     )
-    assert detector.channels.channel_15.mca.array_data.pvname == "Xsp3:MCA15:ArrayData"
+    assert detector.channels.channel15.mca.array_data.pvname == "Xsp3:MCA15:ArrayData"
     assert (
-        detector.channels.channel_15.mcarois.mcaroi47.total_rbv.pvname
+        detector.channels.channel15.mcarois.mcaroi47.total_rbv.pvname
         == "Xsp3:MCA15ROI:47:Total_RBV"
     )
     assert (
-        detector.channels.channel_15.mcarois.mcaroi48.total_rbv.pvname
+        detector.channels.channel15.mcarois.mcaroi48.total_rbv.pvname
         == "Xsp3:MCA15ROI:48:Total_RBV"
     )
 
     assert (
-        detector.channels.channel_16.sca.clock_ticks.pvname == "Xsp3:C16SCA:0:Value_RBV"
+        detector.channels.channel16.sca.clock_ticks.pvname == "Xsp3:C16SCA:0:Value_RBV"
     )
     assert (
-        detector.channels.channel_16.mca_sum.array_data.pvname
+        detector.channels.channel16.mca_sum.array_data.pvname
         == "Xsp3:MCASUM16:ArrayData"
     )
-    assert detector.channels.channel_16.mca.array_data.pvname == "Xsp3:MCA16:ArrayData"
+    assert detector.channels.channel16.mca.array_data.pvname == "Xsp3:MCA16:ArrayData"
     assert (
-        detector.channels.channel_16.mcarois.mcaroi47.total_rbv.pvname
+        detector.channels.channel16.mcarois.mcaroi47.total_rbv.pvname
         == "Xsp3:MCA16ROI:47:Total_RBV"
     )
     assert (
-        detector.channels.channel_16.mcarois.mcaroi48.total_rbv.pvname
+        detector.channels.channel16.mcarois.mcaroi48.total_rbv.pvname
         == "Xsp3:MCA16ROI:48:Total_RBV"
     )
 
