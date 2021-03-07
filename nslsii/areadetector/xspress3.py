@@ -374,8 +374,37 @@ class McaRoi(ADBase):
 
     use = Cpt(SignalWithRBV, "Use")
 
+    def configure_mcaroi(self, *, min_x, size_x, roi_name=None, use=True):
+        """
+        Configure the details of an MCAROI.
+
+        Parameters
+        ----------
+        min_x: int
+            the starting bin? for the roi
+        size_x: int
+            the width in bins? for the roi
+        roi_name: str, optional
+        use: bool, defaults to True
+        """
+
+        logger.debug(
+            "configuring Xspress3 MCAROI '%s': name '%s' min_x '%d' size_x '%d' use '%s'",
+            self.prefix,
+            roi_name,
+            min_x,
+            size_x,
+            use,
+        )
+        self.min_x.put(int(min_x))
+        self.size_x.put(int(size_x))
+        if roi_name:
+            self.roi_name.put(roi_name)
+        self.use.put(use)
+
+    # remove in favor of configure_mcaroi
     def configure_roi(self, ev_min, ev_size):
-        """Configure the ROI with min and size eV
+        """Configure the MCAROI with min and size eV
 
         Parameters
         ----------
