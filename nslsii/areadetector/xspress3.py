@@ -32,35 +32,37 @@ from ..detectors.utils import makedirs
 logger = logging.getLogger(__name__)
 
 
-def ev_to_bin(ev):
-    """Convert eV to bin number"""
-    return int(ev / 10)
-
-
-def bin_to_ev(bin_):
-    """Convert bin number to eV"""
-    return int(bin_) * 10
-
-
-class EvSignal(DerivedSignal):
-    """A signal that converts a bin number into electron volts"""
-
-    def __init__(self, parent_attr, *, parent=None, **kwargs):
-        bin_signal = getattr(parent, parent_attr)
-        super().__init__(derived_from=bin_signal, parent=parent, **kwargs)
-
-    def get(self, **kwargs):
-        bin_ = super().get(**kwargs)
-        return bin_to_ev(bin_)
-
-    def put(self, ev_value, **kwargs):
-        bin_value = ev_to_bin(ev_value)
-        return super().put(bin_value, **kwargs)
-
-    def describe(self):
-        desc = super().describe()
-        desc[self.name]["units"] = "eV"
-        return desc
+# are these used?
+#
+# def ev_to_bin(ev):
+#     """Convert eV to bin number"""
+#     return int(ev / 10)
+#
+#
+# def bin_to_ev(bin_):
+#     """Convert bin number to eV"""
+#     return int(bin_) * 10
+#
+#
+# class EvSignal(DerivedSignal):
+#     """A signal that converts a bin number into electron volts"""
+#
+#     def __init__(self, parent_attr, *, parent=None, **kwargs):
+#         bin_signal = getattr(parent, parent_attr)
+#         super().__init__(derived_from=bin_signal, parent=parent, **kwargs)
+#
+#     def get(self, **kwargs):
+#         bin_ = super().get(**kwargs)
+#         return bin_to_ev(bin_)
+#
+#     def put(self, ev_value, **kwargs):
+#         bin_value = ev_to_bin(ev_value)
+#         return super().put(bin_value, **kwargs)
+#
+#     def describe(self):
+#         desc = super().describe()
+#         desc[self.name]["units"] = "eV"
+#         return desc
 
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
