@@ -474,54 +474,58 @@ class Sca(ADBase):
     dt_percent = Cpt(EpicsSignalRO, "10:Value_RBV")
 
 
-class Xspress3ChannelBase(ADBase):
-    """"""
-
-    roi_name_format = "Det{self.channel_num}_{roi_name}"
-    roi_total_name_format = "Det{self.channel_num}_{roi_name}_total"
-
-    def __init__(self, prefix, *args, **kwargs):
-        super().__init__(prefix, *args, **kwargs)
-
-    def set_roi(self, index_or_roi, *, ev_min, ev_size, name=None):
-        """Configure MCAROI with energy range and optionally name.
-
-        Parameters
-        ----------
-        index_or_roi : int
-            The roi index or instance to set
-        ev_min : int
-            low eV setting
-        ev_size : int
-            roi width eV setting
-        name : str, optional
-            The unformatted ROI name to set. Each channel specifies its own
-            `roi_name_format` and `roi_sum_name_format` in which the name
-            parameter will get expanded.
-        """
-        if isinstance(index_or_roi, McaRoi):
-            roi = index_or_roi
-        else:
-            if index_or_roi <= 0:
-                raise ValueError("MCAROI index starts from 1")
-            roi = getattr(self.mcarois, f"mcaroi{index_or_roi:02d}")
-
-        roi.configure_roi(ev_min, ev_size)
-
-        if name is not None:
-            roi_name = self.roi_name_format.format(self=self, roi_name=name)
-            roi.roi_name.name = roi_name
-            roi.total_rbv.name = self.roi_total_name_format.format(
-                self=self, roi_name=roi_name
-            )
-            # apply the ophyd name to the PV roi_name
-            # this is new behavior
-            roi.roi_name.put(roi_name)
-
-    def clear_all_rois(self):
-        """Clear all ROIs"""
-        for roi in self.mca_rois:
-            roi.clear()
+# moved this into the build_channel_class function
+# class Xspress3ChannelBase(ADBase):
+#     """"""
+#
+#     roi_name_format = "Det{self.channel_number}_{roi_name}"
+#     roi_total_name_format = "Det{self.channel_number}_{roi_name}_total"
+#
+#     def __init__(self, prefix, *args, **kwargs):
+#         super().__init__(prefix, *args, **kwargs)
+#
+#     #
+#     # instead use channels.channelNN.get_mcaroi().configure_roi(...)
+#     #
+#     # def set_roi(self, index_or_roi, *, ev_min, ev_size, name=None):
+#     #     """Configure MCAROI with energy range and optionally name.
+#     #
+#     #     Parameters
+#     #     ----------
+#     #     index_or_roi : int
+#     #         The roi index or instance to set
+#     #     ev_min : int
+#     #         low eV setting
+#     #     ev_size : int
+#     #         roi width eV setting
+#     #     name : str, optional
+#     #         The unformatted ROI name to set. Each channel specifies its own
+#     #         `roi_name_format` and `roi_sum_name_format` in which the name
+#     #         parameter will get expanded.
+#     #     """
+#     #     if isinstance(index_or_roi, McaRoi):
+#     #         roi = index_or_roi
+#     #     else:
+#     #         if index_or_roi <= 0:
+#     #             raise ValueError("MCAROI index starts from 1")
+#     #         roi = getattr(self.mcarois, f"mcaroi{index_or_roi:02d}")
+#     #
+#     #     roi.configure_roi(ev_min, ev_size)
+#     #
+#     #     if name is not None:
+#     #         roi_name = self.roi_name_format.format(self=self, roi_name=name)
+#     #         roi.roi_name.name = roi_name
+#     #         roi.total_rbv.name = self.roi_total_name_format.format(
+#     #             self=self, roi_name=roi_name
+#     #         )
+#     #         # apply the ophyd name to the PV roi_name
+#     #         # this is new behavior
+#     #         roi.roi_name.put(roi_name)
+#
+#     # def clear_all_rois(self):
+#     #     """Clear all ROIs"""
+#     #     for mcaroi in self.iterate_mcarois():
+#     #         mcaroi.clear()
 
 
 def _validate_mcaroi_numbers(mcaroi_numbers):
@@ -576,8 +580,8 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     mcaroi_numbers: Sequence of int
          sequence of MCAROI numbers, allowed values are 1-48
     channel_parent_classes: list-like, optional
-        in addition to nslsii.areadetector.xspress3.Xspress3ChannelBase these
-        classes will be parents of the generated channel class
+        sequence of all parent classes for the generated channel class,
+        by default the only parent is ophyd.areadetector.ADBase
 
     Returns
     -------
