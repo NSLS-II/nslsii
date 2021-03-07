@@ -586,21 +586,25 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     Returns
     -------
     a dynamically generated class similar to this:
-        class GeneratedXspress3Channel_94e52ec5(Xspress3ChannelBase):
+        class GeneratedXspress3Channel_94e52ec5(ADBase):
             channel_num = 2
             sca = Cpt(Sca, ...)
             mca = Cpt(Mca, ...)
             mca_sum = Cpt(McaSum, ...)
             mcarois = DDC(...4 McaRois...)
 
+            def get_mcaroi(self, *, number):
+                ...
             def iterate_mcarois(self):
+                ...
+            def clear_all_rois(self):
                 ...
 
     """
     if channel_parent_classes is None:
-        channel_parent_classes = []
+        channel_parent_classes = tuple([ADBase])
 
-    _validate_channel_numbers(channel_numbers=(channel_number, ))
+    _validate_channel_numbers(channel_numbers=(channel_number,))
 
     # create a tuple in case the mcaroi_numbers parameter can be iterated only once
     mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers])
@@ -608,10 +612,20 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
+    def get_mcaroi(self, *, number):
+        _validate_mcaroi_numbers((number,))
+        try:
+            return getattr(self.mcarois, f"mcaroi{number:02d}")
+        except AttributeError as ae:
+            raise ValueError(
+                f"no MCAROI on channel {self.channel_number} "
+                f"with prefix '{self.prefix}' has number {number}"
+            ) from ae
+
     # this function will become a method of the generated channel class
     def iterate_mcarois(self):
         """
-        Iterate over MCAROI children of the Xspress3Channel.mcarois attribute.
+        Iterate over McaRoi children of the Xspress3Channel.mcarois attribute.
 
         Yields
         ------
@@ -621,18 +635,23 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
             if mcaroi_name_re.match(mcaroi_name):
                 yield mcaroi_name, mcaroi
 
+    def clear_all_rois(self):
+        """Clear all MCAROIs"""
+        for mcaroi in self.iterate_mcarois():
+            mcaroi.clear()
+
     # rather than build the mcaroi numbers directly in to the name of the
     # generated class use shake.hexdigest(4) for a short, unique-ish, reproducible
     # class name suffix based on all the parameters used to generate the channel class
     shake = hashlib.shake_128()
-    shake.update(f"{mcaroi_numbers}".encode())
+    shake.update(f"{channel_number}+{mcaroi_numbers}+{channel_parent_classes}".encode())
     channel_class_suffix = shake.hexdigest(4)
 
     return type(
         f"GeneratedXspress3Channel_{channel_class_suffix}",
-        (Xspress3ChannelBase, *channel_parent_classes),
+        channel_parent_classes,
         {
-            "channel_num": channel_number,
+            "channel_number": channel_number,
             "sca": Cpt(Sca, f"C{channel_number}SCA:"),
             "mca": Cpt(Mca, f"MCA{channel_number}:"),
             "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
@@ -641,7 +660,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
                     {
                         f"mcaroi{mcaroi_i:02d}": (
                             McaRoi,
-                            # MCAROI PV names look like "MCA1ROI:2:"
+                            # MCAROI PV suffixes look like "MCA1ROI:2:"
                             f"MCA{channel_number}ROI:{mcaroi_i:d}:",
                             # no keyword parameters
                             dict(),
@@ -650,7 +669,9 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
                     }
                 )
             ),
+            "get_mcaroi": get_mcaroi,
             "iterate_mcarois": iterate_mcarois,
+            "clear_all_rois": clear_all_rois,
         },
     )
 
