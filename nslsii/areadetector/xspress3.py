@@ -357,7 +357,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
 # start new IOC classes
 # are these general areadetector plugins?
-# but for now they are being used just for xspress3
+# for now they are being used just for xspress3
 class Mca(ADBase):
     array_data = Cpt(EpicsSignal, "ArrayData")
 
