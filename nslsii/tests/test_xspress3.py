@@ -197,29 +197,29 @@ def test_get_mcaroi():
     channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2))
     channel02 = channel_class(prefix="Xsp3:", name="channel02")
 
-    mcaroi01 = channel02.get_mcaroi(number=1)
+    mcaroi01 = channel02.get_mcaroi(mcaroi_number=1)
     assert mcaroi01.total_rbv.pvname == "Xsp3:MCA2ROI:1:Total_RBV"
 
-    mcaroi02 = channel02.get_mcaroi(number=2)
+    mcaroi02 = channel02.get_mcaroi(mcaroi_number=2)
     assert mcaroi02.total_rbv.pvname == "Xsp3:MCA2ROI:2:Total_RBV"
 
     with pytest.raises(
         ValueError,
         match=re.escape("no MCAROI on channel 2 with prefix 'Xsp3:' has number 3"),
     ):
-        channel02.get_mcaroi(number=3)
+        channel02.get_mcaroi(mcaroi_number=3)
 
     with pytest.raises(
         ValueError,
         match=re.escape("MCAROI numbers include non-integer values: [1.0]"),
     ):
-        channel02.get_mcaroi(number=1.0)
+        channel02.get_mcaroi(mcaroi_number=1.0)
 
     with pytest.raises(
         ValueError,
         match=re.escape("MCAROI numbers [0] are outside the allowed interval [1,48]"),
     ):
-        channel02.get_mcaroi(number=0)
+        channel02.get_mcaroi(mcaroi_number=0)
 
 
 def test_iterate_mcarois():
