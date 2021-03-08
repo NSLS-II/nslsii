@@ -759,7 +759,17 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
 
     channel_attr_name_re = re.compile(r"channel\d{2}")
 
-    # this function will become a method of the generated detector class
+    # these functions will become methods of the generated detector class
+    def get_channel(self, *, channel_number):
+        _validate_channel_numbers((channel_number,))
+        try:
+            return getattr(self.channels, f"channel{channel_number:02d}")
+        except AttributeError as ae:
+            raise ValueError(
+                f"no channel on detector with prefix '{self.prefix}' "
+                f"has number {channel_number}"
+            ) from ae
+
     def iterate_channels(self):
         """
         Iterate over channel objects found on the channels attribute.
@@ -817,6 +827,7 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
                     }
                 )
             ),
+            "get_channel": get_channel,
             "iterate_channels": iterate_channels,
         },
     )
