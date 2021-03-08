@@ -830,6 +830,7 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
                     }
                 )
             ),
+            "get_channel_count": get_channel_count,
             "get_channel": get_channel,
             "iterate_channels": iterate_channels,
         },
