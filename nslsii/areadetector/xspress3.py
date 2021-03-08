@@ -760,6 +760,9 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
     channel_attr_name_re = re.compile(r"channel\d{2}")
 
     # these functions will become methods of the generated detector class
+    def get_channel_count(self):
+        return len(channel_numbers)
+
     def get_channel(self, *, channel_number):
         _validate_channel_numbers((channel_number,))
         try:

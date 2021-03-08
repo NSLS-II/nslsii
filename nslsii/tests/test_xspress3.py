@@ -356,6 +356,13 @@ def test_instantiate_detector_class():
     )
 
 
+def test_get_channel_count():
+    detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
+    detector = detector_class(prefix="Xsp3:", name="xs3")
+
+    assert detector.get_channel_count() == 2
+
+
 def test_get_channel():
     detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
     detector = detector_class(prefix="Xsp3:", name="xs3")
