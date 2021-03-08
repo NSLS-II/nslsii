@@ -612,14 +612,14 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
     # these functions will become methods of the generated channel class
-    def get_mcaroi(self, *, number):
-        _validate_mcaroi_numbers((number,))
+    def get_mcaroi(self, *, mcaroi_number):
+        _validate_mcaroi_numbers((mcaroi_number,))
         try:
-            return getattr(self.mcarois, f"mcaroi{number:02d}")
+            return getattr(self.mcarois, f"mcaroi{mcaroi_number:02d}")
         except AttributeError as ae:
             raise ValueError(
                 f"no MCAROI on channel {self.channel_number} "
-                f"with prefix '{self.prefix}' has number {number}"
+                f"with prefix '{self.prefix}' has number {mcaroi_number}"
             ) from ae
 
     def iterate_mcarois(self):
