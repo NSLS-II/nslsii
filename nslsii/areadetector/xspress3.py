@@ -134,9 +134,9 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         # JL: what are mds_keys?
         self.mds_keys = {
             channel.channel_number: mds_key_format.format(
-                self=self, chan=channel.channel_number
+                self=self, channel_number=channel.channel_number
             )
-            for channel in parent.iterate_channels()
+            for _, channel in parent.iterate_channels()
         }
 
     def stop(self, success=False):
