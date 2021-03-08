@@ -244,14 +244,14 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         )
 
     def stage(self):
-        logger.debug("Stopping acquisition for xspress3 '%s'", self.parent.prefix)
+        logger.debug("staging Xspress3 '%s'", self.parent.prefix)
         # really force it to stop acquiring
         self.parent.cam.acquire.put(0, wait=True)
 
         total_points_reading = self.parent.total_points.get()
         if total_points_reading < 1:
             raise RuntimeError(
-                f"You must set total_points for Xspress3 {self.parent.prefix}"
+                f"total_points must be set for Xspress3 '{self.parent.prefix}'"
             )
         spectra_per_point_reading = self.parent.spectra_per_point.get()
         total_capture = total_points_reading * spectra_per_point_reading
@@ -261,13 +261,12 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         # re-order the stage signals and disable the calc record which is
         # interfering with the capture count
+        # JL: can we get rid of num_capture_calc_disable?
         self.stage_sigs.pop(self.num_capture, None)
         self.stage_sigs.pop(self.parent.cam.num_images, None)
         self.stage_sigs[self.num_capture_calc_disable] = 1
 
-        # if should external trigger
         external_trig_reading = self.parent.external_trig.get()
-
         if external_trig_reading:
             logger.debug(
                 "Xspress3 '%s' will be triggered externally", self.parent.prefix
@@ -279,14 +278,15 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                 "Xspress3 '%s' will be triggered internally", self.parent.prefix
             )
             self.stage_sigs[self.parent.cam.trigger_mode] = "Internal"
-            # JL: this looks wrong - why not total_capture as above?
+            # JL: why not total_capture as above?
             self.stage_sigs[self.parent.cam.num_images] = spectra_per_point_reading
 
         self.stage_sigs[self.auto_save] = "No"
 
         filename, read_path, write_path = self.make_filename()
         logger.debug(
-            "read path: '%s' write path: '%s' filename: '%s'",
+            "xspress3 '%s' read path: '%s' write path: '%s' filename: '%s'",
+            self.parent.prefix,
             read_path,
             write_path,
             filename,
@@ -611,6 +611,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
+    # these functions will become methods of the generated channel class
     def get_mcaroi(self, *, number):
         _validate_mcaroi_numbers((number,))
         try:
@@ -621,7 +622,6 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
                 f"with prefix '{self.prefix}' has number {number}"
             ) from ae
 
-    # this function will become a method of the generated channel class
     def iterate_mcarois(self):
         """
         Iterate over McaRoi children of the Xspress3Channel.mcarois attribute.
@@ -639,10 +639,10 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
         for mcaroi in self.iterate_mcarois():
             mcaroi.clear()
 
-    # rather than build the mcaroi numbers directly in to the name of the
+    # rather than build the mcaroi numbers directly into the name of the
     # generated class use shake.hexdigest(4) for a short, unique-ish, reproducible
     # class name suffix based on all the parameters used to generate the channel class
-    shake = hashlib.shake_128()
+    shake = hashlib.shake_256()
     shake.update(f"{channel_number}+{mcaroi_numbers}+{channel_parent_classes}".encode())
     channel_class_suffix = shake.hexdigest(4)
 
