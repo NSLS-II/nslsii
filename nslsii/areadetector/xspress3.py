@@ -840,7 +840,7 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
 # end new IOC classes
 
 
-class XspressTrigger(BlueskyInterface):
+class Xspress3Trigger(BlueskyInterface):
     """Base class for trigger mixin classes
 
     Subclasses must define a method with this signature:
