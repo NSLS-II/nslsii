@@ -6,11 +6,10 @@ import re
 import time
 
 from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
-from ophyd import Signal, EpicsSignal, EpicsSignalRO, DerivedSignal
+from ophyd import Signal, EpicsSignal, EpicsSignalRO
 
 from ophyd import (
     Component as Cpt,
-    FormattedComponent as FC,  # noqa: F401
     DynamicDeviceComponent as DynamicDeviceCpt,
 )
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
