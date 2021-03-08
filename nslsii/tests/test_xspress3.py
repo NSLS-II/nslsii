@@ -356,7 +356,38 @@ def test_instantiate_detector_class():
     )
 
 
-def test_get_channels():
+def test_get_channel():
+    detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
+    detector = detector_class(prefix="Xsp3:", name="xs3")
+
+    channel03 = detector.get_channel(channel_number=3)
+    assert channel03.mcarois.mcaroi04.total_rbv.pvname == "Xsp3:MCA3ROI:4:Total_RBV"
+
+    channel05 = detector.get_channel(channel_number=5)
+    assert channel05.mcarois.mcaroi06.total_rbv.pvname == "Xsp3:MCA5ROI:6:Total_RBV"
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("no channel on detector with prefix 'Xsp3:' has number 2"),
+    ):
+        detector.get_channel(channel_number=2)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("channel number(s) [4.0] are not integers"),
+    ):
+        detector.get_channel(channel_number=4.0)
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "channel number(s) [0] are outside the allowed interval [1,16]"
+        ),
+    ):
+        detector.get_channel(channel_number=0)
+
+
+def test_iterate_channels():
     detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
