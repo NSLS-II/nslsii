@@ -79,7 +79,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         *,
         stage_sleep_time=0.5,
         # JL: what are mds keys?
-        mds_key_format="{self.cam.name}_ch{chan}",
+        mds_key_format="{self.parent.cam.name}_ch{channel_number}",
         # JL: it seems like parent can not be None
         parent,
         **kwargs,
