@@ -64,6 +64,61 @@ logger = logging.getLogger(__name__)
 #         return desc
 
 
+class Xspress3Trigger(BlueskyInterface):
+    """Trigger mixin class for Xspress3Detector classes
+
+    Subclasses may define a method with this signature:
+
+    `acquire_changed(self, value=None, old_value=None, **kwargs)`
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._status = None
+        self._abs_trigger_count = 0
+
+    def stage(self):
+        self._abs_trigger_count = 0
+        self.cam.acquire.subscribe(self._acquire_changed)
+        return super().stage()
+
+    def unstage(self):
+        super_unstage_result = super().unstage()
+        self.cam.acquire.clear_sub(self._acquire_changed)
+        self._status = None
+        return super_unstage_result
+
+    def _acquire_changed(self, value=None, old_value=None, **kwargs):
+        "This is called when the 'acquire' signal changes."
+        if self._status is None:
+            return
+        if (old_value == 1) and (value == 0):
+            # Negative-going edge means an acquisition just finished.
+            # TODO: is there another way to mark the status object as finished?
+            self._status._finished()
+
+    def trigger(self):
+        if self._staged != Staged.yes:
+            raise RuntimeError(
+                "tried to trigger Xspress3 with prefix {self.prefix} but it is not staged"
+            )
+
+        self._status = DeviceStatus(self)
+        self.cam.acquire.put(1, wait=False)
+        trigger_time = time.time()
+
+        # for sn in self.read_attrs:
+        #     if sn.startswith("channel") and "." not in sn:
+        #         ch = getattr(self, sn)
+        #         self.dispatch(ch.name, trigger_time)
+
+        for _, channel in self.iterate_channels():
+            self.dispatch(channel.name, trigger_time)
+
+        self._abs_trigger_count += 1
+        return self._status
+
+
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
     """Xspress3 acquisition -> filestore"""
 
@@ -838,57 +893,3 @@ def build_detector_class(channel_numbers, mcaroi_numbers, detector_parent_classe
 
 
 # end new IOC classes
-
-
-class Xspress3Trigger(BlueskyInterface):
-    """Base class for trigger mixin classes
-
-    Subclasses must define a method with this signature:
-
-    `acquire_changed(self, value=None, old_value=None, **kwargs)`
-    """
-
-    # TODO **
-    # count_time = self.cam.acquire_period
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # settings
-        self._status = None
-        self._acquisition_signal = self.cam.acquire
-        self._abs_trigger_count = 0
-
-    def stage(self):
-        self._abs_trigger_count = 0
-        self._acquisition_signal.subscribe(self._acquire_changed)
-        return super().stage()
-
-    def unstage(self):
-        ret = super().unstage()
-        self._acquisition_signal.clear_sub(self._acquire_changed)
-        self._status = None
-        return ret
-
-    def _acquire_changed(self, value=None, old_value=None, **kwargs):
-        "This is called when the 'acquire' signal changes."
-        if self._status is None:
-            return
-        if (old_value == 1) and (value == 0):
-            # Negative-going edge means an acquisition just finished.
-            self._status._finished()
-
-    def trigger(self):
-        if self._staged != Staged.yes:
-            raise RuntimeError("not staged")
-
-        self._status = DeviceStatus(self)
-        self._acquisition_signal.put(1, wait=False)
-        trigger_time = time.time()
-
-        for sn in self.read_attrs:
-            if sn.startswith("channel") and "." not in sn:
-                ch = getattr(self, sn)
-                self.dispatch(ch.name, trigger_time)
-
-        self._abs_trigger_count += 1
-        return self._status
