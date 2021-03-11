@@ -1,5 +1,4 @@
 from collections import OrderedDict
-import functools
 import hashlib
 import logging
 import re
