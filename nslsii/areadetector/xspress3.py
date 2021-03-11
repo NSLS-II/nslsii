@@ -654,6 +654,9 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
     # these functions will become methods of the generated channel class
+    def get_mcaroi_count(self):
+        return len(mcaroi_numbers)
+
     def get_mcaroi(self, *, mcaroi_number):
         _validate_mcaroi_numbers((mcaroi_number,))
         try:
