@@ -604,9 +604,6 @@ def _validate_mcaroi_number(mcaroi_number):
         pass
 
 
-# cache returned class objects to avoid
-# building redundant classes
-@functools.lru_cache(100)
 def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=None):
     """Build an Xspress3 channel class with the specified channel number and MCAROI numbers.
 
