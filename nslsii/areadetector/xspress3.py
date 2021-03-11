@@ -278,7 +278,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         # if we do not find the channel corresponding to
         # the 'key' parameter then we have a problem
-        for channel in self.parent.iterate_channels():
+        for _, channel in self.parent.iterate_channels():
             if channel.name == key:
                 datum_kwargs.update(
                     {
