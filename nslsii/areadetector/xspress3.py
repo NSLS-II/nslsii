@@ -581,37 +581,27 @@ class Sca(ADBase):
 #     #         mcaroi.clear()
 
 
-def _validate_mcaroi_numbers(mcaroi_numbers):
+def _validate_mcaroi_number(mcaroi_number):
     """
-    Raise ValueError if any MCAROI number is
+    Raise ValueError if the MCAROI number is
      1. not an integer
      2. outside the allowed interval [1,48]
 
     Parameters
     ----------
-    mcaroi_numbers: Sequence
-        MCAROI number candidates
+    mcaroi_number: could be anything
+        MCAROI number candidate
 
     """
-    non_integer_values = [
-        mcaroi_number
-        for mcaroi_number in mcaroi_numbers
-        if not isinstance(mcaroi_number, int)
-    ]
-    if len(non_integer_values) > 0:
+    if not isinstance(mcaroi_number, int):
+        raise ValueError(f"MCAROI number '{mcaroi_number}' is not an integer")
+    elif not 1 <= mcaroi_number <= 48:
         raise ValueError(
-            f"MCAROI numbers include non-integer values: {non_integer_values}"
+            f"MCAROI number '{mcaroi_number}' is outside the allowed interval [1,48]"
         )
-
-    out_of_bounds_numbers = [
-        mcaroi_number
-        for mcaroi_number in mcaroi_numbers
-        if not 1 <= mcaroi_number <= 48
-    ]
-    if len(out_of_bounds_numbers) > 0:
-        raise ValueError(
-            f"MCAROI numbers {out_of_bounds_numbers} are outside the allowed interval [1,48]"
-        )
+    else:
+        # everything is great
+        pass
 
 
 # cache returned class objects to avoid
