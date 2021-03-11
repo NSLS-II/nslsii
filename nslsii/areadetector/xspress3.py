@@ -658,7 +658,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
         return len(mcaroi_numbers)
 
     def get_mcaroi(self, *, mcaroi_number):
-        _validate_mcaroi_numbers((mcaroi_number,))
+        _validate_mcaroi_number(mcaroi_number=mcaroi_number)
         try:
             return getattr(self.mcarois, f"mcaroi{mcaroi_number:02d}")
         except AttributeError as ae:
