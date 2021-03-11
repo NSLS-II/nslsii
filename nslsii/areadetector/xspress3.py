@@ -644,11 +644,12 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     if channel_parent_classes is None:
         channel_parent_classes = tuple([ADBase])
 
-    _validate_channel_numbers(channel_numbers=(channel_number,))
+    _validate_channel_number(channel_number=channel_number)
 
     # create a tuple in case the mcaroi_numbers parameter can be iterated only once
     mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers])
-    _validate_mcaroi_numbers(mcaroi_numbers)
+    for mcaroi_number in mcaroi_numbers:
+        _validate_mcaroi_number(mcaroi_number=mcaroi_number)
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
@@ -716,35 +717,27 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     )
 
 
-def _validate_channel_numbers(channel_numbers):
+def _validate_channel_number(channel_number):
     """
-    Raise ValueError if any channel number is
+    Raise ValueError if the channel number is
      1. not an integer
      2. outside the allowed interval [1,16]
 
     Parameters
     ----------
-    channel_numbers: Sequence
-        channel number candidates
+    channel_number: could be anything
+        channel number candidate
 
     """
-    non_integer_values = [
-        channel_number
-        for channel_number in channel_numbers
-        if not isinstance(channel_number, int)
-    ]
-    if len(non_integer_values) > 0:
-        raise ValueError(f"channel number(s) {non_integer_values} are not integers")
-
-    out_of_bounds_numbers = [
-        channel_number
-        for channel_number in channel_numbers
-        if not 1 <= channel_number <= 16
-    ]
-    if len(out_of_bounds_numbers) > 0:
+    if not isinstance(channel_number, int):
+        raise ValueError(f"channel number '{channel_number}' is not an integer")
+    elif not 1 <= channel_number <= 16:
         raise ValueError(
-            f"channel number(s) {out_of_bounds_numbers} are outside the allowed interval [1,16]"
+            f"channel number '{channel_number}' is outside the allowed interval [1,16]"
         )
+    else:
+        # everything is great
+        pass
 
 
 # cache returned class objects to
