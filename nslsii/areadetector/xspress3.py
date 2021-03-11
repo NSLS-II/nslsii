@@ -120,7 +120,7 @@ class Xspress3Trigger(BlueskyInterface):
 
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
-    """Xspress3 acquisition -> filestore"""
+    """"""
 
     # TODO: these PVs may be obsolete
     num_capture_calc = Cpt(EpicsSignal, "NumCapture_CALC")
@@ -135,7 +135,6 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         stage_sleep_time=0.5,
         # JL: what are mds keys?
         mds_key_format="{self.parent.cam.name}_ch{channel_number}",
-        # JL: it seems like parent can not be None
         parent,
         **kwargs,
     ):
@@ -145,7 +144,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         ----------
         basename:
         stage_sleep_time:
-        mds_key_format: ???
+        mds_key_format: str
         parent: Xspress3Detector, required
         kwargs:
         """
