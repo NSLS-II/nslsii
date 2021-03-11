@@ -681,7 +681,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
     def clear_all_rois(self):
         """Clear all MCAROIs"""
-        for mcaroi in self.iterate_mcarois():
+        for _, mcaroi in self.iterate_mcarois():
             mcaroi.clear()
 
     # rather than build the mcaroi numbers directly into the name of the
@@ -713,6 +713,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
                     }
                 )
             ),
+            "get_mcaroi_count": get_mcaroi_count,
             "get_mcaroi": get_mcaroi,
             "iterate_mcarois": iterate_mcarois,
             "clear_all_rois": clear_all_rois,
