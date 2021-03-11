@@ -7,7 +7,7 @@ import pytest
 
 from bluesky import RunEngine
 from bluesky.plans import count
-from ophyd import Component, Device, DynamicDeviceComponent
+from ophyd import Component, Device, DynamicDeviceComponent, Signal
 from ophyd.areadetector import Xspress3Detector
 from ophyd.sim import SynSignal
 
@@ -193,6 +193,13 @@ def test_instantiate_channel_class():
     assert channel_2.mcarois.mcaroi48.total_rbv.pvname == "Xsp3:MCA2ROI:48:Total_RBV"
 
 
+def test_get_mcaroi_count():
+    detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
+    detector = detector_class(prefix="Xsp3:", name="xs3")
+
+    assert detector.get_channel(channel_number=3).get_mcaroi_count() == 2
+
+
 def test_get_mcaroi():
     channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2))
     channel02 = channel_class(prefix="Xsp3:", name="channel02")
@@ -211,13 +218,13 @@ def test_get_mcaroi():
 
     with pytest.raises(
         ValueError,
-        match=re.escape("MCAROI numbers include non-integer values: [1.0]"),
+        match=re.escape("MCAROI number '1.0' is not an integer"),
     ):
         channel02.get_mcaroi(mcaroi_number=1.0)
 
     with pytest.raises(
         ValueError,
-        match=re.escape("MCAROI numbers [0] are outside the allowed interval [1,48]"),
+        match=re.escape("MCAROI number '0' is outside the allowed interval [1,48]"),
     ):
         channel02.get_mcaroi(mcaroi_number=0)
 
@@ -235,7 +242,7 @@ def test_validate_mcaroi_numbers():
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "channel number(s) [0] are outside the allowed interval [1,16]"
+            "channel number '0' is outside the allowed interval [1,16]"
         ),
     ):
         build_channel_class(channel_number=0, mcaroi_numbers=())
@@ -244,7 +251,7 @@ def test_validate_mcaroi_numbers():
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "channel number(s) [17] are outside the allowed interval [1,16]"
+            "channel number '17' is outside the allowed interval [1,16]"
         ),
     ):
         build_channel_class(channel_number=17, mcaroi_numbers=())
@@ -252,7 +259,7 @@ def test_validate_mcaroi_numbers():
     # channel number is not an integer
     with pytest.raises(
         ValueError,
-        match=re.escape("channel number(s) [1.0] are not integers"),
+        match=re.escape("channel number '1.0' is not an integer"),
     ):
         build_channel_class(channel_number=1.0, mcaroi_numbers=())
 
@@ -356,6 +363,40 @@ def test_instantiate_detector_class():
     )
 
 
+def test_extra_class_members():
+    detector_class = build_detector_class(
+        channel_numbers=(3, 5),
+        mcaroi_numbers=(4, 6),
+        extra_class_members={
+            "ten": 10,
+            "a_signal": Component(Signal, value=0)
+        }
+    )
+
+    assert detector_class.ten == 10
+    assert isinstance(detector_class.a_signal, Component)
+
+    detector = detector_class(prefix="Xsp3:", name="xs3")
+
+    assert detector.ten == 10
+    assert isinstance(detector.a_signal, Signal)
+
+
+def test_extra_class_members_failure():
+    """
+    Do not specify an extra class member with the same
+    name as one of the detector class members.
+    """
+    with pytest.raises(TypeError):
+        detector_class = build_detector_class(
+            channel_numbers=(3, 5),
+            mcaroi_numbers=(4, 6),
+            extra_class_members={
+                "get_channel_count": 10,
+            }
+        )
+
+
 def test_get_channel_count():
     detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
     detector = detector_class(prefix="Xsp3:", name="xs3")
@@ -381,14 +422,14 @@ def test_get_channel():
 
     with pytest.raises(
         ValueError,
-        match=re.escape("channel number(s) [4.0] are not integers"),
+        match=re.escape("channel number '4.0' is not an integer"),
     ):
         detector.get_channel(channel_number=4.0)
 
     with pytest.raises(
         ValueError,
         match=re.escape(
-            "channel number(s) [0] are outside the allowed interval [1,16]"
+            "channel number '0' is outside the allowed interval [1,16]"
         ),
     ):
         detector.get_channel(channel_number=0)
