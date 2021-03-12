@@ -403,7 +403,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         return {
             self.mds_keys[channel.channel_number]: spec_desc
-            for channel in self.parent.iterate_channels()
+            for _, channel in self.parent.iterate_channels()
         }
 
 
