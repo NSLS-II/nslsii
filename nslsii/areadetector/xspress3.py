@@ -97,6 +97,7 @@ class Xspress3Trigger(BlueskyInterface):
             self._status._finished()
 
     def trigger(self):
+        print("trigger called as hoped!")
         if self._staged != Staged.yes:
             raise RuntimeError(
                 "tried to trigger Xspress3 with prefix {self.prefix} but it is not staged"
@@ -246,7 +247,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         ----------
         key: str
             Xspress3 channel 'name', for example:
-              "channel01" ?
+              "xs_channels_channel01"
         timestamp: float
         datum_kwargs: dict
 
@@ -278,9 +279,10 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         # self.mds_keys[n] = key
         # super().generate_datum(key, timestamp, datum_kwargs)
 
-        # if we do not find the channel corresponding to
-        # the `key` parameter then we have a problem
         logger.debug("generate_datum() called with key '%s'", key)
+        # find the channel corresponding to `key`
+        # and create the corresponding datum_kwargs
+        # if we do not find a channel then we have a problem
         for _, channel in self.parent.iterate_channels():
             if channel.name == key:
                 datum_kwargs.update(
