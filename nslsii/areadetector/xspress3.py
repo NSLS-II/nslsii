@@ -64,17 +64,12 @@ logger = logging.getLogger(__name__)
 
 
 class Xspress3Trigger(BlueskyInterface):
-    """Trigger mixin class for Xspress3Detector classes
-
-    Subclasses may define a method with this signature:
-
-    `acquire_changed(self, value=None, old_value=None, **kwargs)`
-    """
+    """Provides functioning stage, unstage, and trigger methods."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._status = None
-        self._abs_trigger_count = 0
+        self._acquire_status = None
+        self._abs_trigger_count = None
 
     def stage(self):
         self._abs_trigger_count = 0
@@ -84,41 +79,55 @@ class Xspress3Trigger(BlueskyInterface):
     def unstage(self):
         super_unstage_result = super().unstage()
         self.cam.acquire.clear_sub(self._acquire_changed)
-        self._status = None
+        self._acquire_status = None
         return super_unstage_result
 
     def _acquire_changed(self, value=None, old_value=None, **kwargs):
-        "This is called when the 'acquire' signal changes."
-        if self._status is None:
+        """Respond to changes in the Xspress3Detector.cam.acquire PV.
+
+        The important behavior of this method is to mark self._acquire_status
+        as `finished` when Xspress3Detector.cam.acquire changes from 1 to 0
+        (high to low).
+
+        Parameters
+        ----------
+        value: int
+            new value of the Xspress3Detector.cam.acquire PV
+        old_value: int
+            previous value of the Xspress3Detector.cam.acquire PV
+        kwargs: dict
+            unused
+
+        Returns
+        -------
+        No return value
+        """
+
+        if self._acquire_status is None:
             return
         if (old_value == 1) and (value == 0):
             # Negative-going edge means an acquisition just finished.
-            # TODO: is there another way to mark the status object as finished? status.set_finished()?
-            self._status._finished()
+            self._acquire_status.set_finished()
 
     def trigger(self):
-        print("trigger called as hoped!")
         if self._staged != Staged.yes:
             raise RuntimeError(
                 "tried to trigger Xspress3 with prefix {self.prefix} but it is not staged"
             )
 
-        self._status = DeviceStatus(self)
+        self._acquire_status = DeviceStatus(self)
         self.cam.acquire.put(1, wait=False)
         trigger_time = time.time()
 
-        # for sn in self.read_attrs:
-        #     if sn.startswith("channel") and "." not in sn:
-        #         ch = getattr(self, sn)
-        #         self.dispatch(ch.name, trigger_time)
-
-        # tell the allied FileStore to do something about each channel's data
-        # by invoking FileStore.generate_datum(key=channel.name, ...)
+        # tell the associated file plugins to do something about
+        # each channel's data by invoking
+        # FileStore.generate_datum(key=channel.name, ...)
         for _, channel in self.iterate_channels():
             self.dispatch(key=channel.name, timestamp=trigger_time)
 
         self._abs_trigger_count += 1
-        return self._status
+
+        return self._acquire_status
 
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
@@ -145,7 +154,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         Parameters
         ----------
         basename:
-        stage_sleep_time:
+        stage_sleep_time: int
+            number of seconds to pause at the end of method stage()
         mds_key_format: str
         parent: Xspress3Detector, required
         kwargs:
@@ -157,33 +167,17 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                 "parent must be an instance of ophyd.areadetector.Xspress3Detector"
             )
 
-        # Use the EpicsSignal file_template from the detector
+        # establish PV values to be set when this detector is staged
+        # and replaced with the original values when it is unstaged
         self.stage_sigs[self.blocking_callbacks] = 1
         self.stage_sigs[self.enable] = 1
         self.stage_sigs[self.compression] = "zlib"
         self.stage_sigs[self.file_template] = "%s%s_%6.6d.h5"
 
-        self._filestore_res = None
-
-        # JL: generating a list of channel numbers
-        # JL: try to replace this with parent.iterate_channels()
-        # self.channels = list(
-        #     range(
-        #         1,
-        #         len([_ for _ in parent.component_names if _.startswith("chan")]) + 1)
-        # )
-
+        # allow for a pause when staging this detector
         self.stage_sleep_time = stage_sleep_time
-        # JL replace the following using parent.iterate_channels()
-        # self.mds_keys = {
-        #     chan:
-        #     mds_key_format.format(
-        #         self=self,
-        #         chan=chan
-        #     )
-        #     for chan
-        #     in self.channels
-        # }
+
+        self._filestore_res = None
         # JL: what are mds_keys?
         self.mds_keys = {
             channel.channel_number: mds_key_format.format(
@@ -193,16 +187,14 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         }
 
     def stop(self, success=False):
-        ret = super().stop(success=success)
+        super_stop_return = super().stop(success=success)
         self.capture.put(0)
-        return ret
+        return super_stop_return
 
     def kickoff(self):
-        # TODO
         raise NotImplementedError()
 
     def collect(self):
-        # TODO (hxn-specific implementation elsewhere)
         raise NotImplementedError()
 
     def make_filename(self):
@@ -210,6 +202,111 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         if self.parent.make_directories.get():
             makedirs(write_path)
         return fn, rp, write_path
+
+    def stage(self):
+        logger.debug("staging Xspress3 '%s'", self.parent.prefix)
+
+        # force the Xspress3 to stop acquiring
+        self.parent.cam.acquire.put(0, wait=True)
+
+        total_points_reading = self.parent.total_points.get()
+        if total_points_reading < 1:
+            raise RuntimeError(
+                f"total_points '{self.parent.total_points.pvname}' must be set"
+            )
+        spectra_per_point_reading = self.parent.spectra_per_point.get()
+        total_capture = total_points_reading * spectra_per_point_reading
+
+        # stop previous acquisition
+        # JL: this was set above, don't set it again
+        # self.stage_sigs[self.parent.cam.acquire] = 0
+
+        # re-order the stage signals and disable the calc record which is
+        # interfering with the capture count
+        # JL: can we get rid of num_capture_calc_disable?
+        # JL: is self.num_capture even in stage_sigs?
+        self.stage_sigs.pop(self.num_capture, None)
+        self.stage_sigs.pop(self.parent.cam.num_images, None)
+        self.stage_sigs[self.num_capture_calc_disable] = 1
+
+        external_trig_reading = self.parent.external_trig.get()
+        if external_trig_reading:
+            logger.debug(
+                "Xspress3 '%s' will be triggered externally", self.parent.prefix
+            )
+            self.stage_sigs[self.parent.cam.trigger_mode] = "TTL Veto Only"
+            self.stage_sigs[self.parent.cam.num_images] = total_capture
+        else:
+            logger.debug(
+                "Xspress3 '%s' will be triggered internally", self.parent.prefix
+            )
+            self.stage_sigs[self.parent.cam.trigger_mode] = "Internal"
+            # JL: why not total_capture as above?
+            self.stage_sigs[self.parent.cam.num_images] = spectra_per_point_reading
+
+        self.stage_sigs[self.auto_save] = "No"
+
+        filename, read_path, write_path = self.make_filename()
+        logger.debug(
+            "xspress3 '%s' read path: '%s' write path: '%s' filename: '%s'",
+            self.parent.prefix,
+            read_path,
+            write_path,
+            filename,
+        )
+
+        logger.debug("erasing old spectra with '%s'", self.parent.cam.erase)
+        self.parent.cam.erase.put(1, wait=True)
+
+        # this must be set after self.parent.cam.num_images because at the EPICS
+        # layer there is a helpful link that sets this equal to that (but
+        # not the other way)
+        # JL: hoping num_capture does not exist on the new IOC
+        self.stage_sigs[self.num_capture] = total_capture
+
+        # apply the stage_sigs values
+        super_stage_result = super().stage()
+
+        self._fn = self.file_template.get() % (
+            self._fp,
+            self.file_name.get(),
+            self.file_number.get(),
+        )
+
+        if not self.file_path_exists.get():
+            raise IOError(f"path '{self.file_path.get()}' does not exist on the IOC")
+
+        logger.debug("inserting the filestore resource: '%s'", self._fn)
+        # JL: calling generate_resource() in stage is usual
+        self._generate_resource({})
+        # JL: the last element of the last element of self._asset_docs_cache
+        #     is the "resource"?
+        # self._asset_docs_cache looks like this:
+        #   [  ("resource", {
+        #         "uid": ,
+        #         "resource-kwargs" : {key-values here go into the spec'd handler __init__}
+        #         "spec": "WHAT KIND OF FILE",
+        #         "root": the start of the path,
+        #         "resource-path": the rest of the path,
+        #         "path-semantics": "posix":,
+        #         "run-start-id": }
+        #      )
+        #      ("datum", {
+        #       "datum_id": "resource-uuid/datum-identifier",
+        #       "resource_id": "resource"
+        #       "datum-kwargs": {...}})
+        #      ("datum-page", {}) this is in the future
+        #   ]
+        self._filestore_res = self._asset_docs_cache[-1][-1]
+
+        # this gets automatically turned off at the end
+        self.capture.put(1)
+
+        # Xspress3 needs a bit of time to configure itself...
+        # this does not play nice with the event loop :/
+        time.sleep(self.stage_sleep_time)
+
+        return super_stage_result
 
     def unstage(self):
         try:
@@ -242,7 +339,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         return super().unstage()
 
     def generate_datum(self, key, timestamp, datum_kwargs):
-        """
+        """Create datum kwargs for one Xspress3 channel.
+
         Parameters
         ----------
         key: str
@@ -253,31 +351,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         Returns
         -------
-
-        JL: it looks like the only values of 'key' that will be handled are channels.
+        no return value
         """
-
-        # # JL: replace the following using parent.iterate_channels()
-        # sn, n = next(
-        #     (f"channel{j}", j)
-        #     for j in self.channels
-        #     if getattr(
-        #         self.parent,    # detector
-        #         f"channel{j}"   # channel1, channel2, ...
-        #     ).name == key       # detector.channel1.name
-        # )
-        #
-        # # JL: replace the following
-        # datum_kwargs.update(
-        #     {
-        #         "frame": self.parent._abs_trigger_count,
-        #         "channel": int(sn[7:])  # channel1
-        #     }                           # 01234567
-        # )
-        #
-        # # JL: replace these two lines
-        # self.mds_keys[n] = key
-        # super().generate_datum(key, timestamp, datum_kwargs)
 
         logger.debug("generate_datum() called with key '%s'", key)
         # find the channel corresponding to `key`
@@ -305,109 +380,6 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         raise ValueError(
             f"failed to find channel '{key}' on Xspress3 detector with PV prefix {self.parent.prefix}"
         )
-
-    def stage(self):
-        logger.debug("staging Xspress3 '%s'", self.parent.prefix)
-        # really force it to stop acquiring
-        self.parent.cam.acquire.put(0, wait=True)
-
-        total_points_reading = self.parent.total_points.get()
-        if total_points_reading < 1:
-            raise RuntimeError(
-                f"total_points '{self.parent.total_points.pvname}' must be set for Xspress3 '{self.parent.prefix}'"
-            )
-        spectra_per_point_reading = self.parent.spectra_per_point.get()
-        total_capture = total_points_reading * spectra_per_point_reading
-
-        # stop previous acquisition
-        self.stage_sigs[self.parent.cam.acquire] = 0
-
-        # re-order the stage signals and disable the calc record which is
-        # interfering with the capture count
-        # JL: can we get rid of num_capture_calc_disable?
-        self.stage_sigs.pop(self.num_capture, None)
-        self.stage_sigs.pop(self.parent.cam.num_images, None)
-        self.stage_sigs[self.num_capture_calc_disable] = 1
-
-        external_trig_reading = self.parent.external_trig.get()
-        if external_trig_reading:
-            logger.debug(
-                "Xspress3 '%s' will be triggered externally", self.parent.prefix
-            )
-            self.stage_sigs[self.parent.cam.trigger_mode] = "TTL Veto Only"
-            self.stage_sigs[self.parent.cam.num_images] = total_capture
-        else:
-            logger.debug(
-                "Xspress3 '%s' will be triggered internally", self.parent.prefix
-            )
-            self.stage_sigs[self.parent.cam.trigger_mode] = "Internal"
-            # JL: why not total_capture as above?
-            self.stage_sigs[self.parent.cam.num_images] = spectra_per_point_reading
-
-        self.stage_sigs[self.auto_save] = "No"
-
-        filename, read_path, write_path = self.make_filename()
-        logger.debug(
-            "xspress3 '%s' read path: '%s' write path: '%s' filename: '%s'",
-            self.parent.prefix,
-            read_path,
-            write_path,
-            filename,
-        )
-
-        logger.debug("Erasing old spectra")
-        self.parent.cam.erase.put(1, wait=True)
-
-        # this must be set after self.parent.cam.num_images because at the EPICS
-        # layer there is a helpful link that sets this equal to that (but
-        # not the other way)
-        # JL: hoping num_capture does not exist on the new IOC
-        self.stage_sigs[self.num_capture] = total_capture
-
-        # apply the stage_sigs values
-        super_stage_result = super().stage()
-
-        self._fn = self.file_template.get() % (
-            self._fp,
-            self.file_name.get(),
-            self.file_number.get(),
-        )
-
-        if not self.file_path_exists.get():
-            raise IOError(f"Path {self.file_path.get()} does not exits on IOC")
-
-        logger.debug("Inserting the filestore resource: %s", self._fn)
-        # JL: calling generate_resource() in stage is usual
-        self._generate_resource({})
-        # JL: the last element of the last element of self._asset_docs_cache
-        #     is the "resource"?
-        # self._asset_docs_cache looks like this:
-        #   [  ("resource", {
-        #         "uid": ,
-        #         "resource-kwargs" : {key-values here go into the spec'd handler __init__}
-        #         "spec": "WHAT KIND OF FILE",
-        #         "root": the start of the path,
-        #         "resource-path": the rest of the path,
-        #         "path-semantics": "posix":,
-        #         "run-start-id": }
-        #      )
-        #      ("datum", {
-        #       "datum_id": "resource-uuid/datum-identifier",
-        #       "resource_id": "resource"
-        #       "datum-kwargs": {...}})
-        #      ("datum-page", {}) this is in the future
-        #   ]
-        self._filestore_res = self._asset_docs_cache[-1][-1]
-
-        # this gets automatically turned off at the end
-        self.capture.put(1)
-
-        # Xspress3 needs a bit of time to configure itself...
-        # this does not play nice with the event loop :/
-        # JL: does the new IOC need this?
-        time.sleep(self.stage_sleep_time)
-
-        return super_stage_result
 
     # JL: is there any reason to keep this?
     def configure(self, total_points=0, master=None, external_trig=False, **kwargs):
