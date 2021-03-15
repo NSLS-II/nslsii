@@ -93,7 +93,7 @@ class Xspress3Trigger(BlueskyInterface):
             return
         if (old_value == 1) and (value == 0):
             # Negative-going edge means an acquisition just finished.
-            # TODO: is there another way to mark the status object as finished?
+            # TODO: is there another way to mark the status object as finished? status.set_finished()?
             self._status._finished()
 
     def trigger(self):
@@ -111,8 +111,10 @@ class Xspress3Trigger(BlueskyInterface):
         #         ch = getattr(self, sn)
         #         self.dispatch(ch.name, trigger_time)
 
+        # tell the allied FileStore to do something about each channel's data
+        # by invoking FileStore.generate_datum(key=channel.name, ...)
         for _, channel in self.iterate_channels():
-            self.dispatch(channel.name, trigger_time)
+            self.dispatch(key=channel.name, timestamp=trigger_time)
 
         self._abs_trigger_count += 1
         return self._status
@@ -148,9 +150,6 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         kwargs:
         """
         super().__init__(basename, parent=parent, **kwargs)
-        # JL removed these in favor of self.parent and self.parent.cam
-        # det = parent
-        # self.cam = det.cam
 
         if not isinstance(parent, Xspress3Detector):
             raise TypeError(
@@ -246,14 +245,17 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         Parameters
         ----------
         key: str
-            Xspress3 channel attribute path, for example:
-              "det1.channels.channel01"
+            Xspress3 channel 'name', for example:
+              "channel01" ?
         timestamp: float
-        datum_kwargs: dict-like
+        datum_kwargs: dict
 
         Returns
         -------
+
+        JL: it looks like the only values of 'key' that will be handled are channels.
         """
+
         # # JL: replace the following using parent.iterate_channels()
         # sn, n = next(
         #     (f"channel{j}", j)
@@ -277,7 +279,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         # super().generate_datum(key, timestamp, datum_kwargs)
 
         # if we do not find the channel corresponding to
-        # the 'key' parameter then we have a problem
+        # the `key` parameter then we have a problem
+        logger.debug("generate_datum() called with key '%s'", key)
         for _, channel in self.parent.iterate_channels():
             if channel.name == key:
                 datum_kwargs.update(
@@ -287,13 +290,18 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                     }
                 )
                 self.mds_keys[channel.channel_number] = key
-                return super().generate_datum(
+                super().generate_datum(
                     key=key, timestamp=timestamp, datum_kwargs=datum_kwargs
                 )
+                # we are done
+                return
+            else:
+                pass
 
         # we have a problem
+        # the `key` parameter did not match any of our channels
         raise ValueError(
-            f"failed to find '{key}' on Xspress3 detector with PV prefix {self.parent.prefix}"
+            f"failed to find channel '{key}' on Xspress3 detector with PV prefix {self.parent.prefix}"
         )
 
     def stage(self):
@@ -304,7 +312,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         total_points_reading = self.parent.total_points.get()
         if total_points_reading < 1:
             raise RuntimeError(
-                f"total_points must be set for Xspress3 '{self.parent.prefix}'"
+                f"total_points '{self.parent.total_points.pvname}' must be set for Xspress3 '{self.parent.prefix}'"
             )
         spectra_per_point_reading = self.parent.spectra_per_point.get()
         total_capture = total_points_reading * spectra_per_point_reading
@@ -367,9 +375,26 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
             raise IOError(f"Path {self.file_path.get()} does not exits on IOC")
 
         logger.debug("Inserting the filestore resource: %s", self._fn)
+        # JL: calling generate_resource() in stage is usual
         self._generate_resource({})
         # JL: the last element of the last element of self._asset_docs_cache
         #     is the "resource"?
+        # self._asset_docs_cache looks like this:
+        #   [  ("resource", {
+        #         "uid": ,
+        #         "resource-kwargs" : {key-values here go into the spec'd handler __init__}
+        #         "spec": "WHAT KIND OF FILE",
+        #         "root": the start of the path,
+        #         "resource-path": the rest of the path,
+        #         "path-semantics": "posix":,
+        #         "run-start-id": }
+        #      )
+        #      ("datum", {
+        #       "datum_id": "resource-uuid/datum-identifier",
+        #       "resource_id": "resource"
+        #       "datum-kwargs": {...}})
+        #      ("datum-page", {}) this is in the future
+        #   ]
         self._filestore_res = self._asset_docs_cache[-1][-1]
 
         # this gets automatically turned off at the end
@@ -728,7 +753,7 @@ def _validate_channel_number(channel_number):
 
     Parameters
     ----------
-    channel_number: could be anything
+    channel_number: could be anything, but should be int
         channel number candidate
 
     """
@@ -837,7 +862,7 @@ def build_detector_class(
             if channel_attr_name_re.match(channel_attr_name):
                 yield channel_attr_name, getattr(self.channels, channel_attr_name)
 
-    # TODO: ask if this is just silly
+    # TODO: this is silly, replace with __repr__
     # rather than build the channel numbers and mcaroi numbers directly in to
     # the name of the generated class use shake.hexdigest(4) for a short, unique-ish,
     # reproducible class name suffix based on all the parameters used to generate
