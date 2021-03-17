@@ -114,6 +114,7 @@ def test_mca_roi_init():
     """
 
     mcaroi = McaRoi(prefix="MCA1ROI:1:", name="mcaroi01")
+    assert mcaroi.mcaroi_number == 1
     assert mcaroi.name == "mcaroi01"
     assert mcaroi.prefix == "MCA1ROI:1:"
     assert mcaroi.parent is None

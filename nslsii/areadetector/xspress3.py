@@ -425,6 +425,18 @@ class McaRoi(ADBase):
 
     use = Cpt(SignalWithRBV, "Use")
 
+    mcaroi_prefix_re = re.compile(r"MCA(?P<channel_number>\d+)ROI:(?P<mcaroi_number>\d+):")
+
+    def __init__(self, prefix, *args, **kwargs):
+        super().__init__(prefix, *args, **kwargs)
+        # peel the 'number' off of the prefix
+        # the prefix looks like "MCA1ROI:1:"
+        # and we want the 1 at the end
+        mcaroi_prefix_match = self.mcaroi_prefix_re.search(prefix)
+        if mcaroi_prefix_match is None:
+            raise ValueError(f"mcaroi prefix '{prefix}' does not match the expected pattern")
+        self.mcaroi_number = int(mcaroi_prefix_match.group("mcaroi_number"))
+
     def configure_mcaroi(self, *, min_x, size_x, roi_name=None, use=True):
         """
         Configure the details of an MCAROI.
