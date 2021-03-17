@@ -168,7 +168,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
             )
 
         # establish PV values to be set when this detector is staged
-        # and replaced with the original values when it is unstaged
+        # the original values will be replaced when it is unstaged
         self.stage_sigs[self.blocking_callbacks] = 1
         self.stage_sigs[self.enable] = 1
         self.stage_sigs[self.compression] = "zlib"
