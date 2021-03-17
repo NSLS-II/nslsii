@@ -339,13 +339,12 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         return super().unstage()
 
     def generate_datum(self, key, timestamp, datum_kwargs):
-        """Create datum kwargs for one Xspress3 channel.
+        """Create datum kwargs for one Xspress3 channel following a trigger().
 
         Parameters
         ----------
         key: str
-            Xspress3 channel 'name', for example:
-              "xs_channels_channel01"
+            Xspress3 channel 'name', for example "det1_channels_channel01"
         timestamp: float
         datum_kwargs: dict
 
@@ -357,12 +356,12 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         logger.debug("generate_datum() called with key '%s'", key)
         # find the channel corresponding to `key`
         # and create the corresponding datum_kwargs
-        # if we do not find a channel then we have a problem
+        # if we do not find a corresponding channel then we have a problem
         for _, channel in self.parent.iterate_channels():
             if channel.name == key:
                 datum_kwargs.update(
                     {
-                        "frame": self.parent._abs_trigger_count,  # JL: what?
+                        "frame": self.parent._abs_trigger_count,
                         "channel": channel.channel_number,
                     }
                 )
@@ -378,7 +377,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         # we have a problem
         # the `key` parameter did not match any of our channels
         raise ValueError(
-            f"failed to find channel '{key}' on Xspress3 detector with PV prefix {self.parent.prefix}"
+            f"failed to find channel with nane '{key}' "
+            f"on Xspress3 detector with PV prefix '{self.parent.prefix}'"
         )
 
     # JL: is there any reason to keep this?
