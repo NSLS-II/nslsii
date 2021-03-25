@@ -686,6 +686,11 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
                 f"with prefix '{self.prefix}' has number {mcaroi_number}"
             ) from ae
 
+    def iterate_mcaroi_attr_names(self):
+        for attr_name in self.mcarois.__dir__():
+            if mcaroi_name_re.match(attr_name):
+                yield attr_name
+
     def iterate_mcarois(self):
         """
         Iterate over McaRoi children of the Xspress3Channel.mcarois attribute.
@@ -729,6 +734,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
             ),
             "get_mcaroi_count": get_mcaroi_count,
             "get_mcaroi": get_mcaroi,
+            "iterate_mcaroi_attr_names": iterate_mcaroi_attr_names,
             "iterate_mcarois": iterate_mcarois,
             "clear_all_rois": clear_all_rois,
         },

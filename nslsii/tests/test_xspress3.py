@@ -244,6 +244,14 @@ def test_get_mcaroi():
         channel02.get_mcaroi(mcaroi_number=0)
 
 
+def test_iterate_mcaroi_attr_names():
+    channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2))
+    channel_2 = channel_class(prefix="Xsp3:", name="channel_2")
+
+    mcaroi_attr_name_list = list(channel_2.iterate_mcaroi_attr_names())
+    assert mcaroi_attr_name_list == ["mcaroi01", "mcaroi02"]
+
+
 def test_iterate_mcarois():
     channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2))
     channel_2 = channel_class(prefix="Xsp3:", name="channel_2")
