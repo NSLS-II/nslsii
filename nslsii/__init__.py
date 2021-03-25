@@ -219,7 +219,7 @@ def configure_base(
         subscribe_kafka_publisher(
             RE,
             beamline_name=broker_name,
-            bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
+            bootstrap_servers="kafka1:9092,kafka2:9092,kafka3:9092,kafka4:9092,kafka5:9092,kafka6:9092,kafka7:9092",
             producer_config={
                 "acks": 0,
                 "message.timeout.ms": 3000,
