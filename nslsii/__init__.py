@@ -578,7 +578,7 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
         by this function
 
     """
-    topic = f"{beamline_name.lower()}.bluesky.documents"
+    topic = f"{beamline_name.lower()}.bluesky.runengine.documents"
 
     def kafka_publisher_factory(name, start_doc):
         # create a Kafka Publisher for a single run
