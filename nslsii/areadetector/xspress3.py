@@ -122,7 +122,7 @@ class Xspress3Trigger(BlueskyInterface):
         # tell the associated file plugins to do something about
         # each channel's data by invoking
         # FileStore.generate_datum(key=channel.name, ...)
-        for _, channel in self.iterate_channels():
+        for channel in self.iterate_channels():
             self.dispatch(key=channel.name, timestamp=trigger_time)
 
         self._abs_trigger_count += 1
@@ -183,7 +183,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
             channel.channel_number: mds_key_format.format(
                 self=self, channel_number=channel.channel_number
             )
-            for _, channel in parent.iterate_channels()
+            for channel in parent.iterate_channels()
         }
 
     def stop(self, success=False):
@@ -357,7 +357,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         # find the channel corresponding to `key`
         # and create the corresponding datum_kwargs
         # if we do not find a corresponding channel then we have a problem
-        for _, channel in self.parent.iterate_channels():
+        for channel in self.parent.iterate_channels():
             if channel.name == key:
                 datum_kwargs.update(
                     {
@@ -402,7 +402,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         return {
             self.mds_keys[channel.channel_number]: spec_desc
-            for _, channel in self.parent.iterate_channels()
+            for channel in self.parent.iterate_channels()
         }
 
 
