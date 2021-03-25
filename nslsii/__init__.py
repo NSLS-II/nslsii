@@ -219,7 +219,7 @@ def configure_base(
         subscribe_kafka_publisher(
             RE,
             beamline_name=broker_name,
-            bootstrap_servers="cmb01:9092,cmb02:9092,cmb03:9092",
+            bootstrap_servers=os.environ['BLUESKY_KAFKA_BOOTSTRAP_SERVERS'],
             producer_config={
                 "acks": 0,
                 "message.timeout.ms": 3000,
