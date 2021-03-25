@@ -425,7 +425,9 @@ class McaRoi(ADBase):
 
     use = Cpt(SignalWithRBV, "Use")
 
-    mcaroi_prefix_re = re.compile(r"MCA(?P<channel_number>\d+)ROI:(?P<mcaroi_number>\d+):")
+    mcaroi_prefix_re = re.compile(
+        r"MCA(?P<channel_number>\d+)ROI:(?P<mcaroi_number>\d+):"
+    )
 
     def __init__(self, prefix, *args, **kwargs):
         super().__init__(prefix, *args, **kwargs)
@@ -434,7 +436,9 @@ class McaRoi(ADBase):
         # and we want the 1 at the end
         mcaroi_prefix_match = self.mcaroi_prefix_re.search(prefix)
         if mcaroi_prefix_match is None:
-            raise ValueError(f"mcaroi prefix '{prefix}' does not match the expected pattern")
+            raise ValueError(
+                f"mcaroi prefix '{prefix}' does not match the expected pattern"
+            )
         self.mcaroi_number = int(mcaroi_prefix_match.group("mcaroi_number"))
 
     def configure_mcaroi(self, *, min_x, size_x, roi_name=None, use=True):
@@ -617,6 +621,8 @@ def _validate_mcaroi_number(mcaroi_number):
 def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=None):
     """Build an Xspress3 channel class with the specified channel number and MCAROI numbers.
 
+    MCAROI numbers need not be consecutive.
+
     The complication of using dynamically generated classes
     is the price for the relative ease of including the channel
     number in MCAROI PVs and the ability to specify the number
@@ -628,7 +634,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     channel_number: int
         the channel number, 1-16
     mcaroi_numbers: Sequence of int
-         sequence of MCAROI numbers, allowed values are 1-48
+         sequence of MCAROI numbers, not necessarily consecutive, allowed values are 1-48
     channel_parent_classes: list-like, optional
         sequence of all parent classes for the generated channel class,
         by default the only parent is ophyd.areadetector.ADBase
@@ -664,6 +670,9 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
     # these functions will become methods of the generated channel class
+    def __repr__(self):
+        return f"{self.__class__.__name__}(channel_number={self.channel_number}, mcaroi_numbers={self.mcaroi_numbers})"
+
     def get_mcaroi_count(self):
         return len(mcaroi_numbers)
 
@@ -683,29 +692,24 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
         Yields
         ------
-        mcaroi name, McaRoi instance
+        McaRoi instance
         """
         for mcaroi_name, mcaroi in self.mcarois._signals.items():
             if mcaroi_name_re.match(mcaroi_name):
-                yield mcaroi_name, mcaroi
+                yield mcaroi
 
     def clear_all_rois(self):
         """Clear all MCAROIs"""
-        for _, mcaroi in self.iterate_mcarois():
+        for mcaroi in self.iterate_mcarois():
             mcaroi.clear()
 
-    # rather than build the mcaroi numbers directly into the name of the
-    # generated class use shake.hexdigest(4) for a short, unique-ish, reproducible
-    # class name suffix based on all the parameters used to generate the channel class
-    shake = hashlib.shake_256()
-    shake.update(f"{channel_number}+{mcaroi_numbers}+{channel_parent_classes}".encode())
-    channel_class_suffix = shake.hexdigest(4)
-
     return type(
-        f"GeneratedXspress3Channel_{channel_class_suffix}",
+        "GeneratedXspress3Channel",
         channel_parent_classes,
         {
+            "__repr__": __repr__,
             "channel_number": channel_number,
+            "mcaroi_numbers": set(mcaroi_numbers),
             "sca": Cpt(Sca, f"C{channel_number}SCA:"),
             "mca": Cpt(Mca, f"MCA{channel_number}:"),
             "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
@@ -822,6 +826,9 @@ def build_detector_class(
     channel_attr_name_re = re.compile(r"channel\d{2}")
 
     # these functions will become methods of the generated detector class
+    def __repr__(self):
+        return f"{self.__class__.__name__}(channels=({','.join([str(channel) for channel in self.iterate_channels()])}))"
+
     def get_channel_count(self):
         return len(channel_numbers)
 
@@ -841,26 +848,15 @@ def build_detector_class(
 
         Yields
         ------
-        Channel attribute name, Channel object
+        Channel object
         """
 
         for channel_attr_name in self.channels.__dir__():
             if channel_attr_name_re.match(channel_attr_name):
-                yield channel_attr_name, getattr(self.channels, channel_attr_name)
-
-    # TODO: this is silly, replace with __repr__
-    # rather than build the channel numbers and mcaroi numbers directly in to
-    # the name of the generated class use shake.hexdigest(4) for a short, unique-ish,
-    # reproducible class name suffix based on all the parameters used to generate
-    # the detector class
-    shaker = hashlib.shake_128()
-    shaker.update(
-        f"{channel_numbers}+{mcaroi_numbers}+{detector_parent_classes}".encode()
-    )
-    detector_class_suffix = shaker.hexdigest(4)
+                yield getattr(self.channels, channel_attr_name)
 
     return type(
-        f"GeneratedXspress3Detector_{detector_class_suffix}",
+        f"GeneratedXspress3Detector",
         detector_parent_classes,
         dict(
             **{
@@ -901,6 +897,7 @@ def build_detector_class(
                         }
                     )
                 ),
+                "__repr__": __repr__,
                 "get_channel_count": get_channel_count,
                 "get_channel": get_channel,
                 "iterate_channels": iterate_channels,

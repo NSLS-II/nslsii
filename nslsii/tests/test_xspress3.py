@@ -193,12 +193,26 @@ def test_instantiate_channel_class():
     assert channel_2.mcarois.mcaroi47.total_rbv.pvname == "Xsp3:MCA2ROI:47:Total_RBV"
     assert channel_2.mcarois.mcaroi48.total_rbv.pvname == "Xsp3:MCA2ROI:48:Total_RBV"
 
+    assert (
+        channel_2.__repr__()
+        == "GeneratedXspress3Channel(channel_number=2, mcaroi_numbers={48, 46, 47})"
+    )
+
 
 def test_get_mcaroi_count():
     detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
     assert detector.get_channel(channel_number=3).get_mcaroi_count() == 2
+    assert detector.get_channel(channel_number=5).get_mcaroi_count() == 2
+
+
+def test_mcaroi_numbers():
+    detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
+    detector = detector_class(prefix="Xsp3:", name="xs3")
+
+    assert detector.get_channel(channel_number=3).mcaroi_numbers == {4, 6}
+    assert detector.get_channel(channel_number=5).mcaroi_numbers == {4, 6}
 
 
 def test_get_mcaroi():
@@ -234,7 +248,7 @@ def test_iterate_mcarois():
     channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2))
     channel_2 = channel_class(prefix="Xsp3:", name="channel_2")
 
-    mcaroi_list = [mcaroi for mcaroi_name, mcaroi in channel_2.iterate_mcarois()]
+    mcaroi_list = list(channel_2.iterate_mcarois())
     assert len(mcaroi_list) == 2
 
 
@@ -242,18 +256,14 @@ def test_validate_mcaroi_numbers():
     # channel number is too low
     with pytest.raises(
         ValueError,
-        match=re.escape(
-            "channel number '0' is outside the allowed interval [1,16]"
-        ),
+        match=re.escape("channel number '0' is outside the allowed interval [1,16]"),
     ):
         build_channel_class(channel_number=0, mcaroi_numbers=())
 
     # channel number is too high
     with pytest.raises(
         ValueError,
-        match=re.escape(
-            "channel number '17' is outside the allowed interval [1,16]"
-        ),
+        match=re.escape("channel number '17' is outside the allowed interval [1,16]"),
     ):
         build_channel_class(channel_number=17, mcaroi_numbers=())
 
@@ -313,6 +323,13 @@ def test_instantiate_detector_class():
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
     assert (
+        detector.__repr__() == "GeneratedXspress3Detector(channels=("
+        "GeneratedXspress3Channel(channel_number=14, mcaroi_numbers={48, 47}),"
+        "GeneratedXspress3Channel(channel_number=15, mcaroi_numbers={48, 47}),"
+        "GeneratedXspress3Channel(channel_number=16, mcaroi_numbers={48, 47})))"
+    )
+
+    assert (
         detector.channels.channel14.sca.clock_ticks.pvname == "Xsp3:C14SCA:0:Value_RBV"
     )
     assert (
@@ -368,10 +385,7 @@ def test_extra_class_members():
     detector_class = build_detector_class(
         channel_numbers=(3, 5),
         mcaroi_numbers=(4, 6),
-        extra_class_members={
-            "ten": 10,
-            "a_signal": Component(Signal, value=0)
-        }
+        extra_class_members={"ten": 10, "a_signal": Component(Signal, value=0)},
     )
 
     assert detector_class.ten == 10
@@ -394,7 +408,7 @@ def test_extra_class_members_failure():
             mcaroi_numbers=(4, 6),
             extra_class_members={
                 "get_channel_count": 10,
-            }
+            },
         )
 
 
@@ -429,9 +443,7 @@ def test_get_channel():
 
     with pytest.raises(
         ValueError,
-        match=re.escape(
-            "channel number '0' is outside the allowed interval [1,16]"
-        ),
+        match=re.escape("channel number '0' is outside the allowed interval [1,16]"),
     ):
         detector.get_channel(channel_number=0)
 
@@ -440,5 +452,5 @@ def test_iterate_channels():
     detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
-    channel_list = [channel for channel_name, channel in detector.iterate_channels()]
+    channel_list = list(detector.iterate_channels())
     assert len(channel_list) == 2
