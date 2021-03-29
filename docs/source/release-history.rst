@@ -5,6 +5,7 @@ Release History
 v0.1.3 (2021-03-29)
 ===================
 * added environment variable for kafka bootstrap servers
+* change bluesky kafka topic naming scheme
 
 v0.1.2 (2021-01-26)
 ===================
