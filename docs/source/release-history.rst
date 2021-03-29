@@ -2,9 +2,15 @@
 Release History
 ***************
 
+v0.1.3 (2021-03-29)
+===================
+* added environment variable for kafka bootstrap servers
+* change bluesky kafka topic naming scheme
+
 v0.1.2 (2021-01-26)
 ===================
 * fix the ``TwoButtonShutter`` class to be compatible with ophyd 1.6.0+
+* added log propagation configuration to reduce log noise
 
 v0.1.1 (2020-10-26)
 ===================
