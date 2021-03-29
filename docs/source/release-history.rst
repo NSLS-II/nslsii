@@ -2,6 +2,11 @@
 Release History
 ***************
 
+v0.1.3 (2021-03-29)
+===================
+* added log propagation configuration to reduce log noise
+* added environment variable for kafka bootstrap servers
+
 v0.1.2 (2021-01-26)
 ===================
 * fix the ``TwoButtonShutter`` class to be compatible with ophyd 1.6.0+
