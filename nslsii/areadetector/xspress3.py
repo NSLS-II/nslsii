@@ -866,6 +866,7 @@ def build_detector_class(
         detector_parent_classes,
         dict(
             **{
+                "channel_numbers": tuple(sorted(channel_numbers)),
                 "external_trig": Cpt(
                     Signal, value=False, doc="Use external triggering"
                 ),

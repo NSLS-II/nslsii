@@ -420,6 +420,13 @@ def test_extra_class_members_failure():
         )
 
 
+def test_channel_numbers():
+    detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
+    detector = detector_class(prefix="Xsp3:", name="xs3")
+
+    assert detector.channel_numbers == (3, 5)
+
+
 def test_get_channel_count():
     detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
     detector = detector_class(prefix="Xsp3:", name="xs3")
