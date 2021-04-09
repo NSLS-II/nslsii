@@ -195,7 +195,7 @@ def test_instantiate_channel_class():
 
     assert (
         channel_2.__repr__()
-        == "GeneratedXspress3Channel(channel_number=2, mcaroi_numbers={48, 46, 47})"
+        == "GeneratedXspress3Channel(channel_number=2, mcaroi_numbers=(46, 47, 48))"
     )
 
 
@@ -211,8 +211,8 @@ def test_mcaroi_numbers():
     detector_class = build_detector_class(channel_numbers=(3, 5), mcaroi_numbers=(4, 6))
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
-    assert detector.get_channel(channel_number=3).mcaroi_numbers == {4, 6}
-    assert detector.get_channel(channel_number=5).mcaroi_numbers == {4, 6}
+    assert detector.get_channel(channel_number=3).mcaroi_numbers == (4, 6)
+    assert detector.get_channel(channel_number=5).mcaroi_numbers == (4, 6)
 
 
 def test_get_mcaroi():
@@ -332,9 +332,9 @@ def test_instantiate_detector_class():
 
     assert (
         detector.__repr__() == "GeneratedXspress3Detector(channels=("
-        "GeneratedXspress3Channel(channel_number=14, mcaroi_numbers={48, 47}),"
-        "GeneratedXspress3Channel(channel_number=15, mcaroi_numbers={48, 47}),"
-        "GeneratedXspress3Channel(channel_number=16, mcaroi_numbers={48, 47})))"
+        "GeneratedXspress3Channel(channel_number=14, mcaroi_numbers=(47, 48)),"
+        "GeneratedXspress3Channel(channel_number=15, mcaroi_numbers=(47, 48)),"
+        "GeneratedXspress3Channel(channel_number=16, mcaroi_numbers=(47, 48))))"
     )
 
     assert (

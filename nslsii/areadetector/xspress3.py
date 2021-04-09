@@ -714,7 +714,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
         {
             "__repr__": __repr__,
             "channel_number": channel_number,
-            "mcaroi_numbers": set(mcaroi_numbers),
+            "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
             "sca": Cpt(Sca, f"C{channel_number}SCA:"),
             "mca": Cpt(Mca, f"MCA{channel_number}:"),
             "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
