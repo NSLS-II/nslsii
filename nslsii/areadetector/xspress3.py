@@ -377,7 +377,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         # we have a problem
         # the `key` parameter did not match any of our channels
         raise ValueError(
-            f"failed to find channel with nane '{key}' "
+            f"failed to find channel with name '{key}' "
             f"on Xspress3 detector with PV prefix '{self.parent.prefix}'"
         )
 
