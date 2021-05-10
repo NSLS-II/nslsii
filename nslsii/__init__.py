@@ -551,7 +551,7 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
     """
     Subscribe a RunRouter to the specified RE to create Kafka Publishers.
     Each Publisher will publish documents from a single run to the
-    Kafka topic "<beamline_name>.bluesky.documents".
+    Kafka topic "<beamline_name>.bluesky.runengine.documents".
 
     Parameters
     ----------
