@@ -64,7 +64,9 @@ logger = logging.getLogger(__name__)
 
 
 class Xspress3Trigger(BlueskyInterface):
-    """Provides functioning stage, unstage, and trigger methods."""
+    """
+
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -108,6 +110,22 @@ class Xspress3Trigger(BlueskyInterface):
         if (old_value == 1) and (value == 0):
             # Negative-going edge means an acquisition just finished.
             self._acquire_status.set_finished()
+            self._acquire_status = None
+
+    def new_acquire_status(self):
+        """
+        Create, remember, and return a Status object that will be marked
+        as `finished` when acquisition is done (see _acquire_changed). The
+        intention is that this Status will be used by another object,
+        for example a RunEngine.
+
+        Returns
+        -------
+        DeviceStatus
+        """
+
+        self._acquire_status = DeviceStatus(self)
+        return self._acquire_status
 
     def trigger(self):
         if self._staged != Staged.yes:
@@ -115,7 +133,7 @@ class Xspress3Trigger(BlueskyInterface):
                 "tried to trigger Xspress3 with prefix {self.prefix} but it is not staged"
             )
 
-        self._acquire_status = DeviceStatus(self)
+        acquire_status = self.new_acquire_status()
         self.cam.acquire.put(1, wait=False)
         trigger_time = time.time()
 
@@ -127,7 +145,35 @@ class Xspress3Trigger(BlueskyInterface):
 
         self._abs_trigger_count += 1
 
-        return self._acquire_status
+        return acquire_status
+
+
+class Xspress3Hdf5Plugin(HDF5Plugin):
+    filestore_spec = Xspress3HDF5Handler.HANDLER_NAME
+
+    image_file_reference = Cpt(Hdf5FileReference, name="image")
+
+    def __init__(self, basename, parent, **kwargs):
+        super().__init__(basename, parent=parent, **kwargs)
+
+    def stage(self):
+        ...
+
+    def describe(self):
+        resource_data = super().describe()
+        resource_data[self.name].update(
+            dict(
+                external="FILESTORE:",
+                dtype="array",
+                # "shape": (self.width.get(),),
+                shape=self.shape,
+                # dims=("x", "y"),
+            )
+        )
+        return resource_data
+
+    def unstage(self):
+        ...
 
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
@@ -145,7 +191,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         *,
         stage_sleep_time=0.5,
         # JL: what are mds keys?
-        mds_key_format="{self.parent.cam.name}_ch{channel_number}",
+        #mds_key_format="{self.parent.cam.name}_ch{channel_number}",
+        mds_key_format="{self.parent.name}_channels_channel{channel_number:02}",
         parent,
         **kwargs,
     ):
