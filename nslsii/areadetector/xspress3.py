@@ -259,7 +259,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         total_points_reading = self.parent.total_points.get()
         if total_points_reading < 1:
             raise RuntimeError(
-                f"total_points '{self.parent.total_points.pvname}' must be set"
+                f"total_points '{self.parent.total_points}' must be set"
             )
         spectra_per_point_reading = self.parent.spectra_per_point.get()
         total_capture = total_points_reading * spectra_per_point_reading
