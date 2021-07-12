@@ -148,6 +148,10 @@ class Xspress3Trigger(BlueskyInterface):
         return acquire_status
 
 
+class Hdf5FileReference:
+    pass
+
+
 class Xspress3Hdf5Plugin(HDF5Plugin):
     filestore_spec = Xspress3HDF5Handler.HANDLER_NAME
 
