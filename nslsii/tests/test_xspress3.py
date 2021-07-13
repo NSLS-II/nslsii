@@ -36,6 +36,7 @@ def test_xspress3_hdf5_handler(tmpdir):
 @pytest.mark.skip()
 def test_xspress3_filestore(tmpdir):
     """
+    Skip this test because it is still under development.
 
     Parameters
     ----------

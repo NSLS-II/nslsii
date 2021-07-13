@@ -592,60 +592,6 @@ class Sca(ADBase):
     dt_percent = Cpt(EpicsSignalRO, "10:Value_RBV")
 
 
-# moved this into the build_channel_class function
-# class Xspress3ChannelBase(ADBase):
-#     """"""
-#
-#     roi_name_format = "Det{self.channel_number}_{roi_name}"
-#     roi_total_name_format = "Det{self.channel_number}_{roi_name}_total"
-#
-#     def __init__(self, prefix, *args, **kwargs):
-#         super().__init__(prefix, *args, **kwargs)
-#
-#     #
-#     # instead use channels.channelNN.get_mcaroi().configure_roi(...)
-#     #
-#     # def set_roi(self, index_or_roi, *, ev_min, ev_size, name=None):
-#     #     """Configure MCAROI with energy range and optionally name.
-#     #
-#     #     Parameters
-#     #     ----------
-#     #     index_or_roi : int
-#     #         The roi index or instance to set
-#     #     ev_min : int
-#     #         low eV setting
-#     #     ev_size : int
-#     #         roi width eV setting
-#     #     name : str, optional
-#     #         The unformatted ROI name to set. Each channel specifies its own
-#     #         `roi_name_format` and `roi_sum_name_format` in which the name
-#     #         parameter will get expanded.
-#     #     """
-#     #     if isinstance(index_or_roi, McaRoi):
-#     #         roi = index_or_roi
-#     #     else:
-#     #         if index_or_roi <= 0:
-#     #             raise ValueError("MCAROI index starts from 1")
-#     #         roi = getattr(self.mcarois, f"mcaroi{index_or_roi:02d}")
-#     #
-#     #     roi.configure_roi(ev_min, ev_size)
-#     #
-#     #     if name is not None:
-#     #         roi_name = self.roi_name_format.format(self=self, roi_name=name)
-#     #         roi.roi_name.name = roi_name
-#     #         roi.total_rbv.name = self.roi_total_name_format.format(
-#     #             self=self, roi_name=roi_name
-#     #         )
-#     #         # apply the ophyd name to the PV roi_name
-#     #         # this is new behavior
-#     #         roi.roi_name.put(roi_name)
-#
-#     # def clear_all_rois(self):
-#     #     """Clear all ROIs"""
-#     #     for mcaroi in self.iterate_mcarois():
-#     #         mcaroi.clear()
-
-
 def _validate_mcaroi_number(mcaroi_number):
     """
     Raise ValueError if the MCAROI number is
@@ -693,7 +639,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     Returns
     -------
     a dynamically generated class similar to this:
-        class GeneratedXspress3Channel_94e52ec5(ADBase):
+        class GeneratedXspress3Channel(ADBase):
             channel_num = 2
             sca = Cpt(Sca, ...)
             mca = Cpt(Mca, ...)
@@ -720,7 +666,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
-    # these functions will become methods of the generated channel class
+    # the next six functions will become methods of the generated channel class
     def __repr__(self):
         return f"{self.__class__.__name__}(channel_number={self.channel_number}, mcaroi_numbers={self.mcaroi_numbers})"
 
@@ -851,9 +797,8 @@ def build_detector_class(
 
     Returns
     -------
-    a dynamically generated class similar to this, having a hash-like suffix
-    specific to the parameters passed to build_detector_class(...):
-        class GeneratedXspress3Detector_83d41db4(Xspress3Detector, SomeMixinClass, ...):
+    a dynamically generated class similar to the following:
+        class GeneratedXspress3Detector(Xspress3Detector, SomeMixinClass, ...):
             external_trig = Cpt(Signal, value=False)
             total_points = Cpt(Signal, value=-1)
             spectra_per_point = Cpt(Signal, value=1)
@@ -882,7 +827,7 @@ def build_detector_class(
 
     channel_attr_name_re = re.compile(r"channel\d{2}")
 
-    # these functions will become methods of the generated detector class
+    # the following four functions will become methods of the generated detector class
     def __repr__(self):
         return f"{self.__class__.__name__}(channels=({','.join([str(channel) for channel in self.iterate_channels()])}))"
 
@@ -905,7 +850,7 @@ def build_detector_class(
 
         Yields
         ------
-        Channel object
+        a Channel object
         """
 
         for channel_attr_name in self.channels.__dir__():
