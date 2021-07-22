@@ -71,6 +71,7 @@ def test_build_and_subscribe_kafka_publisher(
 
         (
             nslsii_beamline_topic,
+            kafka_publisher_thread_exit_event,
             subscription_token,
         ) = nslsii.build_and_subscribe_kafka_publisher(
             RE=RE,
@@ -207,31 +208,28 @@ def test_subscribe_kafka_publisher(temporary_topics, RE):
         )
 
         # provoke two exceptions
-        publisher_queue.put(("blarg", {}))
-        publisher_queue.put(("barf", {}))
+        publisher_queue.put(("start", {}))
+        publisher_queue.put(("stop", {}))
 
+        # wait until both documents have been removed from the queue
         while not publisher_queue.empty():
             time.sleep(1)
-            print("ha!")
-        print("done!")
 
         kafka_publisher_thread_stop_event.set()
         kafka_publisher_thread.join()
 
+        # this logging output should contain 2 separate BlueskyKafkaExceptions
         log_output = logging_test_output.getvalue()
-        print("****************")
-        print(log_output)
-        print("****************")
         exception_message_pattern = re.compile(
-            r"an error occurred after 0 successful Kafka messages when '<Mock id='\d+'>' attempted to publish",
+            r"kafka-publisher-thread - an error occurred after 0 successful Kafka messages when "
+            r"'<Mock id='\d+'>' attempted to publish on topic <Mock name='mock.topic' id='\d+'>"
         )
 
         first_match = exception_message_pattern.search(log_output)
         assert first_match
 
-        print(f"log_output[{first_match.endpos}:]: {log_output[first_match.endpos:]}")
         second_match = exception_message_pattern.search(
-            log_output, pos=first_match.endpos
+            log_output, pos=first_match.end()
         )
         assert second_match
 
