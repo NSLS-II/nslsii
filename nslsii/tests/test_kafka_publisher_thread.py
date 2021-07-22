@@ -8,26 +8,6 @@ from event_model import sanitize_doc
 import nslsii
 
 
-def configure_debug_logging(logger_name):
-    # create logger
-    logger_ = logging.getLogger(logger_name)
-    logger_.setLevel(logging.DEBUG)
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    # create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    # add formatter to ch
-    ch.setFormatter(formatter)
-    # add ch to logger
-    logger_.addHandler(ch)
-
-
-configure_debug_logging("nslsii")
-
-
 def test_build_and_subscribe_kafka_publisher(
     kafka_bootstrap_servers,
     temporary_topics,
