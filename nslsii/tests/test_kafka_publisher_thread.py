@@ -26,6 +26,14 @@ def test_build_and_subscribe_kafka_publisher(
     Start Kafka and Zookeeper like this:
       $ sudo docker-compose -f scripts/bitnami-kafka-docker-compose.yml up
 
+    If Kafka fails to start it may be necessary to delete this log file:
+      $ sudo ls -la /var/lib/docker/volumes/scripts_zookeeper_data/_data/zookeeper/data/version-2/
+      total 20
+      drwxr-xr-x 2 1001 root     4096 Jul 14 13:37 .
+      drwxrwxr-x 3 root root     4096 Jul 14 13:37 ..
+      -rw-r--r-- 1 1001 root 67108880 Jul 14 13:37 log.1          <----
+      -rw-r--r-- 1 1001 root      457 Jul 14 13:37 snapshot.0
+
     Remove Kafka and Zookeeper containers like this:
       $ sudo docker ps -a -q
       78485383ca6f
@@ -40,7 +48,7 @@ def test_build_and_subscribe_kafka_publisher(
     Or remove ALL containers like this:
       $ sudo docker stop $(sudo docker ps -a -q)
       $ sudo docker rm $(sudo docker ps -a -q)
-    Use this in difficult cases:
+    Use this in difficult cases to remove *all traces* of docker containers:
       $ sudo docker system prune -a
 
     Parameters
