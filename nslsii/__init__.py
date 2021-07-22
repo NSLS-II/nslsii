@@ -548,6 +548,25 @@ def migrate_metadata():
 
 
 def subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
+    """
+    Define functions to put (name, document) tuples on the publisher_queue and
+    take them off.
+
+    Parameters
+    ----------
+    RE: bluesky RunEngine
+
+    publisher_queue: queue.Queue
+        a RunEngine will place (name, document) tuples on this queue
+
+    kafka_publisher:  bluesky_kafka.Publisher
+        publishes (name, document) tuples as Kafka messages on a beamline-specific topic
+
+    Returns
+    -------
+    kafka_publisher_re_token, kafka_publisher_thread, kafka_publisher_thread_stop_event
+
+    """
     def put_document_on_publisher_queue(name_, document_):
         """
         This function is intended to be subscribed to a RunEngine.
@@ -572,19 +591,19 @@ def subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
             kafka_publisher_thread_stop_event_
     ):
         """
-        This function is intended to run in a dedicated thread. It gets
-        (name, document) tuples from publisher_queue_ as they become
-        available and uses kafka_publisher_ to publish those tuples as
-        Kafka messages on a beamline-specific topic.
+        This function is intended to execute in a dedicated thread. It runs
+        a polling loop that takes (name, document) tuples from publisher_queue_
+        as they become available and uses kafka_publisher_ to publish those
+        tuples as Kafka messages on a beamline-specific topic.
 
-        The RunEngine is separated from the Publisher by publisher_queue_
-        and a dedicated thread in order to insulate it from Publisher failures
-        that might otherwise interrupt data collection.
+        The intention is to separate a RunEngine from a Publisher in order
+        to insulate plans from Publisher failures that might otherwise interrupt
+        data collection.
 
         Parameters
         ---------
         publisher_queue_: queue.Queue
-            a queue of (name, document) tuples published by a RunEngine
+            a RunEngine will place (name, document) tuples on this queue
         kafka_publisher_:  bluesky_kafka.Publisher
             publishes (name, document) tuples as Kafka messages on a beamline-specific topic
         kafka_publisher_thread_stop_event_: threading.Event
@@ -598,14 +617,17 @@ def subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
         while not kafka_publisher_thread_stop_event_.is_set():
             try:
                 # specify a timeout so kafka_publisher_thread_stop_event
-                # will be checked continuously
+                # will be checked regularly
                 name_, document_ = publisher_queue_.get(timeout=1)
                 kafka_publisher_(name_, document_)
                 published_document_count += 1
             except queue.Empty:
-                # check kafka_publisher_thread_stop_event
+                # publisher_queue_.get() timed out waiting for a new document
+                # the while condition will be checked now to see if someone
+                # has requested that this thread terminate
                 pass
             except BaseException:
+                # something bad happened while trying to publish a Kafka message
                 nslsii_logger.exception(
                     "an error occurred after %d successful Kafka messages when '%s' "
                     "attempted to publish on topic %s\nname: '%s'\ndoc '%s'",
@@ -618,7 +640,7 @@ def subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
 
     kafka_publisher_thread_stop_event = threading.Event()
     kafka_publisher_thread = threading.Thread(
-        name="kafka-publishing-thread",
+        name="kafka-publisher-thread",
         target=publish_documents_from_publisher_queue,
         args=(publisher_queue, kafka_publisher, kafka_publisher_thread_stop_event),
         daemon=True
@@ -626,8 +648,8 @@ def subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
     kafka_publisher_thread.start()
     nslsii_logger = logging.getLogger("nslsii")
     nslsii_logger.info("Kafka publisher thread has started")
-    kafka_publisher_token = RE.subscribe(put_document_on_publisher_queue)
-    return kafka_publisher_token, kafka_publisher_thread, kafka_publisher_thread_stop_event
+    kafka_publisher_re_token = RE.subscribe(put_document_on_publisher_queue)
+    return kafka_publisher_re_token, kafka_publisher_thread, kafka_publisher_thread_stop_event
 
 
 def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config):
@@ -642,15 +664,12 @@ def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, pr
     ----------
     RE: RunEngine
         the RunEngine to which the RunRouter will be subscribed
-
     beamline_name: str
         beamline name, for example "csx", to be used in building the
         Kafka topic to which messages will be published
-
     bootstrap_servers: str
         Comma-delimited list of Kafka server addresses or hostnames and ports as a string
         such as ``'kafka1:9092,kafka2:9092``
-
     producer_config: dict
         dictionary of Kafka Producer configuration settings
 
@@ -659,15 +678,18 @@ def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, pr
     topic: str
         the Kafka topic on which bluesky documents will be published, for example
         "csx.bluesky.runengine.documents"
-
-    publisher_thread_token: int
+    publisher_thread_re_token: int
         RunEngine subscription token corresponding to the function subscribed to the RunEngine
-        that places (name, document) tuples on the publisher queue
+        that places (name, document) tuples on the publisher queue. This token is needed to
+        un-subscribe the function from the RunEngine, in case someone ever wants to do that.
 
     """
 
     nslsii_logger = logging.getLogger("nslsii")
     publisher_queue = queue.Queue()
+    beamline_runengine_topic = None
+    kafka_publisher_token = None
+    kafka_publisher_thread_stop_event = None
 
     try:
         nslsii_logger.info(
@@ -677,6 +699,7 @@ def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, pr
         # verify the topic for this beamline exists on the Kafka broker(s)
         topic_to_topic_metadata = list_topics(bootstrap_servers=bootstrap_servers)
         if beamline_runengine_topic in topic_to_topic_metadata:
+            # the beamline topic exists
             kafka_publisher = Publisher(
                 topic=beamline_runengine_topic,
                 bootstrap_servers=bootstrap_servers,
@@ -691,7 +714,6 @@ def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, pr
             )
             nslsii_logger.info("RunEngine will publish bluesky documents on Kafka topic '%s'", beamline_runengine_topic)
         else:
-            kafka_publisher_token = None
             raise BlueskyKafkaException(
                 f"topic `{beamline_runengine_topic}` does not exist on Kafka broker(s) `{bootstrap_servers}`",
             )
@@ -705,4 +727,4 @@ def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, pr
             beamline_runengine_topic
         )
 
-    return beamline_runengine_topic, kafka_publisher_token
+    return beamline_runengine_topic, kafka_publisher_thread_stop_event, kafka_publisher_token
