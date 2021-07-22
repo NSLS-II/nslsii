@@ -13,7 +13,6 @@ import msgpack_numpy as mpn
 
 from IPython import get_ipython
 
-from bluesky_kafka import Publisher
 from event_model import RunRouter
 
 from ._version import get_versions
@@ -578,6 +577,8 @@ def subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_con
         by this function
 
     """
+    from bluesky_kafka import Publisher
+
     topic = f"{beamline_name.lower()}.bluesky.runengine.documents"
 
     def kafka_publisher_factory(name, start_doc):
