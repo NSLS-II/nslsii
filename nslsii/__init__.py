@@ -1,7 +1,7 @@
 from distutils.version import LooseVersion
 from functools import partial
 import logging
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import SysLogHandler, TimedRotatingFileHandler
 import os
 from pathlib import Path
 import sys
@@ -332,6 +332,8 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky", propagate_log_
             file=sys.stderr,
         )
 
+    logging_handlers = []
+
     log_file_handler = TimedRotatingFileHandler(
         filename=str(bluesky_log_file_path), when="W0", backupCount=10
     )
@@ -341,15 +343,38 @@ def configure_bluesky_logging(ipython, appdirs_appname="bluesky", propagate_log_
         "  %(module)s:%(lineno)d] %(message)s"
     )
     log_file_handler.setFormatter(logging.Formatter(fmt=log_file_format))
+    logging_handlers.append(log_file_handler)
+
+    def build_syslog_handler(address):
+        syslog_handler = SysLogHandler(address=address)
+        syslog_handler.setLevel(logging.INFO)
+        # no need to log date and time, systemd does that
+        formatter = logging.Formatter(
+            "%(name)s[%(process)s]: %(levelname)s - %(module)s:%(lineno)d] %(message)s"
+        )
+        # add formatter to syslog_handler
+        syslog_handler.setFormatter(formatter)
+        return syslog_handler
+
+    if Path("/dev/log").exists():
+        logging_handlers.append(build_syslog_handler(address="/dev/log"))
+    elif Path("/var/run/syslog").exists():
+        logging_handlers.append(build_syslog_handler(address="/var/run/syslog"))
+    else:
+        # syslog is not available available
+        pass
 
     for logger_name in ("bluesky", "caproto", "ophyd", "nslsii"):
         logger = logging.getLogger(logger_name)
-        logger.addHandler(log_file_handler)
+        for logging_handler in logging_handlers:
+            logger.addHandler(logging_handler)
         logger.setLevel("INFO")
         logger.propagate = propagate_log_messages
 
     if ipython:
-        ipython.log.addHandler(log_file_handler)
+        for logging_handler in logging_handlers:
+            ipython.log.addHandler(logging_handler)
+
         ipython.log.setLevel("INFO")
         ipython.log.propagate = propagate_log_messages
 
