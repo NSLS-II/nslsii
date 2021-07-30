@@ -115,38 +115,6 @@ class Xspress3Trigger(BlueskyInterface):
         return acquire_status
 
 
-class Hdf5FileReference:
-    pass
-
-
-class Xspress3Hdf5Plugin(HDF5Plugin):
-    filestore_spec = Xspress3HDF5Handler.HANDLER_NAME
-
-    image_file_reference = Cpt(Hdf5FileReference, name="image")
-
-    def __init__(self, basename, parent, **kwargs):
-        super().__init__(basename, parent=parent, **kwargs)
-
-    def stage(self):
-        ...
-
-    def describe(self):
-        resource_data = super().describe()
-        resource_data[self.name].update(
-            dict(
-                external="FILESTORE:",
-                dtype="array",
-                # "shape": (self.width.get(),),
-                shape=self.shape,
-                # dims=("x", "y"),
-            )
-        )
-        return resource_data
-
-    def unstage(self):
-        ...
-
-
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
     """"""
 
