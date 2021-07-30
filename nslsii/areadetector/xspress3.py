@@ -31,9 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class Xspress3Trigger(BlueskyInterface):
-    """
-
-    """
+    """ """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -130,7 +128,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         *,
         stage_sleep_time=0.5,
         # JL: what are mds keys?
-        #mds_key_format="{self.parent.cam.name}_ch{channel_number}",
+        # mds_key_format="{self.parent.cam.name}_ch{channel_number}",
         mds_key_format="{self.parent.name}_channels_channel{channel_number:02}",
         parent,
         **kwargs,
@@ -197,9 +195,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         total_points_reading = self.parent.total_points.get()
         if total_points_reading < 1:
-            raise RuntimeError(
-                f"total_points '{self.parent.total_points}' must be set"
-            )
+            raise RuntimeError(f"total_points '{self.parent.total_points}' must be set")
         spectra_per_point_reading = self.parent.spectra_per_point.get()
         total_capture = total_points_reading * spectra_per_point_reading
 
