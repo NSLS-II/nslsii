@@ -757,7 +757,7 @@ def build_detector_class(
     # in case channel_numbers can be iterated only once, create a tuple
     channel_numbers = tuple([channel_number for channel_number in channel_numbers])
 
-    # in case the mcaroi_numbers parameter can be iterated only once, create a tuple
+    # in case mcaroi_numbers can be iterated only once, create a tuple
     mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers])
 
     channel_attr_name_re = re.compile(r"channel\d{2}")
@@ -843,6 +843,3 @@ def build_detector_class(
             **extra_class_members,
         ),
     )
-
-
-# end new IOC classes
