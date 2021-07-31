@@ -625,6 +625,7 @@ def _subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
                 # publisher_queue_.get() timed out waiting for a new document
                 # the while condition will be checked now to see if someone
                 # has requested that this thread terminate
+                # if not then try to get a new document
                 pass
             except BaseException:
                 # something bad happened while trying to publish a Kafka message
