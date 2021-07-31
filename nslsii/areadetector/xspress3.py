@@ -1,6 +1,6 @@
 import logging
 import re
-import time
+import time as ttime
 from collections import OrderedDict
 
 from databroker.assets.handlers import Xspress3HDF5Handler
@@ -92,7 +92,7 @@ class Xspress3Trigger(BlueskyInterface):
 
         acquire_status = self.new_acquire_status()
         self.cam.acquire.put(1, wait=False)
-        trigger_time = time.time()
+        trigger_time = ttime.time()
 
         # tell the associated file plugins to do something about
         # each channel's data by invoking
@@ -278,7 +278,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         # Xspress3 needs a bit of time to configure itself...
         # this does not play nice with the event loop :/
-        time.sleep(self.stage_sleep_time)
+        ttime.sleep(self.stage_sleep_time)
 
         return super_stage_result
 
@@ -295,7 +295,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                 i += 1
                 if (i % 50) == 0:
                     logger.warning("Still capturing data .... waiting.")
-                time.sleep(0.1)
+                ttime.sleep(0.1)
                 if i > 150:
                     logger.warning("Still capturing data .... giving up.")
                     logger.warning(
