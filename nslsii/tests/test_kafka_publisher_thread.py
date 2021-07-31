@@ -228,5 +228,46 @@ def test_subscribe_kafka_publisher(temporary_topics, RE):
         )
         assert second_match
 
-        # third_match = exception_message_pattern.search(log_output, pos=second_match.endpos)
-        # assert third_match is None
+
+def test_publisher_with_no_broker(RE, hw):
+    # specify a bootstrap server that does not exist
+    (
+        nslsii_beamline_topic,
+        kafka_publisher_thread_exit_event,
+        subscription_token,
+    ) = nslsii._build_and_subscribe_kafka_publisher(
+        RE=RE,
+        beamline_name="test",
+        bootstrap_servers="100.100.100.100:9092",
+        producer_config={
+            "acks": "all",
+            "enable.idempotence": False,
+            "request.timeout.ms": 1000,
+        },
+    )
+
+    assert isinstance(subscription_token, int)
+
+    published_bluesky_documents = []
+
+    # this function will store all documents
+    # published by the RunEngine in a list
+    def store_published_document(name, document):
+        published_bluesky_documents.append((name, document))
+
+    RE.subscribe(store_published_document)
+
+    RE(count([hw.det]))
+
+    import time
+    t0 = time.time()
+    RE(count([hw.det1]))
+    t1 = time.time()
+
+    # timeout is set at 1s but it takes longer than 5s to run count
+    # so running count should take less than 10s
+    print(f"time for count: {t1-t0:.3f}")
+    assert (t1 - t0) < 10.0
+
+    # were the documents published?
+    assert len(published_bluesky_documents) == 4
