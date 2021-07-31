@@ -534,7 +534,7 @@ def _validate_mcaroi_number(mcaroi_number):
             f"MCAROI number '{mcaroi_number}' is outside the allowed interval [1,48]"
         )
     else:
-        # everything is great
+        # everything is awesome
         pass
 
 
