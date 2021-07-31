@@ -166,9 +166,12 @@ def test_subscribe_kafka_publisher(temporary_topics, RE):
     """
     Test exception handling when a bluesky_kafka.Publisher raises an exception.
 
-    Parameter
-    ---------
-    RE: RunEngine
+    Parameters
+    ----------
+    temporary_topics: context manager (pytest fixture)
+        creates and cleans up temporary Kafka topics for testing
+    RE: pytest fixture
+        bluesky RunEngine
 
     """
     # use a random string as the beamline name so topics will not be duplicated across tests
