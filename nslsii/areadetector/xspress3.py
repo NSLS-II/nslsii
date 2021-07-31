@@ -174,10 +174,10 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         raise NotImplementedError()
 
     def make_filename(self):
-        fn, rp, write_path = super().make_filename()
+        file_name, read_path, write_path = super().make_filename()
         if self.parent.make_directories.get():
             makedirs(write_path)
-        return fn, rp, write_path
+        return file_name, read_path, write_path
 
     def stage(self):
         logger.debug("staging Xspress3 '%s'", self.parent.prefix)
