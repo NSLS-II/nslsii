@@ -216,7 +216,7 @@ def configure_base(
         configure_ipython_logging(exception_logger=log_exception, ipython=ipython)
 
     if publish_documents_to_kafka:
-        subscribe_kafka_publisher(
+        _build_and_subscribe_kafka_publisher(
             RE,
             beamline_name=broker_name,
             bootstrap_servers=os.environ['BLUESKY_KAFKA_BOOTSTRAP_SERVERS'],
@@ -547,7 +547,7 @@ def migrate_metadata():
     new_md.update(old_md)
 
 
-def subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
+def _subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
     """
     Define functions to put (name, document) tuples on the publisher_queue and
     take them off.
@@ -652,7 +652,7 @@ def subscribe_kafka_publisher(RE, publisher_queue, kafka_publisher):
     return kafka_publisher_re_token, kafka_publisher_thread, kafka_publisher_thread_stop_event
 
 
-def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config):
+def _build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config):
     """
     Create and start a separate thread to publish bluesky documents as Kafka
     messages on a beamline-specific topic.
@@ -707,7 +707,7 @@ def build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, pr
                 producer_config=producer_config,
                 flush_on_stop_doc=True
             )
-            kafka_publisher_token, kafka_publisher_thread, kafka_publisher_thread_stop_event = subscribe_kafka_publisher(
+            kafka_publisher_token, kafka_publisher_thread, kafka_publisher_thread_stop_event = _subscribe_kafka_publisher(
                 RE=RE,
                 publisher_queue=publisher_queue,
                 kafka_publisher=kafka_publisher
