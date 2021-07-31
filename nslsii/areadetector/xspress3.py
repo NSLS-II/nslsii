@@ -411,7 +411,7 @@ class McaRoi(ADBase):
         mcaroi_prefix_match = self.mcaroi_prefix_re.search(prefix)
         if mcaroi_prefix_match is None:
             raise ValueError(
-                f"mcaroi prefix '{prefix}' does not match the expected pattern"
+                f"mcaroi prefix '{prefix}' does not match the expected pattern `{self.mcaroi_prefix_re.pattern}`"
             )
         self.mcaroi_number = int(mcaroi_prefix_match.group("mcaroi_number"))
 
