@@ -65,7 +65,7 @@ def test_build_and_subscribe_kafka_publisher(
             nslsii_beamline_topic,
             kafka_publisher_thread_exit_event,
             subscription_token,
-        ) = nslsii.build_and_subscribe_kafka_publisher(
+        ) = nslsii._build_and_subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -142,7 +142,7 @@ def test_no_beamline_topic(kafka_bootstrap_servers, RE):
 
         # use a random string as the beamline name so topics will not be duplicated across tests
         beamline_name = str(uuid.uuid4())[:8]
-        nslsii.build_and_subscribe_kafka_publisher(
+        nslsii._build_and_subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -195,7 +195,7 @@ def test_subscribe_kafka_publisher(temporary_topics, RE):
             _,
             kafka_publisher_thread,
             kafka_publisher_thread_stop_event,
-        ) = nslsii.subscribe_kafka_publisher(
+        ) = nslsii._subscribe_kafka_publisher(
             RE=RE, publisher_queue=publisher_queue, kafka_publisher=mock_kafka_publisher
         )
 
