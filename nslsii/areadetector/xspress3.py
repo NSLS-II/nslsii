@@ -1,28 +1,20 @@
-from collections import OrderedDict
-import hashlib
 import logging
 import re
 import time
+from collections import OrderedDict
 
-from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
-from ophyd import Signal, EpicsSignal, EpicsSignalRO
+from databroker.assets.handlers import Xspress3HDF5Handler
 
-from ophyd import (
-    Component as Cpt,
-    DynamicDeviceComponent as DynamicDeviceCpt,
-)
-from ophyd.areadetector.filestore_mixins import FileStorePluginBase
-
-from ophyd.areadetector.plugins import HDF5Plugin
+from ophyd import Component as Cpt
+from ophyd import DynamicDeviceComponent as DynamicDeviceCpt
+from ophyd import EpicsSignal, EpicsSignalRO, Signal
 from ophyd.areadetector import ADBase
+from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
 from ophyd.areadetector import Xspress3Detector
+from ophyd.areadetector.filestore_mixins import FileStorePluginBase
+from ophyd.areadetector.plugins import HDF5Plugin
 from ophyd.device import BlueskyInterface, Staged
 from ophyd.status import DeviceStatus
-
-from databroker.assets.handlers import (
-    Xspress3HDF5Handler,
-    # XS3_XRF_DATA_KEY as XRF_DATA_KEY,
-)
 
 from ..detectors.utils import makedirs
 
