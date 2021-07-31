@@ -404,6 +404,7 @@ def test_extra_class_members():
 
     assert detector.ten == 10
     assert isinstance(detector.a_signal, Signal)
+    assert detector.a_signal.get() == 0
 
 
 def test_extra_class_members_failure():
