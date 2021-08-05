@@ -106,7 +106,9 @@ class Xspress3Trigger(BlueskyInterface):
 
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
-    """"""
+    """
+    Create resource and datum documents.
+    """
 
     # TODO: these PVs may be obsolete
     num_capture_calc = Cpt(EpicsSignal, "NumCapture_CALC")
