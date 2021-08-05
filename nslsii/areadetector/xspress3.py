@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 class Xspress3Trigger(BlueskyInterface):
-    """ """
+    """
+    A basic trigger mixin. Good enough for simple cases.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -46,7 +48,7 @@ class Xspress3Trigger(BlueskyInterface):
 
         The important behavior of this method is to mark self._acquire_status
         as `finished` when Xspress3Detector.cam.acquire changes from 1 to 0
-        (high to low).
+        (high to low). A RunEngine a waiting for this change.
 
         Parameters
         ----------
