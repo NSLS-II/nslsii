@@ -48,7 +48,7 @@ class Xspress3Trigger(BlueskyInterface):
 
         The important behavior of this method is to mark self._acquire_status
         as `finished` when Xspress3Detector.cam.acquire changes from 1 to 0
-        (high to low). A RunEngine a waiting for this change.
+        (high to low). A RunEngine is waiting for this change.
 
         Parameters
         ----------
