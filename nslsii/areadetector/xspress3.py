@@ -781,7 +781,7 @@ def build_detector_class(
                 yield getattr(self.channels, channel_attr_name)
 
     return type(
-        f"GeneratedXspress3Detector",
+        "GeneratedXspress3Detector",
         detector_parent_classes,
         dict(
             **{
