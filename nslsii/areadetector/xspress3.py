@@ -243,6 +243,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         # apply the stage_sigs values
         super_stage_result = super().stage()
 
+        # self._fn comes from FileStorePluginBase
         self._fn = self.file_template.get() % (
             self._fp,
             self.file_name.get(),
