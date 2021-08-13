@@ -64,7 +64,7 @@ def test_build_and_subscribe_kafka_publisher(
         (
             nslsii_beamline_topic,
             kafka_publisher_thread_exit_event,
-            subscription_token,
+            re_subscription_token,
         ) = nslsii._build_and_subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
@@ -77,7 +77,7 @@ def test_build_and_subscribe_kafka_publisher(
         )
 
         assert nslsii_beamline_topic == beamline_topic
-        assert isinstance(subscription_token, int)
+        assert isinstance(re_subscription_token, int)
 
         published_bluesky_documents = []
 
@@ -199,7 +199,7 @@ def test_subscribe_kafka_publisher(temporary_topics, RE):
             kafka_publisher_thread,
             kafka_publisher_thread_stop_event,
         ) = nslsii._subscribe_kafka_publisher(
-            RE=RE, publisher_queue=publisher_queue, kafka_publisher=mock_kafka_publisher
+            RE=RE, publisher_queue=publisher_queue, kafka_publisher=mock_kafka_publisher, publisher_queue_timeout=1,
         )
 
         # provoke two exceptions
@@ -208,8 +208,10 @@ def test_subscribe_kafka_publisher(temporary_topics, RE):
 
         # wait until both documents have been removed from the queue
         while not publisher_queue.empty():
+            print("waiting for queue to empty")
             time.sleep(1)
 
+        # stop the polling loop
         kafka_publisher_thread_stop_event.set()
         kafka_publisher_thread.join()
 
@@ -230,23 +232,28 @@ def test_subscribe_kafka_publisher(temporary_topics, RE):
 
 
 def test_publisher_with_no_broker(RE, hw):
-    # specify a bootstrap server that does not exist
+    """
+    Test the case of no Kafka broker.
+    """
+    beamline_name = str(uuid.uuid4())[:8]
     (
         nslsii_beamline_topic,
         kafka_publisher_thread_exit_event,
         subscription_token,
     ) = nslsii._build_and_subscribe_kafka_publisher(
         RE=RE,
-        beamline_name="test",
+        beamline_name=beamline_name,
+        # specify a bootstrap server that does not exist
         bootstrap_servers="100.100.100.100:9092",
         producer_config={
             "acks": "all",
             "enable.idempotence": False,
             "request.timeout.ms": 1000,
         },
+        publisher_queue_timeout=1,
     )
 
-    assert isinstance(subscription_token, int)
+    assert subscription_token is None
 
     published_bluesky_documents = []
 
@@ -256,8 +263,6 @@ def test_publisher_with_no_broker(RE, hw):
         published_bluesky_documents.append((name, document))
 
     RE.subscribe(store_published_document)
-
-    RE(count([hw.det]))
 
     import time
     t0 = time.time()
@@ -269,5 +274,5 @@ def test_publisher_with_no_broker(RE, hw):
     print(f"time for count: {t1-t0:.3f}")
     assert (t1 - t0) < 10.0
 
-    # were the documents published?
+    # the RunEngine should have published 4 documents
     assert len(published_bluesky_documents) == 4
