@@ -1,6 +1,9 @@
+import datetime
 import io
 import os
 import logging
+import subprocess
+from logging.handlers import SysLogHandler
 from pathlib import Path
 import shutil
 import stat
@@ -12,6 +15,20 @@ import pytest
 
 from nslsii import configure_bluesky_logging, configure_ipython_logging
 from nslsii.common.ipynb.logutils import log_exception
+
+
+@pytest.fixture(autouse=True)
+def remove_logging_handlers():
+    """
+    Logging handlers from each test will accumulate. This fixture
+    removes handlers added by a previous test before running the
+    current test.
+    """
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
+        logger = logging.getLogger(name=logger_name)
+        for handler in logger.handlers.copy():
+            logger.removeHandler(handler)
 
 
 def test_configure_bluesky_logging(tmpdir):
@@ -165,8 +182,7 @@ def test_configure_bluesky_logging_propagate_true(tmpdir):
     ip = IPython.core.interactiveshell.InteractiveShell()
     os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
     bluesky_log_file_path = configure_bluesky_logging(
-        ipython=ip,
-        propagate_log_messages=True
+        ipython=ip, propagate_log_messages=True
     )
 
     logging.getLogger("bluesky").info("bluesky log message")
@@ -186,6 +202,36 @@ def test_configure_bluesky_logging_propagate_true(tmpdir):
     assert "nslsii log message" in root_logger_output
     assert "ophyd log message" in root_logger_output
     assert "ipython log message" in root_logger_output
+
+
+def test_configure_bluesky_logging_syslog_logging(tmpdir):
+    """
+    Verify SysLogHandler is configured correctly by checking
+    for log messages in journalctl output.
+    """
+    log_file_path = Path(tmpdir) / Path("bluesky.log")
+    os.environ["BLUESKY_LOG_FILE"] = str(log_file_path)
+    ip = IPython.core.interactiveshell.InteractiveShell()
+    configure_bluesky_logging(ipython=ip)
+    for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
+        assert any(
+            [
+                isinstance(handler, SysLogHandler)
+                for handler in logging.getLogger(logger_name).handlers
+            ]
+        )
+
+    # remember the time so we can ask journalctl for only the most recent log messages
+    time_before_logging = datetime.datetime.now().time().isoformat(timespec="seconds")
+    for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
+        logging.getLogger(logger_name).info(f"{logger_name} log message %s", time_before_logging)
+
+    for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
+        journalctl_output = subprocess.run(
+            ["journalctl", f"SYSLOG_IDENTIFIER={logger_name}", f"--since={time_before_logging}", "--no-pager"],
+            capture_output=True,
+        )
+        assert f"{logger_name} log message {time_before_logging}" in journalctl_output.stdout.decode()
 
 
 def test_ipython_log_exception():
