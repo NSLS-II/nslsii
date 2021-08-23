@@ -3,6 +3,7 @@ bluesky
 bluesky-kafka
 caproto
 databroker
+h5py
 ipython
 ipywidgets
 matplotlib
