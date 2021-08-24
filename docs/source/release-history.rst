@@ -4,7 +4,7 @@ Release History
 
 v0.1.4 (2021-08-24)
 ===================
-* updated documentation for beamline runengine Kafka topic names
+* updated documentation for beamline RunEngine Kafka topic names
 * import ``bluesky_kafka`` only when needed in ``nslsii.configure_base``
 * resolved an issue with importing ``nslsii.iocs``
 * improved exception handling when bluesky documents are published as Kafka messages
