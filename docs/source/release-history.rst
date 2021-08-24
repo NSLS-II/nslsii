@@ -2,6 +2,15 @@
 Release History
 ***************
 
+v0.2.0 (2021-08-24)
+===================
+* updated documentation for beamline RunEngine Kafka topic names
+* import ``bluesky_kafka`` only when needed in ``nslsii.configure_base``
+* resolved an issue with importing ``nslsii.iocs``
+* improved exception handling when bluesky documents are published as Kafka messages
+* send beamline log output to syslog
+* added ``nslsii.areadetector.xspress3`` to support APS Xspress3 IOC
+
 v0.1.3 (2021-03-29)
 ===================
 * added environment variable for kafka bootstrap servers
