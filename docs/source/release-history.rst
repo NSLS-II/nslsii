@@ -2,7 +2,7 @@
 Release History
 ***************
 
-v0.1.4 (2021-08-24)
+v0.2.0 (2021-08-24)
 ===================
 * updated documentation for beamline RunEngine Kafka topic names
 * import ``bluesky_kafka`` only when needed in ``nslsii.configure_base``
