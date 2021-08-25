@@ -13,9 +13,6 @@ import appdirs
 
 from IPython import get_ipython
 
-from bluesky_kafka import BlueskyKafkaException, Publisher
-from bluesky_kafka.utils import list_topics
-
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -727,6 +724,8 @@ def _build_and_subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, p
         un-subscribe the function from the RunEngine, in case someone ever wants to do that.
 
     """
+    from bluesky_kafka import BlueskyKafkaException, Publisher
+    from bluesky_kafka.utils import list_topics
 
     nslsii_logger = logging.getLogger("nslsii")
     publisher_queue = queue.Queue()
