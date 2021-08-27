@@ -15,14 +15,13 @@ def test_conditional_import_negative_case():
     of other tests.
     """
     the_test = """
-import pprint
 import sys
 from unittest.mock import Mock
 
 import IPython.core.interactiveshell
 import nslsii
 
-#pprint.pprint(sys.modules)
+
 ip = IPython.core.interactiveshell.InteractiveShell()
 nslsii.configure_base(
     user_ns=ip.user_ns,
@@ -66,14 +65,13 @@ def test_conditional_import_positive_case():
     of other tests.
     """
     the_test = """
-import pprint
 import sys
 from unittest.mock import Mock
 
 import IPython.core.interactiveshell
 import nslsii
 
-#pprint.pprint(sys.modules)
+
 ip = IPython.core.interactiveshell.InteractiveShell()
 nslsii.configure_base(
     user_ns=ip.user_ns,
@@ -89,7 +87,7 @@ nslsii.configure_base(
     # this is the important condition for the test
     publish_documents_to_kafka=True,
 )
-#pprint.pprint(sys.modules)
+
 if "bluesky_kafka" in sys.modules:
     sys.exit(0)
 else:
