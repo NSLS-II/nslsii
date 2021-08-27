@@ -19,6 +19,7 @@ import sys
 from unittest.mock import Mock
 
 import IPython.core.interactiveshell
+
 import nslsii
 
 
@@ -69,6 +70,7 @@ import sys
 from unittest.mock import Mock
 
 import IPython.core.interactiveshell
+
 import nslsii
 
 
