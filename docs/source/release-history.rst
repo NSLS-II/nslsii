@@ -2,6 +2,11 @@
 Release History
 ***************
 
+v0.2.1 (2021-08-27)
+===================
+* reinstate ``bluesky_kafka`` conditional import with tests
+* add GitHub Action for CI
+
 v0.2.0 (2021-08-24)
 ===================
 * updated documentation for beamline RunEngine Kafka topic names
