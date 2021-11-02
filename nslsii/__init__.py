@@ -34,6 +34,7 @@ def configure_base(
     broker_name,
     *,
     bec=True,
+    bec_derivative=False,
     epics_context=False,
     magics=True,
     mpl=True,
@@ -77,6 +78,9 @@ def configure_base(
         Name of databroker configuration or a Broker instance.
     bec : boolean, optional
         True by default. Set False to skip BestEffortCallback.
+    bec_derivative : boolean, optional
+        False by default. Set True to enable derivative and its stats
+        calculation in BestEffortCallback.
     epics_context : boolean, optional
         True by default. Set False to skip ``setup_ophyd()``.
     magics : boolean, optional
@@ -179,7 +183,11 @@ def configure_base(
         # Set up the BestEffortCallback.
         from bluesky.callbacks.best_effort import BestEffortCallback
 
-        _bec = BestEffortCallback()
+        _bec_kwargs = {}
+        if bec_derivative:
+            _bec_kwargs["calc_derivative_and_stats"] = True
+
+        _bec = BestEffortCallback(**_bec_kwargs)
         RE.subscribe(_bec)
         ns["bec"] = _bec
         ns["peaks"] = _bec.peaks  # just as alias for less typing

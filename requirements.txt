@@ -1,5 +1,5 @@
 appdirs
-bluesky
+bluesky>=1.8.1
 bluesky-kafka
 caproto
 databroker
