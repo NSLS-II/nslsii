@@ -2,6 +2,11 @@
 Release History
 ***************
 
+v0.2.2 (2021-12-08)
+===================
+* add the ``bec_derivative`` kwarg to ``nslsii.configure.base``
+* add GitHub Action workflow to publish to PyPI automatically
+
 v0.2.1 (2021-08-27)
 ===================
 * reinstate ``bluesky_kafka`` conditional import with tests
