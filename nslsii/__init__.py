@@ -41,7 +41,7 @@ def configure_base(
     configure_logging=True,
     pbar=True,
     ipython_logging=True,
-    publish_documents_with_kafka=True,
+    publish_documents_with_kafka=False,
     tb_minimize=True,
 ):
     """
