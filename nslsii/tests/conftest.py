@@ -5,7 +5,7 @@ from bluesky_kafka import BlueskyConsumer
 from bluesky_kafka.tests.conftest import (
     pytest_addoption,
     kafka_bootstrap_servers,
-    test_broker_authorization_config,
+    broker_authorization_config,
     consume_documents_from_kafka_until_first_stop_document,
     temporary_topics,
 )  # noqa
