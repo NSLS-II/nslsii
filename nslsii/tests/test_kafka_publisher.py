@@ -1,6 +1,4 @@
-import io
-import logging
-import re
+import sys
 import uuid
 
 from unittest.mock import Mock
@@ -188,7 +186,9 @@ def test_no_broker(
         assert published_bluesky_documents[0][0] == "stop"
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 def test_exception_on_publisher_call(
+    kafka_bootstrap_servers,
     temporary_topics,
     RE,
     hw,
@@ -199,6 +199,8 @@ def test_exception_on_publisher_call(
 
     Parameters
     ----------
+    kafka_bootstrap_servers: str (pytest fixture)
+        comma-delimited string of Kafka broker host:port, for example "kafka1:9092,kafka2:9092"
     temporary_topics: context manager (pytest fixture)
         creates and cleans up temporary Kafka topics for testing
     RE: pytest fixture
@@ -224,7 +226,7 @@ def test_exception_on_publisher_call(
         ) = nslsii._subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
-            bootstrap_servers="100.100.100.100:9092",
+            bootstrap_servers=kafka_bootstrap_servers,
             producer_config={
                 "acks": "all",
                 "enable.idempotence": False,
