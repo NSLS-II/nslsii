@@ -195,7 +195,8 @@ def test_exception_on_publisher_call(
 ):
     """Test the case of an exception raised by Publisher.__call__.
 
-    The exception should interrupt the RunEngine.
+    The exception should interrupt the RunEngine. This test simulates a failure
+    to publish a bluesky document as a Kafka message.
 
     Parameters
     ----------
@@ -216,7 +217,7 @@ def test_exception_on_publisher_call(
     ):
 
         def mock_publisher_factory(*args, **kwargs):
-            # the returned object will raise BlueskyKafkaException on every method call
+            # the mock publisher will raise BlueskyKafkaException on every method call
             #   but only __call__ will be invoked
             return Mock(side_effect=BlueskyKafkaException)
 
@@ -232,8 +233,8 @@ def test_exception_on_publisher_call(
                 "enable.idempotence": False,
                 "request.timeout.ms": 1000,
             },
-            # always use a mock-ed publisher
-            _publisher_factory=mock_publisher_factory
+            # use a mock-ed publisher
+            _publisher_factory=mock_publisher_factory,
         )
 
         assert nslsii_beamline_topic == beamline_topic
