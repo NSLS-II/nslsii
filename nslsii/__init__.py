@@ -689,7 +689,7 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
         subscription token corresponding to the RunRouter subscribed to the RunEngine
         by this function
     """
-    from bluesky_kafka import BlueskyKafkaException, Publisher
+    from bluesky_kafka import Publisher
     from bluesky_kafka.utils import list_topics
     from event_model import RunRouter
 
