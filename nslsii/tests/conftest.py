@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-import pytest
+
 from bluesky.tests.conftest import RE  # noqa
 from bluesky_kafka import BlueskyConsumer
 from bluesky_kafka.tests.conftest import (
