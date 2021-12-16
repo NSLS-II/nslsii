@@ -186,7 +186,6 @@ def test_no_broker(
         assert published_bluesky_documents[0][0] == "stop"
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 def test_exception_on_publisher_call(
     kafka_bootstrap_servers,
     temporary_topics,
