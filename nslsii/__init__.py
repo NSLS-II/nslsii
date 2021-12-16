@@ -746,7 +746,7 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
 
     # log this only once
     logging.getLogger("nslsii").info(
-        "RE will publish documents to Kafka topic %s", topic
+        "RE will publish documents to Kafka topic '%s'", topic
     )
 
     return topic, runrouter_token
