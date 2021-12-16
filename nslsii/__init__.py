@@ -727,10 +727,9 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
                 raise exc_
 
         try:
-            # call Producer.list_topics to test if we can connect to a Kafka broker
-            # TODO: add list_topics method to KafkaPublisher
-            cluster_metadata = kafka_publisher._producer.list_topics(
-                topic=topic, timeout=5.0
+            # call list_topics to test if we can connect to a Kafka broker
+            cluster_metadata = list_topics(
+                bootstrap_servers=bootstrap_servers, producer_config=producer_config, timeout=5.0
             )
             logging.getLogger("nslsii").info(
                 "connected to Kafka broker(s): %s", cluster_metadata
