@@ -715,16 +715,16 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
             """
             try:
                 kafka_publisher(name_, doc_)
-            except Exception as exc:
+            except (BaseException, Exception) as exc_:
                 # log the exception and re-raise it to abort the current run
                 logger = logging.getLogger("nslsii")
                 logger.exception(
-                    "an error occurred when %s published %s\nstart_name: %s\ndoc %s",
+                    "an error occurred when %s published\n  start_name: %s\n  doc %s",
                     kafka_publisher,
                     name_,
                     doc_,
                 )
-                raise exc
+                raise exc_
 
         try:
             # call Producer.list_topics to test if we can connect to a Kafka broker
@@ -736,7 +736,7 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
                 "connected to Kafka broker(s): %s", cluster_metadata
             )
             return [raise_publisher_exceptions], []
-        except Exception as exc:
+        except (BaseException, Exception) as exc:
             # log the exception and re-raise it to abort the current run
             nslsii_logger = logging.getLogger("nslsii")
             nslsii_logger.exception("'%s' failed to connect to Kafka", kafka_publisher)
