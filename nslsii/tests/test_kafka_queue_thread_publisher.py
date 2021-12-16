@@ -8,7 +8,7 @@ from event_model import sanitize_doc
 import nslsii
 
 
-def test_build_and_subscribe_kafka_publisher(
+def test_build_and_subscribe_kafka_queue_thread_publisher(
     kafka_bootstrap_servers,
     temporary_topics,
     consume_documents_from_kafka_until_first_stop_document,
@@ -65,7 +65,7 @@ def test_build_and_subscribe_kafka_publisher(
             nslsii_beamline_topic,
             kafka_publisher_thread_exit_event,
             re_subscription_token,
-        ) = nslsii._build_and_subscribe_kafka_publisher(
+        ) = nslsii._subscribe_kafka_queue_thread_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -142,7 +142,7 @@ def test_no_beamline_topic(kafka_bootstrap_servers, RE):
 
         # use a random string as the beamline name so topics will not be duplicated across tests
         beamline_name = str(uuid.uuid4())[:8]
-        nslsii._build_and_subscribe_kafka_publisher(
+        nslsii._subscribe_kafka_queue_thread_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -162,75 +162,6 @@ def test_no_beamline_topic(kafka_bootstrap_servers, RE):
         nslsii_logger.removeHandler(hdlr=logging_test_handler)
 
 
-def test_subscribe_kafka_publisher(temporary_topics, RE):
-    """
-    Test exception handling when a bluesky_kafka.Publisher raises an exception.
-
-    Parameters
-    ----------
-    temporary_topics: context manager (pytest fixture)
-        creates and cleans up temporary Kafka topics for testing
-    RE: pytest fixture
-        bluesky RunEngine
-
-    """
-    # use a random string as the beamline name so topics will not be duplicated across tests
-    beamline_name = str(uuid.uuid4())[:8]
-    with temporary_topics(topics=[f"{beamline_name}.bluesky.runengine.documents"]) as (
-        beamline_topic,
-    ):
-        import time
-        import queue
-        from unittest.mock import Mock
-        from bluesky_kafka import BlueskyKafkaException
-
-        logging_test_output = io.StringIO()
-        nslsii_logger = logging.getLogger("nslsii")
-        logging_test_handler = logging.StreamHandler(stream=logging_test_output)
-        logging_test_handler.setFormatter(
-            logging.Formatter("%(threadName)s - %(message)s")
-        )
-        nslsii_logger.addHandler(logging_test_handler)
-
-        publisher_queue = queue.Queue()
-        mock_kafka_publisher = Mock(side_effect=BlueskyKafkaException())
-        (
-            _,
-            kafka_publisher_thread,
-            kafka_publisher_thread_stop_event,
-        ) = nslsii._subscribe_kafka_publisher(
-            RE=RE, publisher_queue=publisher_queue, kafka_publisher=mock_kafka_publisher, publisher_queue_timeout=1,
-        )
-
-        # provoke two exceptions
-        publisher_queue.put(("start", {}))
-        publisher_queue.put(("stop", {}))
-
-        # wait until both documents have been removed from the queue
-        while not publisher_queue.empty():
-            print("waiting for queue to empty")
-            time.sleep(1)
-
-        # stop the polling loop
-        kafka_publisher_thread_stop_event.set()
-        kafka_publisher_thread.join()
-
-        # this logging output should contain 2 separate BlueskyKafkaExceptions
-        log_output = logging_test_output.getvalue()
-        exception_message_pattern = re.compile(
-            r"kafka-publisher-thread - an error occurred after 0 successful Kafka messages when "
-            r"'<Mock id='\d+'>' attempted to publish on topic <Mock name='mock.topic' id='\d+'>"
-        )
-
-        first_match = exception_message_pattern.search(log_output)
-        assert first_match
-
-        second_match = exception_message_pattern.search(
-            log_output, pos=first_match.end()
-        )
-        assert second_match
-
-
 def test_publisher_with_no_broker(RE, hw):
     """
     Test the case of no Kafka broker.
@@ -240,7 +171,7 @@ def test_publisher_with_no_broker(RE, hw):
         nslsii_beamline_topic,
         kafka_publisher_thread_exit_event,
         subscription_token,
-    ) = nslsii._build_and_subscribe_kafka_publisher(
+    ) = nslsii._subscribe_kafka_queue_thread_publisher(
         RE=RE,
         beamline_name=beamline_name,
         # specify a bootstrap server that does not exist
@@ -265,6 +196,7 @@ def test_publisher_with_no_broker(RE, hw):
     RE.subscribe(store_published_document)
 
     import time
+
     t0 = time.time()
     RE(count([hw.det1]))
     t1 = time.time()
