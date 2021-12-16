@@ -4,9 +4,6 @@ from logging.handlers import SysLogHandler, TimedRotatingFileHandler
 import os
 from pathlib import Path
 import sys
-import queue
-import threading
-import uuid
 import warnings
 
 import appdirs
