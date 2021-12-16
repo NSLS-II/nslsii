@@ -105,4 +105,4 @@ def test__read_bluesky_kafka_config_file_missing_sections(tmp_path):
         Exception,
         match=f".*{str(test_config_file_path)}.*\\['abort_run_on_kafka_exception', 'bootstrap_servers', 'runengine_producer_config'\\]",
     ):
-        _read_bluesky_kafka_config_file(test_config_file_path)
+        _read_bluesky_kafka_config_file(str(test_config_file_path))
