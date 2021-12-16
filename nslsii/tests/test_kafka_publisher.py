@@ -1,4 +1,3 @@
-import sys
 import uuid
 
 from unittest.mock import Mock
