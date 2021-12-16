@@ -21,9 +21,7 @@ test_bluesky_kafka_config = """\
 
 
 def test_bluesky_kafka_config_path_env_var(tmp_path, RE):
-    """Test specifying a configuration file path by environment variable.
-
-    """
+    """Test specifying a configuration file path by environment variable."""
     # write a temporary file for this test
     test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
     with open(test_config_file_path, "wt") as f:
@@ -38,9 +36,7 @@ def test_bluesky_kafka_config_path_env_var(tmp_path, RE):
 
 
 def test_bluesky_kafka_config_path_env_var_negative(tmp_path, RE):
-    """Test specifying a configuration file path that does not exist by environment variable.
-
-    """
+    """Test specifying a configuration file path that does not exist by environment variable."""
     # write a temporary file for this test
     test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
     os.environ["BLUESKY_KAFKA_CONFIG_PATH"] = str(test_config_file_path)
