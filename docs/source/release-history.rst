@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.3.0 (2021-12-20)
+===================
+* add Kafka configuration parameters and support to ``nslsii.configure_base``
+
 v0.2.2 (2021-12-08)
 ===================
 * add the ``bec_derivative`` kwarg to ``nslsii.configure.base``
