@@ -64,10 +64,7 @@ def test__subscribe_kafka_publisher(
         beamline_topic,
     ):
 
-        (
-            nslsii_beamline_topic,
-            re_subscription_token,
-        ) = nslsii._subscribe_kafka_publisher(
+        subscribe_kafka_publisher_details = nslsii._subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -78,8 +75,8 @@ def test__subscribe_kafka_publisher(
             },
         )
 
-        assert nslsii_beamline_topic == beamline_topic
-        assert isinstance(re_subscription_token, int)
+        assert subscribe_kafka_publisher_details.beamline_topic == beamline_topic
+        assert isinstance(subscribe_kafka_publisher_details.re_subscribe_token, int)
 
         published_bluesky_documents = []
 
@@ -98,7 +95,7 @@ def test__subscribe_kafka_publisher(
 
         consumed_bluesky_documents = (
             consume_documents_from_kafka_until_first_stop_document(
-                kafka_topic=nslsii_beamline_topic
+                kafka_topic=subscribe_kafka_publisher_details.beamline_topic
             )
         )
 
@@ -151,10 +148,7 @@ def test_no_broker(
         beamline_topic,
     ):
 
-        (
-            nslsii_beamline_topic,
-            re_subscription_token,
-        ) = nslsii._subscribe_kafka_publisher(
+        subscribe_kafka_publisher_details = nslsii._subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers="100.100.100.100:9092",
@@ -165,8 +159,8 @@ def test_no_broker(
             },
         )
 
-        assert nslsii_beamline_topic == beamline_topic
-        assert isinstance(re_subscription_token, int)
+        assert subscribe_kafka_publisher_details.beamline_topic == beamline_topic
+        assert isinstance(subscribe_kafka_publisher_details.re_subscribe_token, int)
 
         published_bluesky_documents = []
 
@@ -219,10 +213,7 @@ def test_exception_on_publisher_call(
             #   but only __call__ will be invoked
             return Mock(side_effect=BlueskyKafkaException)
 
-        (
-            nslsii_beamline_topic,
-            re_subscription_token,
-        ) = nslsii._subscribe_kafka_publisher(
+        subscribe_kafka_publisher_details = nslsii._subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -235,8 +226,8 @@ def test_exception_on_publisher_call(
             _publisher_factory=mock_publisher_factory,
         )
 
-        assert nslsii_beamline_topic == beamline_topic
-        assert isinstance(re_subscription_token, int)
+        assert subscribe_kafka_publisher_details.beamline_topic == beamline_topic
+        assert isinstance(subscribe_kafka_publisher_details.re_subscribe_token, int)
 
         published_bluesky_documents = []
 
