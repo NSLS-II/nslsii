@@ -1,3 +1,4 @@
+from collections import namedtuple
 from distutils.version import LooseVersion
 import logging
 from logging.handlers import SysLogHandler, TimedRotatingFileHandler
@@ -451,20 +452,24 @@ def configure_ipython_logging(
     return bluesky_ipython_log_file_path
 
 
-def configure_kafka_publisher(RE, beamline_name):
+def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
     """ Read a Kafka configuration file and subscribe a Kafka publisher to the RunEngine.
 
     A configuration file is required. Environment variable BLUESKY_KAFKA_CONFIG_FILE
-    will be checked first. If it is not defined the default path `/etc/bluesky/kafka.yml`
-    will be read.
+    will be checked if `configuration_file_path` is not specified. Otherwise the default
+    path `/etc/bluesky/kafka.yml` will be read.
 
     The intention is that the default path is used in production. The environment variable
-    allows for testing outside a production environment.
+    allows for modifying a deployed system and the parameter is useful for testing.
 
     See `tests/test_kafka_configuration.py` for an example configuration file.
     """
+    bluesky_kafka_config_path = None
+    kafka_publisher_details = None
 
-    if "BLUESKY_KAFKA_CONFIG_PATH" in os.environ:
+    if override_config_path is not None:
+        bluesky_kafka_config_path = override_config_path
+    elif "BLUESKY_KAFKA_CONFIG_PATH" in os.environ:
         bluesky_kafka_config_path = os.environ["BLUESKY_KAFKA_CONFIG_PATH"]
     else:
         bluesky_kafka_config_path = "/etc/bluesky/kafka.yml"
@@ -477,7 +482,7 @@ def configure_kafka_publisher(RE, beamline_name):
     bootstrap_servers = ",".join(bluesky_kafka_configuration["bootstrap_servers"])
 
     if bluesky_kafka_configuration["abort_run_on_kafka_exception"]:
-        _subscribe_kafka_publisher(
+        kafka_publisher_details = _subscribe_kafka_publisher(
             RE,
             beamline_name=beamline_name,
             bootstrap_servers=bootstrap_servers,
@@ -485,7 +490,7 @@ def configure_kafka_publisher(RE, beamline_name):
         )
         pass
     else:
-        _subscribe_kafka_queue_thread_publisher(
+        kafka_publisher_details = _subscribe_kafka_queue_thread_publisher(
             RE,
             beamline_name=beamline_name,
             bootstrap_servers=bootstrap_servers,
@@ -494,7 +499,7 @@ def configure_kafka_publisher(RE, beamline_name):
             ],
         )
 
-    return bluesky_kafka_configuration
+    return bluesky_kafka_configuration, kafka_publisher_details
 
 
 def configure_olog(user_ns, *, callback=None, subscribe=True):
@@ -661,6 +666,21 @@ def _read_bluesky_kafka_config_file(config_file_path):
     return bluesky_kafka_config
 
 
+"""
+A namedtuple for holding details of the publisher created by
+_subscribe_kafka_publisher.
+"""
+_SubscribeKafkaPublisherDetails = namedtuple(
+    "SubscribeKafkaPublisherDetails",
+    {
+        "beamline_topic",
+        "bootstrap_servers",
+        "producer_config",
+        "re_subscribe_token"
+    }
+)
+
+
 def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config, _publisher_factory=None):
     """
     Subscribe a RunRouter to the specified RE to create Kafka Publishers.
@@ -709,7 +729,7 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
             flush_on_stop_doc=True,
         )
 
-        def raise_publisher_exceptions(name_, doc_):
+        def publish_or_abort_run(name_, doc_):
             """
             Exceptions _should_ interrupt the current run.
             """
@@ -727,16 +747,16 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
                 raise exc_
 
         try:
-            # call list_topics to test if we can connect to a Kafka broker
+            # on each start document call list_topics to test if we can connect to a Kafka broker
             cluster_metadata = list_topics(
                 bootstrap_servers=bootstrap_servers, producer_config=producer_config, timeout=5.0
             )
             logging.getLogger("nslsii").info(
                 "connected to Kafka broker(s): %s", cluster_metadata
             )
-            return [raise_publisher_exceptions], []
+            return [publish_or_abort_run], []
         except (BaseException, Exception) as exc:
-            # log the exception and re-raise it to abort the current run
+            # log the exception and re-raise it to indicate no connection could be made to a Kafka broker
             nslsii_logger = logging.getLogger("nslsii")
             nslsii_logger.exception("'%s' failed to connect to Kafka", kafka_publisher)
             raise exc
@@ -749,7 +769,30 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
         "RE will publish documents to Kafka topic '%s'", topic
     )
 
-    return topic, runrouter_token
+    subscribe_kafka_publisher_details = _SubscribeKafkaPublisherDetails(
+        beamline_topic=topic,
+        bootstrap_servers=bootstrap_servers,
+        producer_config=producer_config,
+        re_subscribe_token=runrouter_token
+    )
+
+    return subscribe_kafka_publisher_details
+
+
+"""
+A namedtuple for holding details of the publisher created by
+_subscribe_kafka_queue_thread_publisher.
+"""
+_SubscribeKafkaQueueThreadPublisherDetails = namedtuple(
+    "SubscribeKafkaQueueThreadPublisherDetails",
+    {
+        "beamline_topic",
+        "bootstrap_servers",
+        "producer_config",
+        "publisher_queue_thread_details",
+        "re_subscribe_token"
+    }
+)
 
 
 def _subscribe_kafka_queue_thread_publisher(
@@ -796,6 +839,7 @@ def _subscribe_kafka_queue_thread_publisher(
     kafka_publisher_token = None
     publisher_thread_stop_event = None
     kafka_publisher_re_token = None
+    publisher_queue_thread_details = None
 
     try:
         nslsii_logger.info("connecting to Kafka broker(s): '%s'", bootstrap_servers)
@@ -825,14 +869,19 @@ def _subscribe_kafka_queue_thread_publisher(
         """
         An exception at this point means bluesky documents
         will not be published as Kafka messages.
+        The exception will stop here so the run will not be aborted.
         """
         nslsii_logger.exception(
             "RunEngine is not able to publish bluesky documents as Kafka messages on topic '%s'",
             beamline_runengine_topic,
         )
 
-    return (
-        beamline_runengine_topic,
-        publisher_thread_stop_event,
-        kafka_publisher_re_token,
+    subscribe_kafka_queue_thread_publisher_details = _SubscribeKafkaQueueThreadPublisherDetails(
+        beamline_topic=beamline_runengine_topic,
+        bootstrap_servers=bootstrap_servers,
+        producer_config=producer_config,
+        publisher_queue_thread_details=publisher_queue_thread_details,
+        re_subscribe_token=kafka_publisher_re_token
     )
+
+    return subscribe_kafka_queue_thread_publisher_details
