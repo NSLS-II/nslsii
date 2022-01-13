@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.3.1 (2022-01-13)
+===================
+* fix a Kafka configuration bug in ``nslsii.configure_base``
+
 v0.3.0 (2021-12-20)
 ===================
 * add Kafka configuration parameters and support to ``nslsii.configure_base``
