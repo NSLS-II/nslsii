@@ -81,7 +81,7 @@ def test_conditional_import_positive_case(tmp_path):
     """
 
     # write a temporary file for this test
-    test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
+    test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
     with open(test_config_file_path, "wt") as f:
         f.write(test_bluesky_kafka_config)
 

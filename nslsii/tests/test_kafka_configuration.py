@@ -3,12 +3,30 @@ from pathlib import Path
 
 import pytest
 
-from nslsii import configure_kafka_publisher, _read_bluesky_kafka_config_file
+from nslsii import (
+    configure_kafka_publisher,
+    _read_bluesky_kafka_config_file,
+    _SubscribeKafkaPublisherDetails,
+    _SubscribeKafkaQueueThreadPublisherDetails
+)
 
 
-test_bluesky_kafka_config = """\
+test_bluesky_kafka_config_true = """\
 ---
   abort_run_on_kafka_exception: true
+  bootstrap_servers:
+    - kafka1:9092
+    - kafka2:9092
+    - kafka3:9092
+  runengine_producer_config:
+    acks: 0
+    message.timeout.ms: 3000
+    compression.codec: snappy
+"""
+
+test_bluesky_kafka_config_false = """\
+---
+  abort_run_on_kafka_exception: false
   bootstrap_servers:
     - kafka1:9092
     - kafka2:9092
@@ -23,14 +41,14 @@ test_bluesky_kafka_config = """\
 def test_bluesky_kafka_config_path_env_var(tmp_path, RE):
     """Test specifying a configuration file path by environment variable."""
     # write a temporary file for this test
-    test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
+    test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
     with open(test_config_file_path, "wt") as f:
-        f.write(test_bluesky_kafka_config)
+        f.write(test_bluesky_kafka_config_false)
         # add an extra item to test for later
         f.write(f"  config_file_path: {test_config_file_path}")
 
     os.environ["BLUESKY_KAFKA_CONFIG_PATH"] = str(test_config_file_path)
-    bluesky_kafka_configuration = configure_kafka_publisher(RE, "abc")
+    bluesky_kafka_configuration, publisher_details = configure_kafka_publisher(RE, "abc")
 
     assert bluesky_kafka_configuration["config_file_path"] == str(test_config_file_path)
 
@@ -38,7 +56,7 @@ def test_bluesky_kafka_config_path_env_var(tmp_path, RE):
 def test_bluesky_kafka_config_path_env_var_negative(tmp_path, RE):
     """Test specifying a configuration file path that does not exist by environment variable."""
     # write a temporary file for this test
-    test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
+    test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
     os.environ["BLUESKY_KAFKA_CONFIG_PATH"] = str(test_config_file_path)
     with pytest.raises(FileNotFoundError, match=str(test_config_file_path)):
         bluesky_kafka_configuration = configure_kafka_publisher(RE, "abc")
@@ -60,11 +78,11 @@ def test_bluesky_kafka_config_path_default_negative(tmp_path, RE):
 
 def test__read_bluesky_kafka_config_file(tmp_path):
     # write a temporary file for this test
-    test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
+    test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
     with open(test_config_file_path, "wt") as f:
-        f.write(test_bluesky_kafka_config)
+        f.write(test_bluesky_kafka_config_false)
 
-    bluesky_kafka_config = _read_bluesky_kafka_config_file(test_config_file_path)
+    bluesky_kafka_config = _read_bluesky_kafka_config_file(str(test_config_file_path))
 
     assert bluesky_kafka_config["bootstrap_servers"] == [
         "kafka1:9092",
@@ -84,10 +102,10 @@ def test__read_bluesky_kafka_config_file_failure(tmp_path):
 
     The configuration file path should be reported in the error.
     """
-    test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
+    test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
 
     with pytest.raises(FileNotFoundError, match=str(test_config_file_path)):
-        _read_bluesky_kafka_config_file(test_config_file_path)
+        _read_bluesky_kafka_config_file(str(test_config_file_path))
 
 
 def test__read_bluesky_kafka_config_file_missing_sections(tmp_path):
@@ -96,7 +114,7 @@ def test__read_bluesky_kafka_config_file_missing_sections(tmp_path):
     The configuration file path and all missing required sections should be reported in the Exception.
     """
     # write a temporary file for this test
-    test_config_file_path = tmp_path / "test_bluesky_kafka_config.yml"
+    test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
     with open(test_config_file_path, "wt") as f:
         # write a configuration file with none of the required sections
         f.write("---\n  a\n  b\n")
@@ -106,3 +124,45 @@ def test__read_bluesky_kafka_config_file_missing_sections(tmp_path):
         match=f".*{str(test_config_file_path)}.*\\['abort_run_on_kafka_exception', 'bootstrap_servers', 'runengine_producer_config'\\]",
     ):
         _read_bluesky_kafka_config_file(str(test_config_file_path))
+
+
+def test_configure_kafka_publisher_abort_run_true(tmp_path, RE):
+    """Test Kafka publisher is configured correctly in the case
+    abort_run_on_kafka_exception: true
+    """
+    # write a temporary file for this test
+    test_config_file_path = tmp_path / "bluesky_kafka_config.yml"
+    with open(test_config_file_path, "wt") as f:
+        f.write(test_bluesky_kafka_config_true)
+
+    bluesky_kafka_configuration, publisher_details = configure_kafka_publisher(
+        RE,
+        "abc",
+        override_config_path=test_config_file_path
+    )
+
+    assert publisher_details.__class__.__name__ == "SubscribeKafkaPublisherDetails"
+    assert publisher_details.beamline_topic == "abc.bluesky.runengine.documents"
+    assert publisher_details.bootstrap_servers == "kafka1:9092,kafka2:9092,kafka3:9092"
+    assert publisher_details.re_subscribe_token == 0
+
+
+def test_configure_kafka_publisher_abort_run_false(tmp_path, RE):
+    """Test Kafka publisher is configured correctly in the case
+    abort_run_on_kafka_exception: false
+    """
+    # write a temporary file for this test
+    test_config_file_path = tmp_path / "bluesky_kafka_config.yml"
+    with open(test_config_file_path, "wt") as f:
+        f.write(test_bluesky_kafka_config_false)
+
+    bluesky_kafka_configuration, publisher_details = configure_kafka_publisher(
+        RE,
+        "abc",
+        override_config_path=test_config_file_path
+    )
+
+    assert publisher_details.__class__.__name__ == "SubscribeKafkaQueueThreadPublisherDetails"
+    assert publisher_details.beamline_topic == "abc.bluesky.runengine.documents"
+    assert publisher_details.bootstrap_servers == "kafka1:9092,kafka2:9092,kafka3:9092"
+    assert publisher_details.re_subscribe_token is None

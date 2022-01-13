@@ -1,6 +1,5 @@
 import io
 import logging
-import re
 import uuid
 
 from bluesky.plans import count
@@ -61,11 +60,7 @@ def test_build_and_subscribe_kafka_queue_thread_publisher(
         beamline_topic,
     ):
 
-        (
-            nslsii_beamline_topic,
-            kafka_publisher_thread_exit_event,
-            re_subscription_token,
-        ) = nslsii._subscribe_kafka_queue_thread_publisher(
+        subscribe_kafka_queue_thread_publisher_details = nslsii._subscribe_kafka_queue_thread_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -76,8 +71,8 @@ def test_build_and_subscribe_kafka_queue_thread_publisher(
             },
         )
 
-        assert nslsii_beamline_topic == beamline_topic
-        assert isinstance(re_subscription_token, int)
+        assert subscribe_kafka_queue_thread_publisher_details.beamline_topic == beamline_topic
+        assert isinstance(subscribe_kafka_queue_thread_publisher_details.re_subscribe_token, int)
 
         published_bluesky_documents = []
 
@@ -96,7 +91,7 @@ def test_build_and_subscribe_kafka_queue_thread_publisher(
 
         consumed_bluesky_documents = (
             consume_documents_from_kafka_until_first_stop_document(
-                kafka_topic=nslsii_beamline_topic
+                kafka_topic=subscribe_kafka_queue_thread_publisher_details.beamline_topic
             )
         )
 
@@ -167,11 +162,7 @@ def test_publisher_with_no_broker(RE, hw):
     Test the case of no Kafka broker.
     """
     beamline_name = str(uuid.uuid4())[:8]
-    (
-        nslsii_beamline_topic,
-        kafka_publisher_thread_exit_event,
-        subscription_token,
-    ) = nslsii._subscribe_kafka_queue_thread_publisher(
+    subscribe_kafka_queue_thread_publisher_details = nslsii._subscribe_kafka_queue_thread_publisher(
         RE=RE,
         beamline_name=beamline_name,
         # specify a bootstrap server that does not exist
@@ -184,7 +175,7 @@ def test_publisher_with_no_broker(RE, hw):
         publisher_queue_timeout=1,
     )
 
-    assert subscription_token is None
+    assert subscribe_kafka_queue_thread_publisher_details.re_subscribe_token is None
 
     published_bluesky_documents = []
 
