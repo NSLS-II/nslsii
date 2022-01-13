@@ -474,7 +474,7 @@ def configure_kafka_publisher(RE, beamline_name):
     )
     # convert the list of bootstrap servers into a comma-delimited string
     #   which is the format required by the confluent python api
-    bootstrap_servers = ",".join(bluesky_kafka_configuration)
+    bootstrap_servers = ",".join(bluesky_kafka_configuration["bootstrap_servers"])
 
     if bluesky_kafka_configuration["abort_run_on_kafka_exception"]:
         _subscribe_kafka_publisher(
