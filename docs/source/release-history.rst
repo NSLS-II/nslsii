@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.3.2 (2022-01-20)
+===================
+* add a srx resource transform
+
 v0.3.1 (2022-01-13)
 ===================
 * fix a Kafka configuration bug in ``nslsii.configure_base``
