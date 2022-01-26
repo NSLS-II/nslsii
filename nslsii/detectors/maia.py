@@ -3,12 +3,12 @@ import time as ttime
 
 import numpy as np
 
-from ophyd import Device, Component as FldCpt, EpicsSignal, EpicsSignalRO
+from ophyd import Device, Component as Cpt, EpicsSignal, EpicsSignalRO
 from ophyd.status import DeviceStatus
 from ophyd.signal import Signal
 
 
-from recordwhat import RecordBase, _register_record_type, FieldComponent as Cpt
+from recordwhat import RecordBase, _register_record_type, FieldComponent as FldCpt
 from recordwhat.records import (
     AiRecord,
     AoRecord,
