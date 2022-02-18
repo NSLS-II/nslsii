@@ -95,7 +95,7 @@ def configure_base(
         True by default. Console output and exception stack traces will be
         written to IPython log file when IPython logging is enabled.
     publish_documents_with_kafka: boolean, optional
-        True by default. If True publish bluesky documents to a Kafka message broker using
+        False by default. If True publish bluesky documents to a Kafka message broker using
         configuration parameters read from a file.
     tb_minimize : boolean, optional
         If IPython should print out 'minimal' tracebacks.
