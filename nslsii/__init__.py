@@ -488,7 +488,6 @@ def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
             bootstrap_servers=bootstrap_servers,
             producer_config=bluesky_kafka_configuration["runengine_producer_config"]
         )
-        pass
     else:
         kafka_publisher_details = _subscribe_kafka_queue_thread_publisher(
             RE,
