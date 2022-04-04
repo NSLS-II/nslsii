@@ -33,11 +33,13 @@ class Xspress3Trigger(BlueskyInterface):
         self._abs_trigger_count = None
 
     def stage(self):
+        logger.debug("stage")
         self._abs_trigger_count = 0
         self.cam.acquire.subscribe(self._acquire_changed)
         return super().stage()
 
     def unstage(self):
+        logger.debug("unstage")
         super_unstage_result = super().unstage()
         self.cam.acquire.clear_sub(self._acquire_changed)
         self._acquire_status = None
@@ -87,6 +89,7 @@ class Xspress3Trigger(BlueskyInterface):
         return self._acquire_status
 
     def trigger(self):
+        logger.debug("trigger")
         if self._staged != Staged.yes:
             raise RuntimeError(
                 "tried to trigger Xspress3 with prefix {self.prefix} but it is not staged"
@@ -604,7 +607,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     def get_mcaroi(self, *, mcaroi_number):
         _validate_mcaroi_number(mcaroi_number=mcaroi_number)
         try:
-            return getattr(self.mcarois, f"mcaroi{mcaroi_number:02d}")
+            return getattr(self, f"mcaroi{mcaroi_number:02d}")
         except AttributeError as ae:
             raise ValueError(
                 f"no MCAROI on channel {self.channel_number} "
@@ -612,7 +615,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
             ) from ae
 
     def iterate_mcaroi_attr_names(self):
-        for attr_name in self.mcarois.__dir__():
+        for attr_name in self.__dir__():
             if mcaroi_name_re.match(attr_name):
                 yield attr_name
 
@@ -624,7 +627,7 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
         ------
         McaRoi instance
         """
-        for mcaroi_name, mcaroi in self.mcarois._signals.items():
+        for mcaroi_name, mcaroi in self._signals.items():
             if mcaroi_name_re.match(mcaroi_name):
                 yield mcaroi
 
@@ -633,36 +636,33 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
         for mcaroi in self.iterate_mcarois():
             mcaroi.clear()
 
-    return type(
-        "GeneratedXspress3Channel",
-        channel_parent_classes,
+    channel_fields_and_methods = {
+        "__repr__": __repr__,
+        "channel_number": channel_number,
+        "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
+        "sca": Cpt(Sca, f"C{channel_number}SCA:"),
+        "mca": Cpt(Mca, f"MCA{channel_number}:"),
+        "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
+        "get_mcaroi_count": get_mcaroi_count,
+        "get_mcaroi": get_mcaroi,
+        "iterate_mcaroi_attr_names": iterate_mcaroi_attr_names,
+        "iterate_mcarois": iterate_mcarois,
+        "clear_all_rois": clear_all_rois,
+    }
+
+    channel_fields_and_methods.update(
         {
-            "__repr__": __repr__,
-            "channel_number": channel_number,
-            "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
-            "sca": Cpt(Sca, f"C{channel_number}SCA:"),
-            "mca": Cpt(Mca, f"MCA{channel_number}:"),
-            "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
-            "mcarois": DynamicDeviceCpt(
-                defn=OrderedDict(
-                    {
-                        f"mcaroi{mcaroi_i:02d}": (
-                            McaRoi,
-                            # MCAROI PV suffixes look like "MCA1ROI:2:"
-                            f"MCA{channel_number}ROI:{mcaroi_i:d}:",
-                            # no keyword parameters
-                            dict(),
-                        )
-                        for mcaroi_i in mcaroi_numbers
-                    }
-                )
-            ),
-            "get_mcaroi_count": get_mcaroi_count,
-            "get_mcaroi": get_mcaroi,
-            "iterate_mcaroi_attr_names": iterate_mcaroi_attr_names,
-            "iterate_mcarois": iterate_mcarois,
-            "clear_all_rois": clear_all_rois,
-        },
+            f"mcaroi{mcaroi_i:02d}": Cpt(
+                McaRoi,
+                # MCAROI PV suffixes look like "MCA1ROI:2:"
+                f"MCA{channel_number}ROI:{mcaroi_i:d}:",
+            )
+            for mcaroi_i in mcaroi_numbers
+        }
+    )
+
+    return type(
+        "GeneratedXspress3Channel", channel_parent_classes, channel_fields_and_methods
     )
 
 
@@ -695,6 +695,20 @@ def build_detector_class(
     detector_parent_classes=None,
     extra_class_members=None,
 ):
+    return build_xspress3_class(
+        channel_numbers=channel_numbers,
+        mcaroi_numbers=mcaroi_numbers,
+        xspress3_parent_classes=detector_parent_classes,
+        extra_class_members=extra_class_members,
+    )
+
+
+def build_xspress3_class(
+    channel_numbers,
+    mcaroi_numbers,
+    xspress3_parent_classes=None,
+    extra_class_members=None,
+):
     """Build an Xspress3 detector class with the specified channel and roi numbers.
 
     The complication of using dynamically generated detector classes
@@ -715,7 +729,7 @@ def build_detector_class(
         sequence of channel numbers, 1-16, for the detector; for example [1, 2, 3, 8]
     mcaroi_numbers: Sequence of int
         sequence of MCAROI numbers, 1-48, for each channel; for example [1, 2, 3, 10]
-    detector_parent_classes: list-like, optional
+    xspress3_parent_classes: list-like, optional
         sequence of all parent classes for the generated detector class,
         if specified include *all* necessary parent classes; if not specified
         the default parent is ophyd.areadetector.Xspress3Detector
@@ -741,8 +755,8 @@ def build_detector_class(
             def iterate_channels(self):
                 ...
     """
-    if detector_parent_classes is None:
-        detector_parent_classes = tuple([Xspress3Detector])
+    if xspress3_parent_classes is None:
+        xspress3_parent_classes = tuple([Xspress3Detector])
 
     if extra_class_members is None:
         extra_class_members = dict()
@@ -755,17 +769,45 @@ def build_detector_class(
 
     channel_attr_name_re = re.compile(r"channel\d{2}")
 
-    # the following four functions will become methods of the generated detector class
+    # the following four functions will become methods of the generated xspress3 class
     def __repr__(self):
+        """Return a string representation of this xspress3 class.
+
+        Returns
+        -------
+        str : text representation of the dynamically generated xspress3 class
+        """
         return f"{self.__class__.__name__}(channels=({','.join([str(channel) for channel in self.iterate_channels()])}))"
 
     def get_channel_count(self):
+        """Return the number of channels on this xspress3 class.
+
+        Returns
+        -------
+        int : count of channels on this xspress3 class
+        """
         return len(channel_numbers)
 
     def get_channel(self, *, channel_number):
+        """Return the channel object corresponding to the specified channel number.
+
+        Parameters
+        ----------
+        channel_number
+            integer channel number
+
+        Returns
+        -------
+        channel : GeneratedXspress3Channel
+
+        Raises
+        ------
+        ValueError
+            when there is no channel with the specified channel number
+        """
         _validate_channel_number(channel_number=channel_number)
         try:
-            return getattr(self.channels, f"channel{channel_number:02d}")
+            return getattr(self, f"channel{channel_number:02d}")
         except AttributeError as ae:
             raise ValueError(
                 f"no channel on detector with prefix '{self.prefix}' "
@@ -773,66 +815,60 @@ def build_detector_class(
             ) from ae
 
     def iterate_channels(self):
-        """
-        Iterate over channel objects found on the channels attribute.
+        """Yield the channel objects of this xspress3 class in the order they were specified.
 
         Yields
         ------
-        a Channel object
+        channel : GeneratedXspress3Channel
         """
 
-        for channel_attr_name in self.channels.__dir__():
+        for channel_attr_name in self.__dir__():
             if channel_attr_name_re.match(channel_attr_name):
-                yield getattr(self.channels, channel_attr_name)
+                yield getattr(self, channel_attr_name)
+
+    xspress3_fields_and_methods = dict(
+        **{
+            "channel_numbers": tuple(sorted(channel_numbers)),
+            "external_trig": Cpt(Signal, value=False, doc="Use external triggering"),
+            "total_points": Cpt(
+                Signal,
+                value=-1,
+                doc="The total number of points to acquire overall",
+            ),
+            "spectra_per_point": Cpt(
+                Signal, value=1, doc="Number of spectra per point"
+            ),
+            "make_directories": Cpt(
+                Signal, value=False, doc="Make directories on the Xspress3 side"
+            ),
+            "rewindable": Cpt(
+                Signal,
+                value=False,
+                doc="Xspress3 cannot safely be rewound in bluesky",
+            ),
+            "__repr__": __repr__,
+            "get_channel_count": get_channel_count,
+            "get_channel": get_channel,
+            "iterate_channels": iterate_channels,
+        },
+        **extra_class_members,
+    )
+
+    xspress3_fields_and_methods.update(
+        {
+            f"channel{c:02d}": Cpt(
+                build_channel_class(channel_number=c, mcaroi_numbers=mcaroi_numbers),
+                # there is no discrete channel prefix
+                # for the Xspress3 IOC PVs
+                # so specify an empty string here
+                "",
+            )
+            for c in channel_numbers
+        }
+    )
 
     return type(
         "GeneratedXspress3Detector",
-        detector_parent_classes,
-        dict(
-            **{
-                "channel_numbers": tuple(sorted(channel_numbers)),
-                "external_trig": Cpt(
-                    Signal, value=False, doc="Use external triggering"
-                ),
-                "total_points": Cpt(
-                    Signal,
-                    value=-1,
-                    doc="The total number of points to acquire overall",
-                ),
-                "spectra_per_point": Cpt(
-                    Signal, value=1, doc="Number of spectra per point"
-                ),
-                "make_directories": Cpt(
-                    Signal, value=False, doc="Make directories on the Xspress3 side"
-                ),
-                "rewindable": Cpt(
-                    Signal,
-                    value=False,
-                    doc="Xspress3 cannot safely be rewound in bluesky",
-                ),
-                "channels": DynamicDeviceCpt(
-                    defn=OrderedDict(
-                        {
-                            f"channel{c:02d}": (
-                                build_channel_class(
-                                    channel_number=c, mcaroi_numbers=mcaroi_numbers
-                                ),
-                                # there is no discrete channel prefix
-                                # for the Xspress3 IOC
-                                # so specify an empty string here
-                                "",
-                                # no keyword arguments, so pass an empty dictionary
-                                dict(),
-                            )
-                            for c in channel_numbers
-                        }
-                    )
-                ),
-                "__repr__": __repr__,
-                "get_channel_count": get_channel_count,
-                "get_channel": get_channel,
-                "iterate_channels": iterate_channels,
-            },
-            **extra_class_members,
-        ),
+        xspress3_parent_classes,
+        xspress3_fields_and_methods,
     )
