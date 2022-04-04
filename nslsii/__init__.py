@@ -225,7 +225,7 @@ def configure_base(
     if tb_minimize and ipython:
         # configure %xmode minimal
         # so short tracebacks are printed to the console
-        ipython.magic("xmode minimal")
+        ipython.run_line_magic("xmode", "minimal")
 
     # convenience imports
     # some of the * imports are for 'back-compatibility' of a sort -- we have
@@ -447,7 +447,7 @@ def configure_ipython_logging(
     with warnings.catch_warnings():
         warnings.simplefilter(action="error")
         # specify the file for ipython logging output
-        ipython.magic(f"logstart -o -t {bluesky_ipython_log_file_path} append")
+        ipython.run_line_magic("logstart", f"-o -t {bluesky_ipython_log_file_path} append")
 
     return bluesky_ipython_log_file_path
 
