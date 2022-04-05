@@ -2,6 +2,12 @@
 Release History
 ***************
 
+v0.4.0 (2022-04-05)
+===================
+* simplify ``nslsii.areadetector.xspress3`` component hierarchy (API change)
+* replace deprecated IPython ``magic()`` calls with ``run_line_magic()``
+* correction to documentation for ``nslsii.configure_base``
+
 v0.3.2 (2022-01-20)
 ===================
 * add a srx resource transform
