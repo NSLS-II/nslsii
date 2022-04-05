@@ -19,18 +19,9 @@ from nslsii.areadetector.xspress3 import (
     Xspress3HDF5Handler,
     Xspress3FileStore,
     build_channel_class,
+    build_xspress3_class,
     build_detector_class,
 )
-
-
-def test_xspress3_hdf5_handler(tmpdir):
-    """
-    Currently just testing instantiation.
-    """
-
-    h5_file_path = Path(tmpdir) / "test_xspress3_hdf5_handler.h5"
-    with h5py.File(h5_file_path, "w"):
-        Xspress3HDF5Handler(filename=h5_file_path)
 
 
 @pytest.mark.skip()
@@ -154,12 +145,11 @@ def test_build_channel_class():
     channel_class = build_channel_class(channel_number=2, mcaroi_numbers=(1, 2, 3))
 
     assert hasattr(channel_class, "channel_number")
-    assert getattr(channel_class, "channel_number") == 2
+    assert channel_class.channel_number == 2
 
     assert hasattr(channel_class, "sca")
     assert hasattr(channel_class, "mca")
     assert hasattr(channel_class, "mca_sum")
-    assert hasattr(channel_class, "mcarois")
 
     # there should be 3 MCAROI attributes: mcaroi01, mcaroi02, mcaroi3
     expected_mcaroi_attr_names = {
@@ -169,8 +159,8 @@ def test_build_channel_class():
     # there should be no other MCAROI attributes
     all_mcaroi_attr_names = {
         attr_name
-        for attr_name in channel_class.mcarois.__dir__()
-        if attr_name.startswith("mcaroi")
+        for attr_name in dir(channel_class)
+        if re.match(r"mcaroi\d{2}", attr_name)
     }
 
     assert expected_mcaroi_attr_names == all_mcaroi_attr_names
@@ -190,9 +180,9 @@ def test_instantiate_channel_class():
 
     assert channel_2.mca_sum.array_data.pvname == "Xsp3:MCASUM2:ArrayData"
 
-    assert channel_2.mcarois.mcaroi46.total_rbv.pvname == "Xsp3:MCA2ROI:46:Total_RBV"
-    assert channel_2.mcarois.mcaroi47.total_rbv.pvname == "Xsp3:MCA2ROI:47:Total_RBV"
-    assert channel_2.mcarois.mcaroi48.total_rbv.pvname == "Xsp3:MCA2ROI:48:Total_RBV"
+    assert channel_2.mcaroi46.total_rbv.pvname == "Xsp3:MCA2ROI:46:Total_RBV"
+    assert channel_2.mcaroi47.total_rbv.pvname == "Xsp3:MCA2ROI:47:Total_RBV"
+    assert channel_2.mcaroi48.total_rbv.pvname == "Xsp3:MCA2ROI:48:Total_RBV"
 
     assert (
         channel_2.__repr__()
@@ -292,7 +282,6 @@ def test_build_detector_class():
         channel_numbers=(1, 2, 3), mcaroi_numbers=(4, 5)
     )
     assert Xspress3Detector in detector_class.__mro__
-    assert hasattr(detector_class, "channels")
 
     # there should be 3 channel attributes: channel01, channel02, channel03
     expected_channel_attr_names = {f"channel{channel_i:02d}" for channel_i in (1, 2, 3)}
@@ -301,7 +290,7 @@ def test_build_detector_class():
     # there should be no other channel_n attributes
     all_channel_attr_names = {
         attr_name
-        for attr_name in detector_class.channels.__dir__()
+        for attr_name in dir(detector_class)
         if channel_attr_name_re.match(attr_name)
     }
 
@@ -314,7 +303,7 @@ def test_instantiate_detector_class():
     focus on PV names here.
     """
 
-    # use this to test detector_parent_classes
+    # use this to test xspress3_parent_classes
     class AnotherParentClass:
         pass
 
@@ -339,53 +328,53 @@ def test_instantiate_detector_class():
     )
 
     assert (
-        detector.channels.channel14.sca.clock_ticks.pvname == "Xsp3:C14SCA:0:Value_RBV"
+        detector.channel14.sca.clock_ticks.pvname == "Xsp3:C14SCA:0:Value_RBV"
     )
     assert (
-        detector.channels.channel14.mca_sum.array_data.pvname
+        detector.channel14.mca_sum.array_data.pvname
         == "Xsp3:MCASUM14:ArrayData"
     )
-    assert detector.channels.channel14.mca.array_data.pvname == "Xsp3:MCA14:ArrayData"
+    assert detector.channel14.mca.array_data.pvname == "Xsp3:MCA14:ArrayData"
     assert (
-        detector.channels.channel14.mcarois.mcaroi47.total_rbv.pvname
+        detector.channel14.mcaroi47.total_rbv.pvname
         == "Xsp3:MCA14ROI:47:Total_RBV"
     )
     assert (
-        detector.channels.channel14.mcarois.mcaroi48.total_rbv.pvname
+        detector.channel14.mcaroi48.total_rbv.pvname
         == "Xsp3:MCA14ROI:48:Total_RBV"
     )
 
     assert (
-        detector.channels.channel15.sca.clock_ticks.pvname == "Xsp3:C15SCA:0:Value_RBV"
+        detector.channel15.sca.clock_ticks.pvname == "Xsp3:C15SCA:0:Value_RBV"
     )
     assert (
-        detector.channels.channel15.mca_sum.array_data.pvname
+        detector.channel15.mca_sum.array_data.pvname
         == "Xsp3:MCASUM15:ArrayData"
     )
-    assert detector.channels.channel15.mca.array_data.pvname == "Xsp3:MCA15:ArrayData"
+    assert detector.channel15.mca.array_data.pvname == "Xsp3:MCA15:ArrayData"
     assert (
-        detector.channels.channel15.mcarois.mcaroi47.total_rbv.pvname
+        detector.channel15.mcaroi47.total_rbv.pvname
         == "Xsp3:MCA15ROI:47:Total_RBV"
     )
     assert (
-        detector.channels.channel15.mcarois.mcaroi48.total_rbv.pvname
+        detector.channel15.mcaroi48.total_rbv.pvname
         == "Xsp3:MCA15ROI:48:Total_RBV"
     )
 
     assert (
-        detector.channels.channel16.sca.clock_ticks.pvname == "Xsp3:C16SCA:0:Value_RBV"
+        detector.channel16.sca.clock_ticks.pvname == "Xsp3:C16SCA:0:Value_RBV"
     )
     assert (
-        detector.channels.channel16.mca_sum.array_data.pvname
+        detector.channel16.mca_sum.array_data.pvname
         == "Xsp3:MCASUM16:ArrayData"
     )
-    assert detector.channels.channel16.mca.array_data.pvname == "Xsp3:MCA16:ArrayData"
+    assert detector.channel16.mca.array_data.pvname == "Xsp3:MCA16:ArrayData"
     assert (
-        detector.channels.channel16.mcarois.mcaroi47.total_rbv.pvname
+        detector.channel16.mcaroi47.total_rbv.pvname
         == "Xsp3:MCA16ROI:47:Total_RBV"
     )
     assert (
-        detector.channels.channel16.mcarois.mcaroi48.total_rbv.pvname
+        detector.channel16.mcaroi48.total_rbv.pvname
         == "Xsp3:MCA16ROI:48:Total_RBV"
     )
 
@@ -441,10 +430,11 @@ def test_get_channel():
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
     channel03 = detector.get_channel(channel_number=3)
-    assert channel03.mcarois.mcaroi04.total_rbv.pvname == "Xsp3:MCA3ROI:4:Total_RBV"
+    print(channel03)
+    assert channel03.mcaroi04.total_rbv.pvname == "Xsp3:MCA3ROI:4:Total_RBV"
 
     channel05 = detector.get_channel(channel_number=5)
-    assert channel05.mcarois.mcaroi06.total_rbv.pvname == "Xsp3:MCA5ROI:6:Total_RBV"
+    assert channel05.mcaroi06.total_rbv.pvname == "Xsp3:MCA5ROI:6:Total_RBV"
 
     with pytest.raises(
         ValueError,
@@ -471,3 +461,13 @@ def test_iterate_channels():
 
     channel_list = list(detector.iterate_channels())
     assert len(channel_list) == 2
+
+
+def test_xspress3_read_attrs():
+    xspress3_class = build_xspress3_class(channel_numbers=(1, 2), mcaroi_numbers=(3, 4))
+    detector = xspress3_class(prefix="Xsp3:", name="xs3")
+
+    assert detector.read_attrs == []
+
+    detector.read_attrs = ["channel01.mcaroi04"]
+    assert detector.read_attrs == ["channel01", "channel01.mcaroi04"]
