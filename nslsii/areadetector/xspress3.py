@@ -566,6 +566,17 @@ class McaSum(ADBase):
     array_data = Cpt(EpicsSignal, "ArrayData")
 
 
+class McaRoiTimeSeries(ADBase):
+    # TimeSeries plugin PVs
+    ts_control = Cpt(EpicsSignal, "TSControl")
+    ts_total = Cpt(EpicsSignal, "TSTotal")
+    ts_num_points = Cpt(EpicsSignal, "TSNumPoints")
+    # allowed values for TSRead.SCAN:
+    #   https://epics.anl.gov/base/R7-0/6-docs/menuScan.html
+    #   "10 second", "5 second", "2 second", "1 second", ".5 second", ".2 second", ".1 second"
+    ts_scan_rate = Cpt(EpicsSignal, "TSRead.SCAN")
+
+
 class McaRoi(ADBase):
     roi_name = Cpt(EpicsSignal, "Name")
     min_x = Cpt(EpicsSignal, "MinX")
@@ -819,6 +830,10 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
         "sca": Cpt(Sca, f"C{channel_number}SCA:"),
         "mca": Cpt(Mca, f"MCA{channel_number}:"),
         "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
+
+        "mcaroi": Cpt(McaRoiTimeSeries, f"MCA{channel_number}ROI:"),
+
+        # plain old methods
         "get_mcaroi_count": get_mcaroi_count,
         "get_mcaroi": get_mcaroi,
         "iterate_mcaroi_attr_names": iterate_mcaroi_attr_names,
@@ -1037,7 +1052,11 @@ def build_xspress3_class(
     xspress3_fields_and_methods.update(
         {
             f"channel{c:02d}": Cpt(
-                build_channel_class(channel_number=c, mcaroi_numbers=mcaroi_numbers),
+                build_channel_class(
+                    channel_number=c,
+                    mcaroi_numbers=mcaroi_numbers,
+                    channel_parent_classes=channel_parent_classes,
+                ),
                 # there is no discrete channel prefix
                 # for the Xspress3 IOC PVs
                 # so specify an empty string here
