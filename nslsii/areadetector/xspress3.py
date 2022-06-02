@@ -1,18 +1,23 @@
+import datetime
 import logging
 import re
 import time as ttime
-from collections import OrderedDict
+
+from collections import deque
+
+from pathlib import Path
 
 from databroker.assets.handlers import Xspress3HDF5Handler
 
-from ophyd import Component as Cpt
-from ophyd import DynamicDeviceComponent as DynamicDeviceCpt
+from event_model import compose_resource
+
+from ophyd import Component as Cpt, Kind
 from ophyd import EpicsSignal, EpicsSignalRO, Signal
 from ophyd.areadetector import ADBase
 from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
 from ophyd.areadetector import Xspress3Detector
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
-from ophyd.areadetector.plugins import HDF5Plugin
+from ophyd.areadetector.plugins import HDF5Plugin_V34 as HDF5Plugin
 from ophyd.device import BlueskyInterface, Staged
 from ophyd.status import DeviceStatus
 
@@ -99,15 +104,177 @@ class Xspress3Trigger(BlueskyInterface):
         self.cam.acquire.put(1, wait=False)
         trigger_time = ttime.time()
 
-        # tell the associated file plugins to do something about
-        # each channel's data by invoking
-        # FileStore.generate_datum(key=channel.name, ...)
-        for channel in self.iterate_channels():
-            self.dispatch(key=channel.name, timestamp=trigger_time)
+        # call generate_datum on all plugins
+        self.dispatch(key=None, timestamp=trigger_time)
 
         self._abs_trigger_count += 1
 
         return acquire_status
+
+
+class Xspress3ExternalFileReference(Signal):
+    """ """
+
+    def __init__(self, *args, bin_count=4096, dim_name="bin_count", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape = (bin_count,)
+        self.dims = (dim_name,)
+
+    def describe(self):
+        res = super().describe()
+        res[self.name].update(
+            dict(
+                external="FILESTORE:",
+                dtype="array",
+                shape=self.shape,
+                dims=self.dims,
+            )
+        )
+        return res
+
+
+class Xspress3HDF5Plugin(HDF5Plugin):
+    root_path = Cpt(Signal, kind=Kind.config)
+    path_template = Cpt(Signal, kind=Kind.config)
+
+    def __init__(
+        self,
+        *args,
+        root_path,
+        path_template,
+        resource_kwargs,
+        **kwargs,
+    ):
+        """
+        root_path + path_template == the whole path
+
+        Parameters
+        ----------
+        args:
+            passed to the parent class
+        root_path:
+            the "non-semantic" part of the path
+        path_template:
+            the "semantic" part of the path, which gets glued on to root_path
+            may include %Y, %m, %d and other strftime replacements
+        resource_kwargs:
+            placed in resource documents
+        kwargs:
+            passed to the parent class
+        """
+        super().__init__(*args, **kwargs)
+        self._resource = None
+        self._datum_factory = None
+
+        self._asset_docs_cache = None
+
+        self.root_path.put(root_path)
+        self.path_template.put(path_template)
+        self.resource_kwargs = resource_kwargs
+
+        def default_date_formatter(strftime_template):
+            return datetime.datetime.now().strftime(strftime_template)
+        date_formatter = default_date_formatter
+
+        self.date_formatter = date_formatter
+
+        self.stage_sigs[self.create_directory] = -3
+        self.stage_sigs[self.auto_increment] = 'Yes'
+        self.stage_sigs[self.auto_save] = 'Yes'
+        self.stage_sigs[self.num_capture] = 0   # 0 means take as many as you want
+        self.stage_sigs[self.enable] = 1
+        self.stage_sigs[self.compression] = "zlib"
+        self.stage_sigs[self.file_template] = "%s%s_%6.6d.h5"
+
+        self.stage_sigs[self.file_write_mode] = 'Stream'
+
+    def stage(self):
+        staged_devices = super().stage()
+
+        def automatic_ad_file_name():
+            from uuid import uuid4
+
+            "uuid4, skipping the last stanza because of AD length restrictions."
+            return "-".join(str(uuid4()).split("-")[:-1])
+
+        self.array_counter.set(0).wait()
+
+        # 1. fill in ophyd path_template with date
+        the_data_dir_path_suffix = self.date_formatter(self.path_template.get())
+        # 2. concatenate result with root_path
+        the_full_data_dir_path = Path(self.root_path.get()) / Path(the_data_dir_path_suffix)
+        self.file_path.set(the_full_data_dir_path).wait()
+        # 3. set file_name to be uuid
+        the_real_file_name = automatic_ad_file_name()
+        self.file_name.set(the_real_file_name).wait()
+        # 4. set file_number to 0
+        self.file_number.set(0).wait()
+        # 5. ask IOC what are file_path, file_name, file_number and use them to fill in the file_template on this side
+        file_path = self.file_path.get()
+        file_name = self.file_name.get()
+        file_number = self.file_number.get()
+        # 6. strip root_path off the front of results from 5
+        # the next line assembles file_path, file_name, and file_number
+        #   in the same way as AreaDetector
+        full_file_path = Path(self.stage_sigs[self.file_template] % (file_path, file_name, file_number))
+        # strip root_path from the full file path to produce the resource_path
+        #   needed by compose_resource
+        # for example, if
+        #   full_file_path is /a/b/c/d_0.h5
+        #   root_path is /a/b
+        # then
+        #   resource_path is c/d_0.h5
+        resource_path = full_file_path.relative_to(self.root_path.get())
+
+        self._resource, self._datum_factory, _ = compose_resource(
+            # a UID is _required_ here, so we provide a fake and then remove it from
+            #   the resource document; later a RunEngine will provide a real id
+            start={
+                "uid": "to be replaced"
+            },
+            spec=Xspress3HDF5Handler.HANDLER_NAME,
+            root=self.root_path.get(),
+            resource_path=str(resource_path),
+            resource_kwargs=self.resource_kwargs,
+        )
+        # remove the fake id specified above from the resource document; later
+        #   a RunEngine will provide a real one
+        self._resource.pop("run_start")
+
+        self._asset_docs_cache = deque()
+        self._asset_docs_cache.append(("resource", self._resource))
+
+        # set hdf5 chunk size in a good way
+
+        # this should be the last thing we do here
+        self.capture.set(1).wait()
+
+        return staged_devices
+
+    def unstage(self):
+
+        self.capture.set(0).wait()
+
+        return super().unstage()
+
+    def generate_datum(self, key, timestamp, datum_kwargs):
+        if key is not None:
+            raise ValueError("'key' must be None")
+        if len(datum_kwargs) > 0:
+            raise ValueError("datum_kwargs must be empty")
+
+        # generate datum documents for all "normal" channels
+        for channel in self.parent.iterate_channels():
+            if channel.spectrum_datum_id.kind & Kind.normal:
+                datum = self._datum_factory(datum_kwargs=datum_kwargs)
+                self._asset_docs_cache.append(("datum", datum))
+                channel.spectrum_datum_id.put(datum["datum_id"])
+
+    def collect_asset_docs(self):
+        items = list(self._asset_docs_cache)
+        self._asset_docs_cache.clear()
+        for item in items:
+            yield item
 
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
@@ -638,8 +805,17 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
     channel_fields_and_methods = {
         "__repr__": __repr__,
+
+        # keep the read and configuration attrs defined by the Components
+        "_default_read_attrs": None,
+        "_default_configuration_attrs": None,
+
         "channel_number": channel_number,
         "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
+        # what has been used in the past? image?
+        "spectrum_datum_id": Cpt(
+            Xspress3ExternalFileReference, name="spectrum", kind=Kind.normal
+        ),
         "sca": Cpt(Sca, f"C{channel_number}SCA:"),
         "mca": Cpt(Mca, f"MCA{channel_number}:"),
         "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
@@ -706,6 +882,7 @@ def build_detector_class(
 def build_xspress3_class(
     channel_numbers,
     mcaroi_numbers,
+    channel_parent_classes=None,
     xspress3_parent_classes=None,
     extra_class_members=None,
 ):
@@ -729,6 +906,9 @@ def build_xspress3_class(
         sequence of channel numbers, 1-16, for the detector; for example [1, 2, 3, 8]
     mcaroi_numbers: Sequence of int
         sequence of MCAROI numbers, 1-48, for each channel; for example [1, 2, 3, 10]
+    channel_parent_classes: list-like, optional
+        sequence of all parent classes for the generated channel classes,
+        by default the only parent is ophyd.areadetector.ADBase
     xspress3_parent_classes: list-like, optional
         sequence of all parent classes for the generated detector class,
         if specified include *all* necessary parent classes; if not specified

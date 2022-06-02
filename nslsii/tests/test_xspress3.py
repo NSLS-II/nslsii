@@ -1,79 +1,23 @@
-from collections import OrderedDict
-from pathlib import Path
+import datetime
 import re
+import time
 
-import h5py
 import pytest
 
-from bluesky import RunEngine
-from bluesky.plans import count
-from ophyd import Component, Device, DynamicDeviceComponent, Signal
-from ophyd.areadetector import Xspress3Detector
-from ophyd.sim import SynSignal
+from ophyd import Component, Kind, Signal
+from ophyd.areadetector import ADBase, Xspress3Detector
 
 from nslsii.areadetector.xspress3 import (
     Mca,
     McaSum,
     McaRoi,
     Sca,
-    Xspress3HDF5Handler,
-    Xspress3FileStore,
+    Xspress3Trigger,
+    Xspress3HDF5Plugin,
     build_channel_class,
     build_xspress3_class,
     build_detector_class,
 )
-
-
-@pytest.mark.skip()
-def test_xspress3_filestore(tmpdir):
-    """
-    Skip this test because it is still under development.
-
-    Parameters
-    ----------
-    tmpdir:
-
-    Returns
-    -------
-
-
-    """
-
-    class SimulatedXspress3McaRoi:
-        total_rbv = Component(SynSignal, "Total_RBV")
-
-        def __init__(self):
-            self.total_rbv.sim_set_func(lambda: 0.1)
-
-    class SimulatedXspress3Channel(Device):
-        mcarois = DynamicDeviceComponent(
-            defn=OrderedDict(
-                {"mcaroi01": (SimulatedXspress3McaRoi, "MCA1ROI:1:", dict())}
-            )
-        )
-
-    class SimulatedXspress3Detector(Device):
-        hdf5plugin = Component(
-            Xspress3FileStore,
-            "HDF1:",
-            read_path_template="/read/path/template/",
-            write_path_template="/write/path/template/",
-            root=tmpdir,
-        )
-
-        cam = None
-
-        channels = DynamicDeviceComponent(
-            defn=OrderedDict({"channel_1": (SimulatedXspress3Channel, "", dict())})
-        )
-
-        def trigger(self):
-            return self.channels.channel_1.mcarois.mcaroi01.trigger()
-
-    simulated_xspress3 = SimulatedXspress3Detector(name="simulated_xspress3")
-
-    RE = RunEngine()
-    RE(count([simulated_xspress3]))
 
 
 def test_mca_init():
@@ -164,6 +108,23 @@ def test_build_channel_class():
     }
 
     assert expected_mcaroi_attr_names == all_mcaroi_attr_names
+
+
+def test_build_channel_class_with_parents():
+    """
+    Try to verify all Component attributes are present.
+    """
+
+    class AChannelParent(ADBase):
+        pass
+
+    channel_class = build_channel_class(
+        channel_number=2,
+        mcaroi_numbers=(1, 2, 3),
+        channel_parent_classes=(AChannelParent,),
+    )
+
+    assert AChannelParent in channel_class.mro()
 
 
 def test_instantiate_channel_class():
@@ -279,7 +240,8 @@ def test_build_detector_class():
     Verify all channel Components are present.
     """
     detector_class = build_detector_class(
-        channel_numbers=(1, 2, 3), mcaroi_numbers=(4, 5)
+        channel_numbers=(1, 2, 3),
+        mcaroi_numbers=(4, 5),
     )
     assert Xspress3Detector in detector_class.__mro__
 
@@ -327,56 +289,34 @@ def test_instantiate_detector_class():
         "GeneratedXspress3Channel(channel_number=16, mcaroi_numbers=(47, 48))))"
     )
 
-    assert (
-        detector.channel14.sca.clock_ticks.pvname == "Xsp3:C14SCA:0:Value_RBV"
-    )
-    assert (
-        detector.channel14.mca_sum.array_data.pvname
-        == "Xsp3:MCASUM14:ArrayData"
-    )
-    assert detector.channel14.mca.array_data.pvname == "Xsp3:MCA14:ArrayData"
-    assert (
-        detector.channel14.mcaroi47.total_rbv.pvname
-        == "Xsp3:MCA14ROI:47:Total_RBV"
-    )
-    assert (
-        detector.channel14.mcaroi48.total_rbv.pvname
-        == "Xsp3:MCA14ROI:48:Total_RBV"
-    )
+    for channel_number in (14, 15, 16):
+        channel = detector.get_channel(channel_number=channel_number)
 
-    assert (
-        detector.channel15.sca.clock_ticks.pvname == "Xsp3:C15SCA:0:Value_RBV"
-    )
-    assert (
-        detector.channel15.mca_sum.array_data.pvname
-        == "Xsp3:MCASUM15:ArrayData"
-    )
-    assert detector.channel15.mca.array_data.pvname == "Xsp3:MCA15:ArrayData"
-    assert (
-        detector.channel15.mcaroi47.total_rbv.pvname
-        == "Xsp3:MCA15ROI:47:Total_RBV"
-    )
-    assert (
-        detector.channel15.mcaroi48.total_rbv.pvname
-        == "Xsp3:MCA15ROI:48:Total_RBV"
-    )
+        assert (
+            channel.mcaroi.ts_control.pvname == f"Xsp3:MCA{channel_number}ROI:TSControl"
+        )
+        assert (
+            channel.mcaroi.ts_num_points.pvname
+            == f"Xsp3:MCA{channel_number}ROI:TSNumPoints"
+        )
+        assert (
+            channel.mcaroi.ts_scan_rate.pvname
+            == f"Xsp3:MCA{channel_number}ROI:TSRead.SCAN"
+        )
+        assert (
+            channel.sca.clock_ticks.pvname == f"Xsp3:C{channel_number}SCA:0:Value_RBV"
+        )
+        assert (
+            channel.mca_sum.array_data.pvname
+            == f"Xsp3:MCASUM{channel_number}:ArrayData"
+        )
 
-    assert (
-        detector.channel16.sca.clock_ticks.pvname == "Xsp3:C16SCA:0:Value_RBV"
-    )
-    assert (
-        detector.channel16.mca_sum.array_data.pvname
-        == "Xsp3:MCASUM16:ArrayData"
-    )
-    assert detector.channel16.mca.array_data.pvname == "Xsp3:MCA16:ArrayData"
-    assert (
-        detector.channel16.mcaroi47.total_rbv.pvname
-        == "Xsp3:MCA16ROI:47:Total_RBV"
-    )
-    assert (
-        detector.channel16.mcaroi48.total_rbv.pvname
-        == "Xsp3:MCA16ROI:48:Total_RBV"
-    )
+        for mcaroi_number in (47, 48):
+            mcaroi = channel.get_mcaroi(mcaroi_number=mcaroi_number)
+            assert (
+                mcaroi.total_rbv.pvname
+                == f"Xsp3:MCA{channel_number}ROI:{mcaroi_number}:Total_RBV"
+            )
 
 
 def test_extra_class_members():
@@ -471,3 +411,106 @@ def test_xspress3_read_attrs():
 
     detector.read_attrs = ["channel01.mcaroi04"]
     assert detector.read_attrs == ["channel01", "channel01.mcaroi04"]
+
+
+def start_ophyd_debug_logging():
+    import logging
+    import sys
+    log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s')
+    console_log_handler = logging.StreamHandler(stream=sys.stdout)
+    console_log_handler.setFormatter(log_formatter)
+    console_log_handler.setLevel(logging.DEBUG)
+    logging.getLogger("ophyd.objects").addHandler(console_log_handler)
+    logging.getLogger("ophyd.objects").setLevel(logging.DEBUG)
+
+    #logging.getLogger("ophyd.objects").removeHandler(console_log_handler)
+
+
+# in the presence of spoof-beamline ...
+# don't forget
+#   export EPICS_CA_ADDR_LIST=localhost
+#   export EPICS_CA_AUTO_ADDR_LIST="no"
+def test_hdf5plugin():
+
+    start_ophyd_debug_logging()
+
+    xspress3_class = build_xspress3_class(
+        channel_numbers=(1, 2),
+        mcaroi_numbers=(3, 4),
+        extra_class_members={
+            "hdf5plugin": Component(
+                Xspress3HDF5Plugin,
+                name="h5p",
+                prefix="HDF1:",
+                root_path="/a/b/c",
+                path_template="/a/b/c/%Y/%m/%d",
+                resource_kwargs={},
+            )
+        },
+    )
+    xspress3 = xspress3_class(prefix="Xsp3:", name="xs3")
+
+    xspress3.hdf5plugin.stage()
+
+    assert re.match(
+        r"\/a\/b\/c\/\d{4}\/\d{2}\/\d{2}", xspress3.hdf5plugin.file_path.get()
+    )
+    assert re.match(r"\w{8}\-\w{4}\-\w{4}\-\w{4}", xspress3.hdf5plugin.file_name.get())
+    assert xspress3.hdf5plugin.file_number.get() == 0
+
+    assert xspress3.hdf5plugin._resource["root"] == "/a/b/c"
+    # expect resource path to look like YYYY/MM/DD/aaaaaaaa-bbbb-cccc-dddd_000000.h5
+    assert re.match(
+        r"\d{4}\/\d{2}\/\d{2}\/\w{8}\-\w{4}\-\w{4}\-\w{4}_000000\.h5",
+        xspress3.hdf5plugin._resource["resource_path"],
+    )
+
+    xspress3.hdf5plugin.generate_datum(
+        key=None, timestamp=datetime.datetime.now(), datum_kwargs={}
+    )
+
+    # expect one resource document and
+    #   one datum document for each channel
+    xspress3_asset_docs = list(xspress3.collect_asset_docs())
+    assert len(xspress3_asset_docs) == 1 + xspress3.get_channel_count()
+
+    xspress3.hdf5plugin.unstage()
+
+
+def test_trigger():
+    xspress3_class = build_xspress3_class(
+        channel_numbers=(1, 2, 4),
+        mcaroi_numbers=(3, 5),
+        # important to put Xspress3Trigger first or we get the wrong dispatch method?
+        xspress3_parent_classes=(Xspress3Trigger, Xspress3Detector),
+        extra_class_members={
+            "hdf5plugin": Component(
+                Xspress3HDF5Plugin,
+                name="h5p",
+                prefix="HDF1:",
+                root_path="/a/b/c",
+                path_template="/a/b/c/%Y/%m/%d",
+                resource_kwargs={},
+            )
+        }
+    )
+    xspress3 = xspress3_class(prefix="Xsp3:", name="xs3")
+
+    # omit one channel to verify no datum document will be generated in this case
+    xspress3.channel02.kind = Kind.omitted
+
+    xspress3.stage()
+
+    trigger_status = xspress3.trigger()
+    assert not trigger_status.done
+
+    xspress3.cam.acquire.set(0)
+    time.sleep(1)
+    assert trigger_status.done
+
+    # expect one resource document and
+    #   one datum document for each channel
+    xspress3_asset_docs = list(xspress3.collect_asset_docs())
+    assert len(xspress3_asset_docs) == 1 + xspress3.get_channel_count()
+
+    xspress3.unstage()
