@@ -417,26 +417,12 @@ def test_xspress3_read_attrs():
     assert detector.read_attrs == ["channel01", "channel01.mcaroi04"]
 
 
-def start_ophyd_debug_logging():
-    import logging
-    import sys
-    log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s')
-    console_log_handler = logging.StreamHandler(stream=sys.stdout)
-    console_log_handler.setFormatter(log_formatter)
-    console_log_handler.setLevel(logging.DEBUG)
-    logging.getLogger("ophyd.objects").addHandler(console_log_handler)
-    logging.getLogger("ophyd.objects").setLevel(logging.DEBUG)
-
-    #logging.getLogger("ophyd.objects").removeHandler(console_log_handler)
-
-
 # in the presence of spoof-beamline ...
 # don't forget
 #   export EPICS_CA_ADDR_LIST=localhost
 #   export EPICS_CA_AUTO_ADDR_LIST="no"
+@pytest.mark.xfail()
 def test_hdf5plugin():
-
-    start_ophyd_debug_logging()
 
     xspress3_class = build_xspress3_class(
         channel_numbers=(1, 2),
@@ -481,6 +467,7 @@ def test_hdf5plugin():
     xspress3.hdf5plugin.unstage()
 
 
+@pytest.mark.xfail()
 def test_trigger():
     xspress3_class = build_xspress3_class(
         channel_numbers=(1, 2, 4),
