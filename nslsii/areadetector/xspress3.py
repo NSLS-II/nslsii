@@ -11,7 +11,7 @@ from databroker.assets.handlers import Xspress3HDF5Handler
 
 from event_model import compose_resource
 
-from ophyd import Component as Cpt, Kind
+from ophyd import Component as Cpt, Device, Kind
 from ophyd import EpicsSignal, EpicsSignalRO, Signal
 from ophyd.areadetector import ADBase
 from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
@@ -27,9 +27,12 @@ from ..detectors.utils import makedirs
 logger = logging.getLogger(__name__)
 
 
-class Xspress3Trigger(BlueskyInterface):
+class Xspress3Trigger(Device):
     """
     A basic trigger mixin. Good enough for simple cases.
+    Inheriting from Device makes this class's trigger
+    method the first one in MRO regardless of the order
+    of classes in multiple inheritance situations.
     """
 
     def __init__(self, *args, **kwargs):
