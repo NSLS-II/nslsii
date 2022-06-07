@@ -10,3 +10,4 @@ numpydoc
 pytest
 sphinx
 sphinx_rtd_theme
+area_detector_handlers
