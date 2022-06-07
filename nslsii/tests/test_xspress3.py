@@ -473,7 +473,7 @@ def test_trigger():
         channel_numbers=(1, 2, 4),
         mcaroi_numbers=(3, 5),
         # important to put Xspress3Trigger first or we get the wrong dispatch method?
-        xspress3_parent_classes=(Xspress3Trigger, Xspress3Detector),
+        xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
         extra_class_members={
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
@@ -505,3 +505,41 @@ def test_trigger():
     assert len(xspress3_asset_docs) == 1 + xspress3.get_channel_count()
 
     xspress3.unstage()
+
+
+from bluesky import RunEngine
+from bluesky.plans import count
+from event_model import Filler
+from area_detector_handlers.handlers import Xspress3HDF5Handler
+
+def test_document_stream():
+
+    document_list = []
+    def append_document(name, document):
+        document_list.append((name, document))
+
+    RE = RunEngine()
+    RE.subscribe(append_document)
+
+    xspress3_class = build_xspress3_class(
+        channel_numbers=(1, 2, 4),
+        mcaroi_numbers=(3, 5),
+        xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
+        extra_class_members={
+            "hdf5plugin": Component(
+                Xspress3HDF5Plugin,
+                name="h5p",
+                prefix="HDF1:",
+                root_path="/a/b/c",
+                path_template="/a/b/c/%Y/%m/%d",
+                resource_kwargs={},
+            )
+        }
+    )
+    xspress3 = xspress3_class(prefix="Xsp3:", name="xs3")
+
+    RE(count([xspress3]))
+
+    with Filler({Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}) as filler:
+        for name, document in document_list:
+            filler(name, document)
