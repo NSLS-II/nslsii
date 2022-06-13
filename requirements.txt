@@ -13,3 +13,4 @@ numpy
 ophyd
 psutil
 pyolog
+redis
