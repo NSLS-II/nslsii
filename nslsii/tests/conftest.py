@@ -1,5 +1,9 @@
 from contextlib import contextmanager
 
+import redis
+
+import pytest
+
 from bluesky.tests.conftest import RE  # noqa
 from bluesky_kafka import BlueskyConsumer
 from bluesky_kafka.tests.conftest import (
@@ -10,3 +14,21 @@ from bluesky_kafka.tests.conftest import (
     temporary_topics,
 )  # noqa
 from ophyd.tests.conftest import hw  # noqa
+
+from nslsii.redis_dict import RedisDict
+
+
+@pytest.fixture
+def redis_dict_factory():
+    """ Return a RedisDict attached to an empty Redis database.
+    """
+    redis_client = redis.Redis(host="localhost", port=6379, db=0)
+    redis_client.flushdb()
+
+    def _factory(re_md_channel_name):
+        redis_dict = RedisDict(host="localhost", port=6379, db=0, re_md_channel_name=re_md_channel_name)
+        return redis_dict
+
+    return _factory
+
+
