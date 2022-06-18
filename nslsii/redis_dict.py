@@ -12,23 +12,32 @@ class RedisDict(MutableMapping):
 
     RUNENGINE_METADATA_BLOB_KEY = "runengine-metadata-blob"
 
-    def __init__(self, host="localhost", port=6379, db=0, re_md_channel_name="runengine-metadata", global_keys=None):
+    def __init__(
+        self,
+        host="localhost",
+        port=6379,
+        db=0,
+        re_md_channel_name="runengine-metadata",
+        global_keys=None,
+    ):
         self._host = host
         self._port = port
         self._db = db
         self._re_md_channel_name = re_md_channel_name
 
         self._redis_command_client = redis.Redis(
-            host=host, port=port, db=db,
+            host=host,
+            port=port,
+            db=db,
         )
         # ping() will raise redis.exceptions.ConnectionError on failure
         self._redis_command_client.ping()
 
-        self._redis_pubsub_client = redis.Redis(
-            host=host, port=port, db=db
-        )
+        self._redis_pubsub_client = redis.Redis(host=host, port=port, db=db)
         self._redis_pubsub_client.ping()
-        self._redis_pubsub = self._redis_pubsub_client.pubsub(ignore_subscribe_messages=True)
+        self._redis_pubsub = self._redis_pubsub_client.pubsub(
+            ignore_subscribe_messages=True
+        )
         self._redis_pubsub.subscribe(self._re_md_channel_name)
 
         if global_keys is None:
@@ -42,29 +51,40 @@ class RedisDict(MutableMapping):
             }
 
         # is there already a local_md in redis?
-        packed_local_md = self._redis_command_client.get(self._re_md_channel_name)
+        packed_local_md = self._redis_command_client.get(
+            self.RUNENGINE_METADATA_BLOB_KEY
+        )
         if packed_local_md is None:
+            print(f"no local metadata in Redis yet")
             self._local_md = dict()
-            self._redis_command_client.set(self.RUNENGINE_METADATA_BLOB_KEY, self._pack(self._local_md))
+            self._redis_command_client.set(
+                self.RUNENGINE_METADATA_BLOB_KEY, self._pack(self._local_md)
+            )
         else:
+            print(f"unpacking local metadata")
             self._local_md = self._unpack(packed_local_md)
 
         # what if the global keys do not exist?
         for global_key in self._global_keys:
             value = self._redis_command_client.get(global_key)
             if value is None:
-                self._redis_command_client.set(global_key, -1)
+                print(f"no value yet for global key {global_key}")
+                self._redis_command_client.set(global_key, None)
 
     def __setitem__(self, key, value):
         if key in self._global_keys:
             # TODO: cache the global metadata?
+            print(f"setting global key-value {key}:{value}")
             self._redis_command_client.set(key, value=value)
         else:
-            # have any keys changed?
+            # must get updated metadata blob or we could
+            # over-write keys we don't know have changed
             self._update_local_md()
 
             self._local_md[key] = value
-            self._redis_command_client.set(self.RUNENGINE_METADATA_BLOB_KEY, value=self._pack(self._local_md))
+            self._redis_command_client.set(
+                self.RUNENGINE_METADATA_BLOB_KEY, value=self._pack(self._local_md)
+            )
 
         # tell everyone else a key-value has changed
         print(f"publishing change to key {key}:{value}")
@@ -73,10 +93,13 @@ class RedisDict(MutableMapping):
     def __getitem__(self, key):
         print(f"__getitem({key})__")
         if key in self._global_keys:
+            print(f"getting global key {key}")
             value = self._redis_command_client.get(key)
             if value is None:
+                # this should not happen?
                 raise KeyError(key)
         else:
+            print(f"getting local key {key}")
             self._update_local_md()
 
             value = self._local_md[key]
@@ -87,10 +110,13 @@ class RedisDict(MutableMapping):
         if key in self._global_keys:
             raise KeyError(f"can not delete global key {key}")
         else:
+            print(f"deleting local key {key}")
             self._update_local_md()
 
             del self._local_md[key]
-            self._redis_command_client.set(self.RUNENGINE_METADATA_BLOB_KEY, self._pack(self._local_md))
+            self._redis_command_client.set(
+                self.RUNENGINE_METADATA_BLOB_KEY, self._pack(self._local_md)
+            )
 
         # tell everyone a local key-value has changed
         self._redis_pubsub_client.publish(channel=self._re_md_channel_name, message=key)
@@ -112,13 +138,14 @@ class RedisDict(MutableMapping):
         return message_list
 
     def _update_local_md(self):
-        """If necessary, update the local_md dictionary
-        """
+        """If necessary, update the local_md dictionary"""
         message_list = self._get_waiting_messages()
 
         if len(message_list) > 0:
             print("_update_local_md is updating _local_md")
-            self._local_md = self._unpack(self._redis_command_client.get(self.RUNENGINE_METADATA_BLOB_KEY))
+            self._local_md = self._unpack(
+                self._redis_command_client.get(self.RUNENGINE_METADATA_BLOB_KEY)
+            )
 
         return len(message_list)
 
