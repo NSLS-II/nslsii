@@ -15,19 +15,20 @@ from bluesky_kafka.tests.conftest import (
 )  # noqa
 from ophyd.tests.conftest import hw  # noqa
 
-from nslsii.redis_dict import RunEngineRedisDict
+from nslsii.md_dict import RunEngineRedisDict
 
 
 @pytest.fixture
 def redis_dict_factory():
-    """ Return a RunEngineRedisDict attached to an empty Redis database.
+    """
+    Return a "fixture as a factory" that will build identical RunEngineRedisDicts.
+    Before the factory is returned, the Redis server will be cleared.
     """
     redis_client = redis.Redis(host="localhost", port=6379, db=0)
     redis_client.flushdb()
 
     def _factory(re_md_channel_name):
-        redis_dict = RunEngineRedisDict(host="localhost", port=6379, db=0, re_md_channel_name=re_md_channel_name)
-        return redis_dict
+        return RunEngineRedisDict(host="localhost", port=6379, db=0, re_md_channel_name=re_md_channel_name)
 
     return _factory
 

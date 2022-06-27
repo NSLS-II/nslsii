@@ -1,3 +1,5 @@
+import logging
+import weakref
 from collections import ChainMap, UserDict
 from pprint import pformat
 from uuid import uuid4
@@ -8,6 +10,8 @@ import redis
 
 
 msgpack_numpy.patch()
+
+redis_dict_log = logging.getLogger("nslsii.md_dict.RunEngineRedisDict")
 
 
 class RunEngineRedisDict(UserDict):
@@ -23,6 +27,7 @@ class RunEngineRedisDict(UserDict):
     ):
         # send no initial data to UserDict.__init__
         # since we will replace UserDict.data entirely
+        # with a ChainMap
         super().__init__()
         self._host = host
         self._port = port
@@ -30,6 +35,7 @@ class RunEngineRedisDict(UserDict):
         self._re_md_channel_name = re_md_channel_name
         self._uuid = str(uuid4())
 
+        redis_dict_log.info(f"connecting to Redis at %s:%s", self._host, self._port)
         # global metadata will be stored as Redis key-value pairs
         # tell the global Redis client to do bytes-to-str conversion
         self._redis_global_client = redis.Redis(
@@ -47,6 +53,7 @@ class RunEngineRedisDict(UserDict):
         self._redis_local_client.ping()
 
         if global_keys is None:
+            # "global" key-value pairs are
             # present at all NSLS-II beamlines
             self._global_keys = (
                 "proposal_id",
@@ -61,69 +68,97 @@ class RunEngineRedisDict(UserDict):
             self.PACKED_RUNENGINE_METADATA_KEY
         )
         if packed_local_md is None:
-            print(f"no local metadata in Redis yet")
+            redis_dict_log.info(f"no local metadata found in Redis")
             self._local_md = dict()
             self._set_local_metadata_on_server()
         else:
-            print(f"unpacking local metadata")
-            self._local_md = self._get_local_metadata_from_server()  #self._unpack(packed_local_md)
-            print(f"unpacked local metadata:\n{pformat(self._local_md)}")
+            redis_dict_log.info(f"unpacking local metadata from Redis")
+            self._local_md = self._get_local_metadata_from_server()
+            redis_dict_log.debug(f"unpacked local metadata:\n%s", self._local_md)
 
         # what if the global keys do not exist?
         # could get all Redis keys and exclude the local md blob key ?
         self._global_md = dict()
         for global_key in self._global_keys:
-            value = self._redis_global_client.get(global_key)
-            if value is None:
-                print(f"no value yet for global key {global_key}")
+            global_value = self._redis_global_client.get(global_key)
+            if global_value is None:
+                redis_dict_log.info(f"no value yet for global key {global_key}")
                 self._redis_global_client.set(name=global_key, value=global_key)
-            self._global_md[global_key] = value
-        print(f"global metadata:\n{pformat(self._global_md)}")
+            self._global_md[global_key] = global_value
+        redis_dict_log.info(f"global metadata:\n{pformat(self._global_md)}")
 
-        # keep in mind the first dict is _local_md
+        # keep in mind _local_md is the first map in this ChainMap
         # for when _local_md has to be replaced
         self.data = ChainMap(self._local_md, self._global_md)
 
+        # Redis documentation says do not issue commands from
+        # a client that has been used to subscribe to a channel
+        # so create a client just for subscribing
         self._redis_pubsub_client = redis.Redis(host=host, port=port, db=db)
         self._redis_pubsub_client.ping()
         self._redis_pubsub = self._redis_pubsub_client.pubsub(
             ignore_subscribe_messages=True
         )
+
+        # register _update_on_message to handle Redis messages
         self._redis_pubsub.subscribe(
             **{self._re_md_channel_name: self._update_on_message}
         )
+        # start a thread to pass messages to _update_on_message
         self._update_on_message_thread = self._redis_pubsub.run_in_thread(
             sleep_time=0.01
         )
 
+        def _stop_thread(update_on_message_thread):
+            print("stopping!")
+            update_on_message_thread.stop()
+
+        self._thread_stopper = weakref.finalize(
+            self,
+            _stop_thread,
+            self._update_on_message_thread
+        )
+
     def __setitem__(self, key, value):
         if key in self._global_md:
-            print(f"setting global metadata {key}: {value}")
+            redis_dict_log.debug("setting global metadata %s:%s", key, value)
+            # update the global key-value pair explicitly in self._global_md
+            # because it can not be updated through the self.data ChainMap
+            # since self._global_md is not the first dictionary in the ChainMap
             self._global_md[key] = value
+            # update the global key-value pair on the Redis server
             self._redis_global_client.set(name=key, value=value)
         else:
-            print(f"setting local metadata {key}: {value}")
+            redis_dict_log.debug("setting local metadata %s:%s", key, value)
+            # update the key-value pair in the ChainMap
             super().__setitem__(key, value)
+            # update the local key-value pair on the Redis server
             self._redis_local_client.set(
                 name=self.PACKED_RUNENGINE_METADATA_KEY,
                 value=self._pack(self._local_md),
             )
 
-        # tell everyone else a key-value has changed
-        print(f"publishing update {key}: {value}")
+        # tell subscribers a key-value has changed
+        redis_dict_log.debug("publishing update %s:%s", key, value)
         self._publish_metadata_update(key)
 
     def __delitem__(self, key):
         if key in self._global_keys:
-            raise KeyError(f"can not delete global key {key}")
+            raise KeyError(f"deleting key {key} is not allowed")
         else:
             del self._local_md[key]
             self._set_local_metadata_on_server()
 
-        # tell everyone a local key-value has changed
+        # tell everyone a (local) key-value has been changed
         self._publish_metadata_update(key)
 
     def _publish_metadata_update(self, key):
+        """
+        Publish a message that includes the updated key and
+        the identifying UUID for this RunEngineRedisDict.
+        The UUID in the message will allow this RunEngineRedisDict
+        to ignore updates that come from itself.
+        """
         self._redis_pubsub_client.publish(
             channel=self._re_md_channel_name, message=f"{key}:{self._uuid}"
         )
@@ -140,30 +175,34 @@ class RunEngineRedisDict(UserDict):
 
     @staticmethod
     def _parse_message_data(message):
-        # expect message["data"] to look like b"abd:39f1f7fa-aeef-4d83-a802-c1c7f5ff5cb8"
+        """
+        The message parameter looks like this
+            b"abd:39f1f7fa-aeef-4d83-a802-c1c7f5ff5cb8"
+        Splitting the message on ":" gives the updated key
+        and the UUID of the RunEngineRedisDict that made
+        the update.
+        """
         message_key, publisher_uuid = message["data"].rsplit(b":", maxsplit=1)
         return message_key.decode(), publisher_uuid.decode()
 
     def _update_on_message(self, message):
-        print(f"_update_on_message: {pformat(message)}")
+        redis_dict_log.debug("_update_on_message: %s", message)
         updated_key, publisher_uuid = self._parse_message_data(message)
-        print(f"my uuid: {self._uuid}")
-        print(f"publisher_uuid: {publisher_uuid}")
         if publisher_uuid == self._uuid:
-            print(f"update published by me!")
+            redis_dict_log.debug("update published by me!")
             pass
         elif updated_key in self._global_keys:
-            print(f"updated key belongs to global metadata")
+            redis_dict_log.debug("updated key belongs to global metadata")
             # we can assume the updated_key is not a new key
             # get the key from the Redis database
             self._global_md[updated_key] = self._redis_global_client.get(
                 name=updated_key
             )
         else:
-            print(f"updated key belongs to local metadata")
-            # assume the updated key belongs to local metadata
-            # it may be a newly added key, so we have to update
-            # the entire local metadata dictionary
+            redis_dict_log.debug("updated key belongs to local metadata")
+            # the updated key belongs to local metadata
+            # it may be a newly added or deleted key, so
+            # we have to update the entire local metadata dictionary
             self._local_md = self._get_local_metadata_from_server()
             # update the ChainMap
             self.data.maps[0] = self._local_md
@@ -171,8 +210,6 @@ class RunEngineRedisDict(UserDict):
     @staticmethod
     def _pack(obj):
         """Encode as msgpack using numpy-aware encoder."""
-        # See https://github.com/msgpack/msgpack-python#string-and-binary-type
-        # for more on use_bin_type.
         return msgpack.packb(obj)
 
     @staticmethod
