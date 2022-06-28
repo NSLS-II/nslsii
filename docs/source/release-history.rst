@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.5.0 (2022-06-28)
+===================
+* add ``nslsii.md_dict.RunEngineRedisDict``
+
 v0.4.0 (2022-04-05)
 ===================
 * simplify ``nslsii.areadetector.xspress3`` component hierarchy (API change)
