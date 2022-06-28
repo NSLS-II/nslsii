@@ -1,5 +1,4 @@
 import logging
-import weakref
 from collections import ChainMap, UserDict
 from pprint import pformat
 from uuid import uuid4
@@ -106,17 +105,7 @@ class RunEngineRedisDict(UserDict):
         )
         # start a thread to pass messages to _update_on_message
         self._update_on_message_thread = self._redis_pubsub.run_in_thread(
-            sleep_time=0.01
-        )
-
-        def _stop_thread(update_on_message_thread):
-            print("stopping!")
-            update_on_message_thread.stop()
-
-        self._thread_stopper = weakref.finalize(
-            self,
-            _stop_thread,
-            self._update_on_message_thread
+            sleep_time=0.01, daemon=True
         )
 
     def __setitem__(self, key, value):
@@ -124,7 +113,7 @@ class RunEngineRedisDict(UserDict):
             redis_dict_log.debug("setting global metadata %s:%s", key, value)
             # update the global key-value pair explicitly in self._global_md
             # because it can not be updated through the self.data ChainMap
-            # since self._global_md is not the first dictionary in the ChainMap
+            # since self._global_md is not the first dictionary in that ChainMap
             self._global_md[key] = value
             # update the global key-value pair on the Redis server
             self._redis_global_client.set(name=key, value=value)
