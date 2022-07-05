@@ -834,13 +834,10 @@ def _subscribe_kafka_queue_thread_publisher(
         un-subscribe the function from the RunEngine, in case someone ever wants to do that.
 
     """
-    from bluesky_kafka import BlueskyKafkaException
     from bluesky_kafka.tools.queue_thread import build_kafka_publisher_queue_and_thread
 
     nslsii_logger = logging.getLogger("nslsii")
     beamline_runengine_topic = None
-    kafka_publisher_token = None
-    publisher_thread_stop_event = None
     kafka_publisher_re_token = None
     publisher_queue_thread_details = None
 
@@ -856,8 +853,6 @@ def _subscribe_kafka_queue_thread_publisher(
             producer_config=producer_config,
             publisher_queue_timeout=publisher_queue_timeout,
         )
-
-        publisher_thread_stop_event = publisher_queue_thread_details.publisher_thread_stop_event
 
         kafka_publisher_re_token = RE.subscribe(
             publisher_queue_thread_details.put_on_publisher_queue
