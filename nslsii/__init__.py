@@ -680,25 +680,29 @@ _SubscribeKafkaPublisherDetails = namedtuple(
 )
 
 
-def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config, _publisher_factory=None):
+def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_config, _publisher_factory=None, *,
+                               document_source='runengine'):
     """
     Subscribe a RunRouter to the specified RE to create Kafka Publishers.
     Each Publisher will publish documents from a single run to the
-    Kafka topic "<beamline_name>.bluesky.runengine.documents".
+    Kafka topic "<beamline_name>.bluesky.<document_source>.documents".
+
     Parameters
     ----------
-    RE: RunEngine
+    RE : RunEngine
         the RunEngine to which the RunRouter will be subscribed
-    beamline_name: str
+    beamline_name : str
         beamline start_name, for example "csx", to be used in building the
         Kafka topic to which messages will be published
-    bootstrap_servers: str
+    bootstrap_servers : str
         Comma-delimited list of Kafka server addresses as a string such as ``'10.0.137.8:9092'``
-    producer_config: dict
+    producer_config : dict
         dictionary of Kafka Producer configuration settings
-    _publisher_factory: callable, optional
+    _publisher_factory : callable, optional
         intended only for testing, default is bluesky_kafka.Publisher, optionally specify a callable
         that constructs a Publisher-like object
+    document_source : str, optional
+        The document source.
 
     Returns
     -------
@@ -712,7 +716,7 @@ def _subscribe_kafka_publisher(RE, beamline_name, bootstrap_servers, producer_co
     from bluesky_kafka.utils import list_topics
     from event_model import RunRouter
 
-    topic = f"{beamline_name.lower()}.bluesky.runengine.documents"
+    topic = f"{beamline_name.lower()}.bluesky.{document_source}.documents"
 
     if _publisher_factory is None:
         _publisher_factory = Publisher
