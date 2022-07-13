@@ -27,8 +27,16 @@ def redis_dict_factory():
     redis_client = redis.Redis(host="localhost", port=6379, db=0)
     redis_client.flushdb()
 
-    def _factory(re_md_channel_name):
-        return RunEngineRedisDict(host="localhost", port=6379, db=0, re_md_channel_name=re_md_channel_name)
+    def _factory(re_md_channel_name, **kwargs):
+        init_kwargs = {
+            "host": "localhost",
+            "port": 6379,
+            "db": 0,
+            "re_md_channel_name": re_md_channel_name
+        }
+        init_kwargs.update(kwargs)
+
+        return RunEngineRedisDict(**init_kwargs)
 
     return _factory
 
