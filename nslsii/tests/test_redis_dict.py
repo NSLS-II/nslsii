@@ -45,7 +45,7 @@ def test_instantiate_with_server(redis_dict_factory):
     """
     Instantiate a RunEngineRedisDict and expect success.
     """
-    redis_dict = redis_dict_factory(re_md_channel_name="test_instantiate_with_server")
+    redis_dict_factory(re_md_channel_name="test_instantiate_with_server")
 
 
 def test_instantiate_no_server():
@@ -56,6 +56,27 @@ def test_instantiate_no_server():
     with pytest.raises(redis.exceptions.ConnectionError):
         # there is no redis server on port 9999
         RunEngineRedisDict(host="localhost", port=9999)
+
+
+def test__parse_message_data():
+    """
+    Test a simple message "abc:uuid" and
+    a potentially problematic message "a:b:c:uuid"
+    """
+    message = {"data": b"abc:uuid"}
+    key, uuid = RunEngineRedisDict._parse_message_data(message)
+    assert key == "abc"
+    assert uuid == "uuid"
+
+    # what if the key contains one or more colons?
+    message = {"data": b"a:b:c:uuid"}
+    key, uuid = RunEngineRedisDict._parse_message_data(message)
+    assert key == "a:b:c"
+    assert uuid == "uuid"
+
+    message = {"data": b"abcuuid"}
+    with pytest.raises(ValueError):
+        RunEngineRedisDict._parse_message_data(message)
 
 
 def test_local_int_value(redis_dict_factory):
@@ -82,10 +103,39 @@ def test_local_ndarray_value(redis_dict_factory):
     """
     Test that a numpy NDArray is stored and retrieved.
     """
-    redis_dict = redis_dict_factory(re_md_channel_name="test_local_float_value")
+    redis_dict = redis_dict_factory(re_md_channel_name="test_local_ndarray_value")
 
     redis_dict["local_array"] = np.ones((10, 10))
     assert np.array_equal(redis_dict["local_array"], np.ones((10, 10)))
+
+
+def test_no_global_metadata(redis_dict_factory):
+    """
+    Construct a RunEngineRedisDict with no "global metadata".
+    """
+    redis_dict = redis_dict_factory(
+        re_md_channel_name="test_no_global_metadata", global_keys=[]
+    )
+
+    assert len(redis_dict) == 0
+
+    with pytest.raises(ValueError):
+        redis_dict_factory(
+            re_md_channel_name="test_no_global_metadata", global_values_types={}
+        )
+
+
+def test_global_int_value(redis_dict_factory):
+    """
+    Test that an integer is stored and retrieved.
+    """
+    redis_dict_1 = redis_dict_factory(re_md_channel_name="test_global_int_value")
+
+    redis_dict_1["scan_id"] = 0
+    assert redis_dict_1["scan_id"] == 0
+
+    redis_dict_2 = redis_dict_factory(re_md_channel_name="test_global_int_value")
+    assert redis_dict_2["scan_id"] == 0
 
 
 def test_del_global_key(redis_dict_factory):
@@ -132,8 +182,20 @@ def test_items(redis_dict_factory):
     """
     redis_dict = redis_dict_factory(re_md_channel_name="test_items")
 
-    # expect to find the global keys with value None
-    expected_global_items = {gk: None for gk in redis_dict._global_keys}
+    # expected global values are "missing values" determined by
+    # RunEngineRedisDict.missing_values
+    # expected_global_items will look like this
+    #  {
+    #     "proposal_id": "",
+    #     "data_session": "",
+    #     "cycle": "",
+    #     "SAF": "",
+    #     "scan_id": -1,
+    #  }
+    expected_global_items = {
+        gk: redis_dict._missing_value[redis_dict._global_values_types.get(gk, str)]
+        for gk in redis_dict._global_keys
+    }
     actual_global_items = {gk: gv for gk, gv in redis_dict.items()}
     assert actual_global_items == expected_global_items
 
@@ -143,7 +205,6 @@ def test_items(redis_dict_factory):
     actual_global_items = {gk: gv for gk, gv in redis_dict.items()}
     # _local_md should still be empty
     # since only global metadata was updated
-    # this is not the default behavior of ChainMap!
     assert len(redis_dict._local_md) == 0
     assert actual_global_items == global_md_updates
 
@@ -197,12 +258,51 @@ def test_two_messages(redis_dict_factory):
         assert publisher_uuid == redis_dict._uuid
 
 
-def test_synchronization(redis_dict_factory):
+def test_global_metadata_synchronization(redis_dict_factory):
     """
-    Test synchronization between separate RunEngineRedisDicts.
+    Test "global metadata" synchronization between separate RunEngineRedisDicts.
     """
-    redis_dict_1 = redis_dict_factory(re_md_channel_name="test_synchronization")
-    redis_dict_2 = redis_dict_factory(re_md_channel_name="test_synchronization")
+    redis_dict_1 = redis_dict_factory(
+        re_md_channel_name="test_global_metadata_synchronization"
+    )
+    redis_dict_2 = redis_dict_factory(
+        re_md_channel_name="test_global_metadata_synchronization"
+    )
+    redis_dict_2_subscriber = _build_redis_subscriber(redis_dict_2)
+
+    # make one change
+    redis_dict_1["proposal_id"] = "PROPOSAL ID"
+    redis_dict_1["scan_id"] = 0
+
+    time.sleep(1)
+    redis_dict_2_messages = _get_waiting_messages(redis_dict_2_subscriber)
+    assert len(redis_dict_2_messages) == 2
+
+    assert redis_dict_2["proposal_id"] == "PROPOSAL ID"
+    assert redis_dict_2["scan_id"] == 0
+
+    redis_dict_3 = redis_dict_factory(
+        re_md_channel_name="test_global_metadata_synchronization"
+    )
+    assert redis_dict_3["proposal_id"] == "PROPOSAL ID"
+    assert redis_dict_3["scan_id"] == 0
+
+    redis_dict_3["scan_id"] = 1
+    time.sleep(1)
+    assert redis_dict_1["scan_id"] == 1
+    assert redis_dict_2["scan_id"] == 1
+
+
+def test_local_metadata_synchronization(redis_dict_factory):
+    """
+    Test "local metadata" synchronization between separate RunEngineRedisDicts.
+    """
+    redis_dict_1 = redis_dict_factory(
+        re_md_channel_name="test_local_metadata_synchronization"
+    )
+    redis_dict_2 = redis_dict_factory(
+        re_md_channel_name="test_local_metadata_synchronization"
+    )
     redis_dict_2_subscriber = _build_redis_subscriber(redis_dict_2)
 
     # make one change
@@ -220,7 +320,9 @@ def test_synchronization(redis_dict_factory):
     assert redis_dict_2["float"] == np.pi
     assert np.array_equal(redis_dict_2["array"], np.ones((10, 10)))
 
-    redis_dict_3 = redis_dict_factory(re_md_channel_name="test_synchronization")
+    redis_dict_3 = redis_dict_factory(
+        re_md_channel_name="test_local_metadata_synchronization"
+    )
     assert redis_dict_3["string"] == "string"
     assert redis_dict_3["int"] == 0
     assert redis_dict_3["float"] == np.pi
