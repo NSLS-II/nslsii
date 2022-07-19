@@ -1,18 +1,18 @@
-from contextlib import contextmanager
+from contextlib import contextmanager  # noqa
 
 import redis
 
 import pytest
 
 from bluesky.tests.conftest import RE  # noqa
-from bluesky_kafka import BlueskyConsumer
-from bluesky_kafka.tests.conftest import (
+from bluesky_kafka import BlueskyConsumer  # noqa
+from bluesky_kafka.tests.conftest import (  # noqa
     pytest_addoption,
     kafka_bootstrap_servers,
     broker_authorization_config,
     consume_documents_from_kafka_until_first_stop_document,
     temporary_topics,
-)  # noqa
+)
 from ophyd.tests.conftest import hw  # noqa
 
 from nslsii.md_dict import RunEngineRedisDict
