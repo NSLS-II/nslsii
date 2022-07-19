@@ -40,7 +40,9 @@ def redis_dict_factory():
     redis_client.flushdb()
 
     def _factory(**kwargs):
-        disallowed_kwargs_preset = set(redis_server_kwargs.keys()).intersection(kwargs.keys())
+        disallowed_kwargs_preset = set(redis_server_kwargs.keys()).intersection(
+            kwargs.keys()
+        )
         if len(disallowed_kwargs_preset) > 0:
             raise KeyError(
                 f"{disallowed_kwargs_preset} given, but 'host', 'port', and 'db' may not be specified"
