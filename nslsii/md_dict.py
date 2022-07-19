@@ -34,11 +34,6 @@ class RunEngineRedisDict(UserDict):
 
     PACKED_RUNENGINE_METADATA_KEY = "runengine-metadata-blob"
 
-    # these are the values used for global metadata
-    # if it does not exist when the RunEngineRedisDict
-    # is created
-    _missing_value = {str: "", int: int(-1), float: -1.0}
-
     def __init__(
         self,
         host="localhost",
@@ -58,7 +53,7 @@ class RunEngineRedisDict(UserDict):
         self._re_md_channel_name = re_md_channel_name
         self._uuid = str(uuid4())
 
-        redis_dict_log.info(f"connecting to Redis at %s:%s", self._host, self._port)
+        redis_dict_log.info("connecting to Redis at %s:%s", self._host, self._port)
         # global metadata will be stored as Redis key-value pairs
         # tell the global metadata Redis client to do bytes-to-str conversion
         self._redis_global_client = redis.Redis(
@@ -75,9 +70,6 @@ class RunEngineRedisDict(UserDict):
         )
         self._redis_local_client.ping()
 
-        if global_keys is None and global_values_types is not None:
-            raise ValueError("if global_keys is None global_values_types must be None")
-
         if global_keys is None:
             # "global" key-value pairs are
             # present at all NSLS-II beamlines
@@ -93,7 +85,7 @@ class RunEngineRedisDict(UserDict):
 
         if global_values_types is None:
             # remember numeric types for global metadata
-            # that is not a string
+            # global metadata keys not specified here will default to str
             self._global_values_types = {"scan_id": int}
         else:
             self._global_values_types = global_values_types
@@ -111,21 +103,13 @@ class RunEngineRedisDict(UserDict):
             self._local_md = self._get_local_metadata_from_server()
             redis_dict_log.debug("unpacked local metadata:\n%s", self._local_md)
 
-        # what if the global keys do not exist?
-        # could get all Redis keys and exclude the local md blob key ?
         self._global_md = dict()
         for global_key in self._global_keys:
             global_value = self._redis_global_client.get(global_key)
             if global_value is None:
+                # if a global key does not exist on the Redis server
+                # then it will not exist in the RunEngineRedisDict
                 redis_dict_log.info("no value yet for global key %s", global_key)
-                # look up the "missing value" specified in the missing_value dictionary
-                if global_key in self._global_values_types:
-                    global_value_type = self._global_values_types[global_key]
-                    missing_value = self._missing_value[global_value_type]
-                else:
-                    missing_value = self._missing_value[str]
-                self._redis_global_client.set(name=global_key, value=missing_value)
-                self._global_md[global_key] = missing_value
             else:
                 if global_key in self._global_values_types:
                     global_value = self._global_values_types[global_key](global_value)
@@ -159,8 +143,21 @@ class RunEngineRedisDict(UserDict):
         )
 
     def __setitem__(self, key, value):
-        if key in self._global_md:
+        if key in self._global_keys:
+            # can't rely on self._global_md for this check because
+            # if global metadata is not in Redis it is not added to self._global_md
             redis_dict_log.debug("setting global metadata %s:%s", key, value)
+            # global metadata may be constrained to be of a certain type
+            # check that value does not violate the type expected for key
+            expected_value_type = self._global_values_types.get(key, str)
+            if isinstance(value, expected_value_type):
+                # everything is good
+                pass
+            else:
+                raise ValueError(
+                    f"expected value for key '{key}' to have type '{expected_value_type}'"
+                    f"but '{value}' has type '{type(value)}'"
+                )
             # update the global key-value pair explicitly in self._global_md
             # because it can not be updated through the self.data ChainMap
             # since self._global_md is not the first dictionary in that ChainMap
