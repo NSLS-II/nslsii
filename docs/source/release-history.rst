@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.6.0 (2022-07-22)
+===================
+* improvements to ``nslsii.md_dict.RunEngineRedisDict``
+
 v0.5.0 (2022-06-28)
 ===================
 * add ``nslsii.md_dict.RunEngineRedisDict``
