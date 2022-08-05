@@ -4,7 +4,9 @@ import uuid
 
 from bluesky.plans import count
 from event_model import sanitize_doc
+
 import nslsii
+import nslsii.kafka_utils
 
 
 def test_build_and_subscribe_kafka_queue_thread_publisher(
@@ -60,19 +62,26 @@ def test_build_and_subscribe_kafka_queue_thread_publisher(
         beamline_topic,
     ):
 
-        subscribe_kafka_queue_thread_publisher_details = nslsii._subscribe_kafka_queue_thread_publisher(
-            RE=RE,
-            beamline_name=beamline_name,
-            bootstrap_servers=kafka_bootstrap_servers,
-            producer_config={
-                "acks": "all",
-                "enable.idempotence": False,
-                "request.timeout.ms": 1000,
-            },
+        subscribe_kafka_queue_thread_publisher_details = (
+            nslsii.kafka_utils._subscribe_kafka_queue_thread_publisher(
+                RE=RE,
+                beamline_name=beamline_name,
+                bootstrap_servers=kafka_bootstrap_servers,
+                producer_config={
+                    "acks": "all",
+                    "enable.idempotence": False,
+                    "request.timeout.ms": 1000,
+                },
+            )
         )
 
-        assert subscribe_kafka_queue_thread_publisher_details.beamline_topic == beamline_topic
-        assert isinstance(subscribe_kafka_queue_thread_publisher_details.re_subscribe_token, int)
+        assert (
+            subscribe_kafka_queue_thread_publisher_details.beamline_topic
+            == beamline_topic
+        )
+        assert isinstance(
+            subscribe_kafka_queue_thread_publisher_details.re_subscribe_token, int
+        )
 
         published_bluesky_documents = []
 
@@ -89,10 +98,8 @@ def test_build_and_subscribe_kafka_queue_thread_publisher(
         # documents: start, descriptor, event, stop
         assert len(published_bluesky_documents) == 4
 
-        consumed_bluesky_documents = (
-            consume_documents_from_kafka_until_first_stop_document(
-                kafka_topic=subscribe_kafka_queue_thread_publisher_details.beamline_topic
-            )
+        consumed_bluesky_documents = consume_documents_from_kafka_until_first_stop_document(
+            kafka_topic=subscribe_kafka_queue_thread_publisher_details.beamline_topic
         )
 
         assert len(published_bluesky_documents) == len(consumed_bluesky_documents)
@@ -137,7 +144,7 @@ def test_no_beamline_topic(kafka_bootstrap_servers, RE):
 
         # use a random string as the beamline name so topics will not be duplicated across tests
         beamline_name = str(uuid.uuid4())[:8]
-        nslsii._subscribe_kafka_queue_thread_publisher(
+        nslsii.kafka_utils._subscribe_kafka_queue_thread_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
@@ -162,7 +169,7 @@ def test_publisher_with_no_broker(RE, hw):
     Test the case of no Kafka broker.
     """
     beamline_name = str(uuid.uuid4())[:8]
-    subscribe_kafka_queue_thread_publisher_details = nslsii._subscribe_kafka_queue_thread_publisher(
+    subscribe_kafka_queue_thread_publisher_details = nslsii.kafka_utils._subscribe_kafka_queue_thread_publisher(
         RE=RE,
         beamline_name=beamline_name,
         # specify a bootstrap server that does not exist
