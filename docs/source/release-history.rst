@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.7.0 (2022-08-05)
+===================
+* support for new sections in the Kafka configuration file
+
 v0.6.0 (2022-07-22)
 ===================
 * improvements to ``nslsii.md_dict.RunEngineRedisDict``
