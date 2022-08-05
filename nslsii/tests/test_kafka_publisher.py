@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 import nslsii
+import nslsii.kafka_utils
 
 from bluesky.plans import count
 from bluesky_kafka import BlueskyKafkaException
@@ -64,15 +65,17 @@ def test__subscribe_kafka_publisher(
         beamline_topic,
     ):
 
-        subscribe_kafka_publisher_details = nslsii._subscribe_kafka_publisher(
-            RE=RE,
-            beamline_name=beamline_name,
-            bootstrap_servers=kafka_bootstrap_servers,
-            producer_config={
-                "acks": "all",
-                "enable.idempotence": False,
-                "request.timeout.ms": 1000,
-            },
+        subscribe_kafka_publisher_details = (
+            nslsii.kafka_utils._subscribe_kafka_publisher(
+                RE=RE,
+                beamline_name=beamline_name,
+                bootstrap_servers=kafka_bootstrap_servers,
+                producer_config={
+                    "acks": "all",
+                    "enable.idempotence": False,
+                    "request.timeout.ms": 1000,
+                },
+            )
         )
 
         assert subscribe_kafka_publisher_details.beamline_topic == beamline_topic
@@ -148,15 +151,17 @@ def test_no_broker(
         beamline_topic,
     ):
 
-        subscribe_kafka_publisher_details = nslsii._subscribe_kafka_publisher(
-            RE=RE,
-            beamline_name=beamline_name,
-            bootstrap_servers="100.100.100.100:9092",
-            producer_config={
-                "acks": "all",
-                "enable.idempotence": False,
-                "request.timeout.ms": 1000,
-            },
+        subscribe_kafka_publisher_details = (
+            nslsii.kafka_utils._subscribe_kafka_publisher(
+                RE=RE,
+                beamline_name=beamline_name,
+                bootstrap_servers="100.100.100.100:9092",
+                producer_config={
+                    "acks": "all",
+                    "enable.idempotence": False,
+                    "request.timeout.ms": 1000,
+                },
+            )
         )
 
         assert subscribe_kafka_publisher_details.beamline_topic == beamline_topic
@@ -213,7 +218,7 @@ def test_exception_on_publisher_call(
             #   but only __call__ will be invoked
             return Mock(side_effect=BlueskyKafkaException)
 
-        subscribe_kafka_publisher_details = nslsii._subscribe_kafka_publisher(
+        subscribe_kafka_publisher_details = nslsii.kafka_utils._subscribe_kafka_publisher(
             RE=RE,
             beamline_name=beamline_name,
             bootstrap_servers=kafka_bootstrap_servers,
