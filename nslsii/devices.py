@@ -97,7 +97,7 @@ class TwoButtonShutter(Device):
 
         return st
 
-    def stop(self, *, success=False):
+    def pause(self):
         import time
         prev_st = self._set_st
         if prev_st is not None:
