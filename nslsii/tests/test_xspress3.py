@@ -507,11 +507,17 @@ def test_trigger():
     xspress3.unstage()
 
 
+import os
 from bluesky import RunEngine
 from bluesky.plans import count
 from event_model import Filler
 from area_detector_handlers.handlers import Xspress3HDF5Handler
 
+
+@pytest.mark.skipif(
+    not os.path.exists("/nsls2/data/lob1/"),
+    reason="",
+)
 def test_document_stream():
 
     document_list = []
@@ -530,8 +536,8 @@ def test_document_stream():
                 Xspress3HDF5Plugin,
                 name="h5p",
                 prefix="HDF1:",
-                root_path="/a/b/c",
-                path_template="/a/b/c/%Y/%m/%d",
+                root_path="/nsls2/data/lob1/",
+                path_template="/nsls2/data/lob1/legacy/xspress3",
                 resource_kwargs={},
             )
         }
