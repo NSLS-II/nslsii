@@ -738,7 +738,7 @@ def _validate_mcaroi_number(mcaroi_number):
         pass
 
 
-def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=None):
+def build_channel_class(channel_number, mcaroi_numbers, image_data_key, channel_parent_classes=None):
     """Build an Xspress3 channel class with the specified channel number and MCAROI numbers.
 
     MCAROI numbers need not be consecutive.
@@ -754,7 +754,9 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     channel_number: int
         the channel number, 1-16
     mcaroi_numbers: Sequence of int
-         sequence of MCAROI numbers, not necessarily consecutive, allowed values are 1-48
+        sequence of MCAROI numbers, not necessarily consecutive, allowed values are 1-48
+    image_data_key: str
+        event document key for xspress3 image data, required
     channel_parent_classes: list-like, optional
         sequence of all parent classes for the generated channel class,
         by default the only parent is ophyd.areadetector.ADBase
@@ -837,9 +839,9 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
         "channel_number": channel_number,
         "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
-        # what has been used in the past? image?
-        "spectrum_datum_id": Cpt(
-            Xspress3ExternalFileReference, name="spectrum", kind=Kind.normal
+        # this may vary across beamlines
+        image_data_key: Cpt(
+            Xspress3ExternalFileReference, kind=Kind.normal
         ),
         "sca": Cpt(Sca, f"C{channel_number}SCA:"),
         "mca": Cpt(Mca, f"MCA{channel_number}:"),
@@ -897,12 +899,14 @@ def _validate_channel_number(channel_number):
 def build_detector_class(
     channel_numbers,
     mcaroi_numbers,
+    image_data_key,
     detector_parent_classes=None,
     extra_class_members=None,
 ):
     return build_xspress3_class(
         channel_numbers=channel_numbers,
         mcaroi_numbers=mcaroi_numbers,
+        image_data_key=image_data_key,
         xspress3_parent_classes=detector_parent_classes,
         extra_class_members=extra_class_members,
     )
@@ -911,6 +915,7 @@ def build_detector_class(
 def build_xspress3_class(
     channel_numbers,
     mcaroi_numbers,
+    image_data_key,
     channel_parent_classes=None,
     xspress3_parent_classes=None,
     extra_class_members=None,
@@ -935,6 +940,8 @@ def build_xspress3_class(
         sequence of channel numbers, 1-16, for the detector; for example [1, 2, 3, 8]
     mcaroi_numbers: Sequence of int
         sequence of MCAROI numbers, 1-48, for each channel; for example [1, 2, 3, 10]
+    image_data_key: str
+        event document key for xspress3 image data, required
     channel_parent_classes: list-like, optional
         sequence of all parent classes for the generated channel classes,
         by default the only parent is ophyd.areadetector.ADBase
@@ -1069,6 +1076,7 @@ def build_xspress3_class(
                 build_channel_class(
                     channel_number=c,
                     mcaroi_numbers=mcaroi_numbers,
+                    image_data_key=image_data_key,
                     channel_parent_classes=channel_parent_classes,
                 ),
                 # there is no discrete channel prefix
