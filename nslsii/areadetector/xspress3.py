@@ -274,7 +274,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
         # generate datum documents for all "normal" channels
         for channel in self.parent.iterate_channels():
-            if channel.spectrum_datum_id.kind & Kind.normal:
+            if channel.get_external_file_ref().kind & Kind.normal:
                 datum = self._datum_factory(
                     datum_kwargs={
                         **datum_kwargs,
@@ -282,7 +282,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
                     }
                 )
                 self._asset_docs_cache.append(("datum", datum))
-                channel.spectrum_datum_id.put(datum["datum_id"])
+                channel.get_external_file_ref().put(datum["datum_id"])
 
     def collect_asset_docs(self):
         items = list(self._asset_docs_cache)
@@ -830,6 +830,10 @@ def build_channel_class(channel_number, mcaroi_numbers, image_data_key, channel_
         for mcaroi in self.iterate_mcarois():
             mcaroi.clear()
 
+    def get_external_file_ref(self):
+        """Return the reference to the image data."""
+        return getattr(self, image_data_key)
+
     channel_fields_and_methods = {
         "__repr__": __repr__,
 
@@ -855,6 +859,7 @@ def build_channel_class(channel_number, mcaroi_numbers, image_data_key, channel_
         "iterate_mcaroi_attr_names": iterate_mcaroi_attr_names,
         "iterate_mcarois": iterate_mcarois,
         "clear_all_rois": clear_all_rois,
+        "get_external_file_ref": get_external_file_ref,
     }
 
     channel_fields_and_methods.update(
