@@ -108,8 +108,13 @@ class Xspress3Trigger(Device):
         trigger_time = ttime.time()
 
         # call generate_datum on all plugins
-        self.dispatch(key=None, timestamp=trigger_time)
-
+        self.generate_datum(
+            key=None,
+            timestamp=trigger_time,
+            datum_kwargs={
+                "frame": self._abs_trigger_count
+            }
+        )
         self._abs_trigger_count += 1
 
         return acquire_status
@@ -192,6 +197,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self.stage_sigs[self.file_write_mode] = 'Stream'
 
     def stage(self):
+        logger.debug("stage()")
         staged_devices = super().stage()
 
         def automatic_ad_file_name():
@@ -263,13 +269,18 @@ class Xspress3HDF5Plugin(HDF5Plugin):
     def generate_datum(self, key, timestamp, datum_kwargs):
         if key is not None:
             raise ValueError("'key' must be None")
-        if len(datum_kwargs) > 0:
-            raise ValueError("datum_kwargs must be empty")
+        # if len(datum_kwargs) > 0:
+        #    raise ValueError("datum_kwargs must be empty")
 
         # generate datum documents for all "normal" channels
         for channel in self.parent.iterate_channels():
             if channel.spectrum_datum_id.kind & Kind.normal:
-                datum = self._datum_factory(datum_kwargs=datum_kwargs)
+                datum = self._datum_factory(
+                    datum_kwargs={
+                        **datum_kwargs,
+                        "channel": channel.channel_number,
+                    }
+                )
                 self._asset_docs_cache.append(("datum", datum))
                 channel.spectrum_datum_id.put(datum["datum_id"])
 
