@@ -552,7 +552,7 @@ from area_detector_handlers.handlers import Xspress3HDF5Handler
 
 
 @pytest.mark.skipif(
-    not os.path.exists("/nsls2/data/lob1/"),
+    not os.path.exists("/nsls2/data/staff/jlynch/data"),
     reason="",
 )
 def test_document_stream():
@@ -574,17 +574,17 @@ def test_document_stream():
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
                 name="h5p",
-                prefix="HDF1:",
-                root_path="/nsls2/data/lob1/",
-                path_template="/nsls2/data/lob1/legacy/xspress3",
+                prefix="XF:05IDD-ES{Xsp:1}:HDF1:",
+                root_path="/nsls2/data/staff/jlynch/",
+                path_template="/nsls2/data/staff/jlynch/data",
                 resource_kwargs={},
             )
         },
     )
-    xspress3 = xspress3_class(prefix="Xsp3:", name="xs3")
+    xspress3 = xspress3_class(prefix="XF:05IDD-ES{Xsp:1}:", name="xs3")
 
     RE(count([xspress3]))
 
-    with Filler({Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}) as filler:
+    with Filler({Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}, inplace=True) as filler:
         for name, document in document_list:
             filler(name, document)
