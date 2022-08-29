@@ -551,11 +551,16 @@ from event_model import Filler
 from area_detector_handlers.handlers import Xspress3HDF5Handler
 
 
-@pytest.mark.skipif(
-    not os.path.exists("/nsls2/data/staff/jlynch/data"),
-    reason="",
-)
-def test_document_stream():
+def test_document_stream(xs3_data_dir, xs3_pv_prefix):
+    """
+    This test requires command line parameters be specified to pytest as follows,
+    for example:
+        pytest \
+            --xs3-data-dir /nsls2/data/lob1/legacy/data \
+            --xs3-pv-prefix XF:05IDD-ES{Xsp:1}:
+    """
+    if xs3_data_dir is None or not os.path.exists(xs3_data_dir):
+        pytest.skip("xspress3 hardware is not available")
 
     document_list = []
 
@@ -574,14 +579,14 @@ def test_document_stream():
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
                 name="h5p",
-                prefix="XF:05IDD-ES{Xsp:1}:HDF1:",
-                root_path="/nsls2/data/staff/jlynch/",
-                path_template="/nsls2/data/staff/jlynch/data",
+                prefix=f"{xs3_pv_prefix}HDF1:",
+                root_path=xs3_data_dir,
+                path_template=xs3_data_dir,
                 resource_kwargs={},
             )
         },
     )
-    xspress3 = xspress3_class(prefix="XF:05IDD-ES{Xsp:1}:", name="xs3")
+    xspress3 = xspress3_class(prefix=xs3_pv_prefix, name="xs3")
 
     RE(count([xspress3]))
 
