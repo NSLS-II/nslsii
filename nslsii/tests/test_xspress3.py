@@ -555,9 +555,10 @@ def test_document_stream(xs3_data_dir, xs3_pv_prefix):
     """
     This test requires command line parameters be specified to pytest as follows,
     for example:
-        pytest \
-            --xs3-data-dir /nsls2/data/lob1/legacy/data \
-            --xs3-pv-prefix XF:05IDD-ES{Xsp:1}:
+        $ python -m pytest \
+            nslsii/tests/test_xspress3.py \
+            --xs3-pv-prefix XF:05IDD-ES{Xsp:1}: \
+            --xs3-data-dir "/nsls2/data/staff/jlynch/data"
     """
     if xs3_data_dir is None or not os.path.exists(xs3_data_dir):
         pytest.skip("xspress3 hardware is not available")
