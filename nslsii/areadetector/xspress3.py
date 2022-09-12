@@ -2,6 +2,7 @@ import datetime
 import logging
 import re
 import time as ttime
+import warnings
 
 from collections import deque
 
@@ -111,9 +112,7 @@ class Xspress3Trigger(Device):
         self.generate_datum(
             key=None,
             timestamp=trigger_time,
-            datum_kwargs={
-                "frame": self._abs_trigger_count
-            }
+            datum_kwargs={"frame": self._abs_trigger_count},
         )
         self._abs_trigger_count += 1
 
@@ -182,19 +181,21 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
         def default_date_formatter(strftime_template):
             return datetime.datetime.now().strftime(strftime_template)
+
         date_formatter = default_date_formatter
 
         self.date_formatter = date_formatter
 
         self.stage_sigs[self.create_directory] = -3
-        self.stage_sigs[self.auto_increment] = 'Yes'
-        self.stage_sigs[self.auto_save] = 'Yes'
-        self.stage_sigs[self.num_capture] = 0   # 0 means take as many as you want
+        self.stage_sigs[self.auto_increment] = "Yes"
+        self.stage_sigs[self.auto_save] = "Yes"
+        self.stage_sigs[self.num_capture] = 0  # 0 means take as many as you want
         self.stage_sigs[self.enable] = 1
         self.stage_sigs[self.compression] = "zlib"
-        self.stage_sigs[self.file_template] = "%s%s_%6.6d.h5"
 
-        self.stage_sigs[self.file_write_mode] = 'Stream'
+        # set hdf5 chunk size in a good way
+
+        self.stage_sigs[self.file_write_mode] = "Stream"
 
     def stage(self):
         logger.debug("stage()")
@@ -211,7 +212,9 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         # 1. fill in ophyd path_template with date
         the_data_dir_path_suffix = self.date_formatter(self.path_template.get())
         # 2. concatenate result with root_path
-        the_full_data_dir_path = Path(self.root_path.get()) / Path(the_data_dir_path_suffix)
+        the_full_data_dir_path = Path(self.root_path.get()) / Path(
+            the_data_dir_path_suffix
+        )
         self.file_path.set(the_full_data_dir_path).wait()
         # 3. set file_name to be uuid
         the_real_file_name = automatic_ad_file_name()
@@ -225,7 +228,9 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         # 6. strip root_path off the front of results from 5
         # the next line assembles file_path, file_name, and file_number
         #   in the same way as AreaDetector
-        full_file_path = Path(self.stage_sigs[self.file_template] % (file_path, file_name, file_number))
+        full_file_path = Path(
+            self.stage_sigs[self.file_template] % (file_path, file_name, file_number)
+        )
         # strip root_path from the full file path to produce the resource_path
         #   needed by compose_resource
         # for example, if
@@ -238,9 +243,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self._resource, self._datum_factory, _ = compose_resource(
             # a UID is _required_ here, so we provide a fake and then remove it from
             #   the resource document; later a RunEngine will provide a real id
-            start={
-                "uid": "to be replaced"
-            },
+            start={"uid": "to be replaced"},
             spec=Xspress3HDF5Handler.HANDLER_NAME,
             root=self.root_path.get(),
             resource_path=str(resource_path),
@@ -252,8 +255,6 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
         self._asset_docs_cache = deque()
         self._asset_docs_cache.append(("resource", self._resource))
-
-        # set hdf5 chunk size in a good way
 
         # this should be the last thing we do here
         self.capture.set(1).wait()
@@ -738,7 +739,9 @@ def _validate_mcaroi_number(mcaroi_number):
         pass
 
 
-def build_channel_class(channel_number, mcaroi_numbers, image_data_key, channel_parent_classes=None):
+def build_channel_class(
+    channel_number, mcaroi_numbers, image_data_key=None, channel_parent_classes=None
+):
     """Build an Xspress3 channel class with the specified channel number and MCAROI numbers.
 
     MCAROI numbers need not be consecutive.
@@ -756,7 +759,7 @@ def build_channel_class(channel_number, mcaroi_numbers, image_data_key, channel_
     mcaroi_numbers: Sequence of int
         sequence of MCAROI numbers, not necessarily consecutive, allowed values are 1-48
     image_data_key: str
-        event document key for xspress3 image data, required
+        event document key for an Xspress3ExternalFileReference, optional
     channel_parent_classes: list-like, optional
         sequence of all parent classes for the generated channel class,
         by default the only parent is ophyd.areadetector.ADBase
@@ -831,28 +834,24 @@ def build_channel_class(channel_number, mcaroi_numbers, image_data_key, channel_
             mcaroi.clear()
 
     def get_external_file_ref(self):
-        """Return the reference to the image data."""
+        """Return the Xspress3ExternalFileReference."""
         return getattr(self, image_data_key)
 
     channel_fields_and_methods = {
         "__repr__": __repr__,
-
         # keep the read and configuration attrs defined by the Components
         "_default_read_attrs": None,
         "_default_configuration_attrs": None,
-
         "channel_number": channel_number,
         "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
         # this may vary across beamlines
-        image_data_key: Cpt(
-            Xspress3ExternalFileReference, kind=Kind.normal
-        ),
+        # image_data_key: Cpt(
+        #     Xspress3ExternalFileReference, kind=Kind.normal
+        # ),
         "sca": Cpt(Sca, f"C{channel_number}SCA:"),
         "mca": Cpt(Mca, f"MCA{channel_number}:"),
         "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
-
         "mcaroi": Cpt(McaRoiTimeSeries, f"MCA{channel_number}ROI:"),
-
         # plain old methods
         "get_mcaroi_count": get_mcaroi_count,
         "get_mcaroi": get_mcaroi,
@@ -861,6 +860,12 @@ def build_channel_class(channel_number, mcaroi_numbers, image_data_key, channel_
         "clear_all_rois": clear_all_rois,
         "get_external_file_ref": get_external_file_ref,
     }
+
+    # Xspress3ExternalFileReference is optional
+    if image_data_key:
+        channel_fields_and_methods[image_data_key] = Cpt(
+            Xspress3ExternalFileReference, kind=Kind.normal
+        )
 
     channel_fields_and_methods.update(
         {
@@ -904,23 +909,18 @@ def _validate_channel_number(channel_number):
 def build_detector_class(
     channel_numbers,
     mcaroi_numbers,
-    image_data_key,
     detector_parent_classes=None,
     extra_class_members=None,
 ):
-    return build_xspress3_class(
-        channel_numbers=channel_numbers,
-        mcaroi_numbers=mcaroi_numbers,
-        image_data_key=image_data_key,
-        xspress3_parent_classes=detector_parent_classes,
-        extra_class_members=extra_class_members,
+    raise NotImplementedError(
+        "build_detector_class() has been removed, use build_xspress3_class()"
     )
 
 
 def build_xspress3_class(
     channel_numbers,
     mcaroi_numbers,
-    image_data_key,
+    image_data_key=None,
     channel_parent_classes=None,
     xspress3_parent_classes=None,
     extra_class_members=None,
@@ -946,7 +946,8 @@ def build_xspress3_class(
     mcaroi_numbers: Sequence of int
         sequence of MCAROI numbers, 1-48, for each channel; for example [1, 2, 3, 10]
     image_data_key: str
-        event document key for xspress3 image data, required
+        event document key for an Xspress3ExternalFileReference, which is the recommended
+        way to generate datum documents, optional
     channel_parent_classes: list-like, optional
         sequence of all parent classes for the generated channel classes,
         by default the only parent is ophyd.areadetector.ADBase
