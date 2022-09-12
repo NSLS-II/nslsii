@@ -1,16 +1,15 @@
-import datetime
-import os
 import re
-import time
 
 import pytest
 
+from ophyd import ADBase, Component, Signal
 
 from nslsii.areadetector.xspress3 import (
     Mca,
     McaSum,
     McaRoi,
     Sca,
+    Xspress3Detector,
     build_channel_class,
     build_xspress3_class,
     build_detector_class,
@@ -162,7 +161,7 @@ def test_instantiate_channel_class():
 
 
 def test_get_mcaroi_count():
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(3, 5), mcaroi_numbers=(4, 6), image_data_key="image"
     )
     detector = detector_class(prefix="Xsp3:", name="xs3")
@@ -172,7 +171,7 @@ def test_get_mcaroi_count():
 
 
 def test_mcaroi_numbers():
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(3, 5), mcaroi_numbers=(4, 6), image_data_key="image"
     )
     detector = detector_class(prefix="Xsp3:", name="xs3")
@@ -259,12 +258,12 @@ def test_validate_mcaroi_numbers():
         )
 
 
-def test_build_detector_class():
+def test_build_xspress3_class():
     """
     Verify all channel Components are present.
     """
-    detector_class = build_detector_class(
-        channel_numbers=(1, 2, 3), mcaroi_numbers=(4, 5), image_data_key="image"
+    detector_class = build_xspress3_class(
+        channel_numbers=(1, 2, 3), mcaroi_numbers=(4, 5)
     )
     assert Xspress3Detector in detector_class.__mro__
 
@@ -292,11 +291,11 @@ def test_instantiate_detector_class():
     class AnotherParentClass:
         pass
 
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(14, 15, 16),
         mcaroi_numbers=(47, 48),
         image_data_key="image",
-        detector_parent_classes=(
+        xspress3_parent_classes=(
             Xspress3Detector,
             AnotherParentClass,
         ),
@@ -345,7 +344,7 @@ def test_instantiate_detector_class():
 
 
 def test_extra_class_members():
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(3, 5),
         mcaroi_numbers=(4, 6),
         image_data_key="image",
@@ -368,7 +367,7 @@ def test_extra_class_members_failure():
     name as one of the detector class members.
     """
     with pytest.raises(TypeError):
-        detector_class = build_detector_class(
+        detector_class = build_xspress3_class(
             channel_numbers=(3, 5),
             mcaroi_numbers=(4, 6),
             image_data_key="image",
@@ -379,7 +378,7 @@ def test_extra_class_members_failure():
 
 
 def test_channel_numbers():
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(3, 5), mcaroi_numbers=(4, 6), image_data_key="image"
     )
     detector = detector_class(prefix="Xsp3:", name="xs3")
@@ -388,7 +387,7 @@ def test_channel_numbers():
 
 
 def test_get_channel_count():
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(3, 5), mcaroi_numbers=(4, 6), image_data_key="image"
     )
     detector = detector_class(prefix="Xsp3:", name="xs3")
@@ -397,7 +396,7 @@ def test_get_channel_count():
 
 
 def test_get_channel():
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(3, 5), mcaroi_numbers=(4, 6), image_data_key="image"
     )
     detector = detector_class(prefix="Xsp3:", name="xs3")
@@ -429,7 +428,7 @@ def test_get_channel():
 
 
 def test_iterate_channels():
-    detector_class = build_detector_class(
+    detector_class = build_xspress3_class(
         channel_numbers=(3, 5), mcaroi_numbers=(4, 6), image_data_key="image"
     )
     detector = detector_class(prefix="Xsp3:", name="xs3")
