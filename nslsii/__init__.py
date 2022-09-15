@@ -452,7 +452,7 @@ def configure_ipython_logging(
     return bluesky_ipython_log_file_path
 
 
-def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
+def configure_kafka_publisher(RE, beamline_name, override_config_path=None, **kwargs):
     """ Read a Kafka configuration file and subscribe a Kafka publisher to the RunEngine.
 
     A configuration file is required. Environment variable BLUESKY_KAFKA_CONFIG_FILE
@@ -486,7 +486,8 @@ def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
             RE,
             beamline_name=beamline_name,
             bootstrap_servers=bootstrap_servers,
-            producer_config=bluesky_kafka_configuration["runengine_producer_config"]
+            producer_config=bluesky_kafka_configuration["runengine_producer_config"],
+            **kwargs
         )
     else:
         kafka_publisher_details = _subscribe_kafka_queue_thread_publisher(
@@ -496,6 +497,7 @@ def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
             producer_config=bluesky_kafka_configuration[
                 "runengine_producer_config"
             ],
+            *kwargs
         )
 
     return bluesky_kafka_configuration, kafka_publisher_details
@@ -799,7 +801,7 @@ _SubscribeKafkaQueueThreadPublisherDetails = namedtuple(
 
 
 def _subscribe_kafka_queue_thread_publisher(
-    RE, beamline_name, bootstrap_servers, producer_config, publisher_queue_timeout=1
+        RE, beamline_name, bootstrap_servers, producer_config, publisher_queue_timeout=1, document_source='runengine'
 ):
     """
     Create and start a separate thread to publish bluesky documents as Kafka
@@ -822,6 +824,8 @@ def _subscribe_kafka_queue_thread_publisher(
         such as ``'kafka1:9092,kafka2:9092``
     producer_config: dict
         dictionary of Kafka Producer configuration settings
+    document_source : str, optional
+        The document source.
 
     Returns
     -------
@@ -844,7 +848,7 @@ def _subscribe_kafka_queue_thread_publisher(
     try:
         nslsii_logger.info("connecting to Kafka broker(s): '%s'", bootstrap_servers)
         beamline_runengine_topic = (
-            f"{beamline_name.lower()}.bluesky.runengine.documents"
+            f"{beamline_name.lower()}.bluesky.{document_source}.documents"
         )
 
         publisher_queue_thread_details = build_kafka_publisher_queue_and_thread(
