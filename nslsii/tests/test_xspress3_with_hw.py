@@ -1,6 +1,7 @@
 import datetime
 import os
 import re
+import time
 
 import pytest
 
@@ -22,8 +23,14 @@ from nslsii.areadetector.xspress3 import (
 # don't forget
 #   export EPICS_CA_ADDR_LIST=localhost
 #   export EPICS_CA_AUTO_ADDR_LIST="no"
-@pytest.mark.xfail()
-def test_hdf5plugin():
+@pytest.mark.skip("this test hangs")
+def test_hdf5plugin(xs3_pv_prefix):
+    """
+    Test some HDF5Plugin behavior without saving a file.
+    """
+
+    if xs3_pv_prefix is None:
+        pytest.skip("xspress3 PV prefix was not specified")
 
     xspress3_class = build_xspress3_class(
         channel_numbers=(1, 2),
@@ -32,14 +39,14 @@ def test_hdf5plugin():
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
                 name="h5p",
-                prefix="HDF1:",
+                prefix=f"{xs3_pv_prefix}HDF1:",
                 root_path="/a/b/c",
                 path_template="/a/b/c/%Y/%m/%d",
                 resource_kwargs={},
             )
         },
     )
-    xspress3 = xspress3_class(prefix="Xsp3:", name="xs3")
+    xspress3 = xspress3_class(prefix=xs3_pv_prefix, name="xs3")
 
     xspress3.hdf5plugin.stage()
 
@@ -68,12 +75,11 @@ def test_hdf5plugin():
     xspress3.hdf5plugin.unstage()
 
 
-@pytest.mark.xfail()
 def test_trigger(xs3_pv_prefix, xs3_data_dir):
     if xs3_data_dir is None or not os.path.exists(xs3_data_dir):
         pytest.skip("xspress3 data directory was not specified")
     if xs3_pv_prefix is None:
-        pytest.skip("xspress2 PV prefix was not specified")
+        pytest.skip("xspress3 PV prefix was not specified")
 
     xspress3_class = build_xspress3_class(
         channel_numbers=(1, 2, 4),
@@ -85,8 +91,10 @@ def test_trigger(xs3_pv_prefix, xs3_data_dir):
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
                 name="h5p",
-                prefix="HDF1:",
+                prefix=f"{xs3_pv_prefix}HDF1:",
                 root_path=xs3_data_dir,
+                #prefix="HDF1:",
+                #root_path=xs3_data_dir,
                 path_template=xs3_data_dir,
                 resource_kwargs={},
             )
@@ -126,7 +134,7 @@ def test_document_stream(xs3_pv_prefix, xs3_data_dir):
     if xs3_data_dir is None or not os.path.exists(xs3_data_dir):
         pytest.skip("xspress3 data directory was not specified")
     if xs3_pv_prefix is None:
-        pytest.skip("xspress2 PV prefix was not specified")
+        pytest.skip("xspress3 PV prefix was not specified")
 
     document_list = []
 
