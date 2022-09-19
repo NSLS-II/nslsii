@@ -19,11 +19,17 @@ from nslsii.md_dict import RunEngineRedisDict
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--xs3-data-dir", action="store", help="path to directory where xspress3 writes data files"
+        "--xs3-data-dir",
+        action="store",
+        default=None,
+        help="path to directory where xspress3 writes data files"
     )
 
     parser.addoption(
-        "--xs3-pv-prefix", action="store", help="PV prefix for xspress3, for example `XF:05IDD-ES{Xsp:1}:`"
+        "--xs3-pv-prefix",
+        action="store",
+        default=None,
+        help="PV prefix for xspress3, for example `XF:05IDD-ES{Xsp:1}:`"
     )
 
     parser.addoption(
