@@ -7,7 +7,6 @@ import pytest
 from bluesky.tests.conftest import RE  # noqa
 from bluesky_kafka import BlueskyConsumer  # noqa
 from bluesky_kafka.tests.conftest import (  # noqa
-    pytest_addoption,
     kafka_bootstrap_servers,
     broker_authorization_config,
     consume_documents_from_kafka_until_first_stop_document,
@@ -25,6 +24,13 @@ def pytest_addoption(parser):
 
     parser.addoption(
         "--xs3-pv-prefix", action="store", help="PV prefix for xspress3, for example `XF:05IDD-ES{Xsp:1}:`"
+    )
+
+    parser.addoption(
+        "--kafka-bootstrap-servers",
+        action="store",
+        default="127.0.0.1:9092",
+        help="comma-separated list of address:port for Kafka bootstrap servers",
     )
 
 
