@@ -1,5 +1,7 @@
 ipython_log.py
 
+*.code-workspace
+
 .idea/
 .vscode/
 
