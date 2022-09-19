@@ -127,7 +127,7 @@ def test_document_stream(xs3_pv_prefix, xs3_data_dir):
     This test requires --xs3-pv-prefix and --xs3-data-dir command line
     parameters be specified to pytest, for example:
         $ python -m pytest \
-            nslsii/tests/test_xspress3.py \
+            nslsii/tests/test_xspress3_with_hw.py \
             --xs3-pv-prefix XF:05IDD-ES{Xsp:1}: \
             --xs3-data-dir "/nsls2/data/staff/jlynch/data"
     """
