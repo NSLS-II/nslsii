@@ -195,6 +195,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
         # set hdf5 chunk size in a good way
 
+        self.stage_sigs[self.file_template] = "%s%s_%6.6d.h5"
         self.stage_sigs[self.file_write_mode] = "Stream"
 
     def stage(self):
