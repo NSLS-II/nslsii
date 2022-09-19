@@ -584,8 +584,11 @@ class McaSum(ADBase):
 
 class McaRoiTimeSeries(ADBase):
     # TimeSeries plugin PVs
+
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSControl
     ts_control = Cpt(EpicsSignal, "TSControl")
-    ts_total = Cpt(EpicsSignal, "TSTotal")
+    #ts_total = Cpt(EpicsSignal, "TSTotal")
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSNumPoints
     ts_num_points = Cpt(EpicsSignal, "TSNumPoints")
     # allowed values for TSRead.SCAN:
     #   https://epics.anl.gov/base/R7-0/6-docs/menuScan.html
@@ -600,6 +603,9 @@ class McaRoi(ADBase):
     total_rbv = Cpt(EpicsSignalRO, "Total_RBV")
 
     use = Cpt(SignalWithRBV, "Use")
+
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:1:TSTotal
+    ts_total = Cpt(EpicsSignal, "TSTotal")
 
     mcaroi_prefix_re = re.compile(
         r"MCA(?P<channel_number>\d+)ROI:(?P<mcaroi_number>\d+):"
