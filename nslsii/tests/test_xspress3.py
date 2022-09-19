@@ -54,6 +54,10 @@ def test_mca_roi_init():
     assert mcaroi.min_x.pvname == "MCA1ROI:1:MinX"
     assert mcaroi.size_x.pvname == "MCA1ROI:1:SizeX"
     assert mcaroi.total_rbv.pvname == "MCA1ROI:1:Total_RBV"
+    assert mcaroi.use.pvname == "MCA1ROI:1:Use_RBV"
+
+    # time series plugin PV
+    assert mcaroi.ts_total.pvname == "MCA1ROI:1:TSTotal"
 
 
 def test_sca_init():
