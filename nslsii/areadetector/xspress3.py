@@ -2,7 +2,6 @@ import datetime
 import logging
 import re
 import time as ttime
-import warnings
 
 from collections import deque
 
@@ -19,7 +18,7 @@ from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
 from ophyd.areadetector import Xspress3Detector
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 from ophyd.areadetector.plugins import HDF5Plugin_V34 as HDF5Plugin
-from ophyd.device import BlueskyInterface, Staged
+from ophyd.device import Staged
 from ophyd.status import DeviceStatus
 
 from ..detectors.utils import makedirs
