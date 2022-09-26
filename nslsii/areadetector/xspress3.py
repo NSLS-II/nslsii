@@ -848,16 +848,13 @@ def build_channel_class(
         return getattr(self, image_data_key)
 
     channel_fields_and_methods = {
+        "__init__": __init__,
         "__repr__": __repr__,
         # keep the read and configuration attrs defined by the Components
         "_default_read_attrs": None,
         "_default_configuration_attrs": None,
         "channel_number": channel_number,
         "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
-        # this may vary across beamlines
-        # image_data_key: Cpt(
-        #     Xspress3ExternalFileReference, kind=Kind.normal
-        # ),
         "sca": Cpt(Sca, f"C{channel_number}SCA:"),
         "mca": Cpt(Mca, f"MCA{channel_number}:"),
         "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
@@ -1099,6 +1096,8 @@ def build_xspress3_class(
                 # for the Xspress3 IOC PVs
                 # so specify an empty string here
                 "",
+                # TODO: this does not stick
+                kind=Kind.normal,
             )
             for c in channel_numbers
         }
