@@ -270,11 +270,9 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
     def generate_datum(self, key, timestamp, datum_kwargs):
         if key is not None:
-            raise ValueError("'key' must be None")
-        # if len(datum_kwargs) > 0:
-        #    raise ValueError("datum_kwargs must be empty")
+            raise ValueError(f"'key' must be None but key='{key}'")
 
-        # generate datum documents for all "normal" channels
+        # generate datum documents for all channels of Kind.normal
         for channel in self.parent.iterate_channels():
             if channel.get_external_file_ref().kind & Kind.normal:
                 datum = self._datum_factory(
