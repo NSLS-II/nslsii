@@ -132,6 +132,7 @@ class Xspress3ExternalFileReference(Signal):
             dict(
                 external="FILESTORE:",
                 dtype="array",
+                dtype_str="uint32",  # <u4
                 shape=self.shape,
                 dims=self.dims,
             )
