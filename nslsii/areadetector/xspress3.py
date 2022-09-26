@@ -293,6 +293,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
     """
+    Retained for reference. This will be removed soon.
     Create resource and datum documents.
     """
 
@@ -799,7 +800,11 @@ def build_channel_class(
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
-    # the next six functions will become methods of the generated channel class
+    # the next seven functions will become methods of the generated channel class
+    def __init__(self, *args, **kwargs):
+        """ this may not be necessary """
+        super(type(self), self).__init__(*args, **kwargs)
+
     def __repr__(self):
         return f"{self.__class__.__name__}(channel_number={self.channel_number}, mcaroi_numbers={self.mcaroi_numbers})"
 
