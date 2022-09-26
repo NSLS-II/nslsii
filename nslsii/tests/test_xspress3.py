@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from ophyd import ADBase, Component, Signal
+from ophyd import ADBase, Component, Kind, Signal
 
 from nslsii.areadetector.xspress3 import (
     Mca,
@@ -266,10 +266,10 @@ def test_build_xspress3_class():
     """
     Verify all channel Components are present.
     """
-    detector_class = build_xspress3_class(
+    xspress3_class = build_xspress3_class(
         channel_numbers=(1, 2, 3), mcaroi_numbers=(4, 5)
     )
-    assert Xspress3Detector in detector_class.__mro__
+    assert Xspress3Detector in xspress3_class.__mro__
 
     # there should be 3 channel attributes: channel01, channel02, channel03
     expected_channel_attr_names = {f"channel{channel_i:02d}" for channel_i in (1, 2, 3)}
@@ -278,11 +278,14 @@ def test_build_xspress3_class():
     # there should be no other channel_n attributes
     all_channel_attr_names = {
         attr_name
-        for attr_name in dir(detector_class)
+        for attr_name in dir(xspress3_class)
         if channel_attr_name_re.match(attr_name)
     }
 
     assert expected_channel_attr_names == all_channel_attr_names
+
+    # debugging
+    assert xspress3_class.channel01.kind == Kind.normal
 
 
 def test_instantiate_detector_class():
@@ -295,7 +298,7 @@ def test_instantiate_detector_class():
     class AnotherParentClass:
         pass
 
-    detector_class = build_xspress3_class(
+    xspress3_class = build_xspress3_class(
         channel_numbers=(14, 15, 16),
         mcaroi_numbers=(47, 48),
         image_data_key="image",
@@ -304,22 +307,27 @@ def test_instantiate_detector_class():
             AnotherParentClass,
         ),
     )
-    assert Xspress3Detector in detector_class.__mro__
-    assert AnotherParentClass in detector_class.__mro__
+    assert Xspress3Detector in xspress3_class.__mro__
+    assert AnotherParentClass in xspress3_class.__mro__
 
-    detector = detector_class(prefix="Xsp3:", name="xs3")
+    xspress3 = xspress3_class(prefix="Xsp3:", name="xs3")
 
     assert (
-        detector.__repr__() == "GeneratedXspress3Detector(channels=("
+        xspress3.__repr__() == "GeneratedXspress3Detector(channels=("
         "GeneratedXspress3Channel(channel_number=14, mcaroi_numbers=(47, 48)),"
         "GeneratedXspress3Channel(channel_number=15, mcaroi_numbers=(47, 48)),"
         "GeneratedXspress3Channel(channel_number=16, mcaroi_numbers=(47, 48))))"
     )
 
     for channel_number in (14, 15, 16):
-        channel = detector.get_channel(channel_number=channel_number)
+        channel = xspress3.get_channel(channel_number=channel_number)
 
         assert hasattr(channel, "image")
+        assert channel.image.kind == Kind.normal
+
+        # channels should have Kind.normal
+        assert channel.kind == Kind.normal
+
         assert (
             channel.mcaroi.ts_control.pvname == f"Xsp3:MCA{channel_number}ROI:TSControl"
         )
