@@ -164,6 +164,22 @@ def test_document_stream(xs3_pv_prefix, xs3_data_dir):
 
     RE(count([xspress3]))
 
+    expected_document_names = (
+        "start",
+        "descriptor",
+        "resource",
+        "event",
+        "datum",
+        "stop"
+    )
+
+    unseen_document_names = list(expected_document_names)
+
     with Filler({Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}, inplace=True) as filler:
         for name, document in document_list:
+            assert unseen_document_names[0] == name
+            unseen_document_names.pop(0)
+
             filler(name, document)
+
+    assert len(unseen_document_names) == 0
