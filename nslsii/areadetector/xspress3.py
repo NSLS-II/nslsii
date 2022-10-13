@@ -584,6 +584,8 @@ class McaSum(ADBase):
 class McaRoiTimeSeries(ADBase):
     # TimeSeries plugin PVs
 
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSAcquiring
+    ts_acquiring = Cpt(EpicsSignal, "TSAcquiring")
     # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSControl
     ts_control = Cpt(EpicsSignal, "TSControl")
     #ts_total = Cpt(EpicsSignal, "TSTotal")

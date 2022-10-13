@@ -12,7 +12,6 @@ from nslsii.areadetector.xspress3 import (
     Xspress3Detector,
     build_channel_class,
     build_xspress3_class,
-    build_detector_class,
 )
 
 
@@ -56,7 +55,7 @@ def test_mca_roi_init():
     assert mcaroi.total_rbv.pvname == "MCA1ROI:1:Total_RBV"
     assert mcaroi.use.pvname == "MCA1ROI:1:Use_RBV"
 
-    # time series plugin PV
+    # time series plugin PVs
     assert mcaroi.ts_total.pvname == "MCA1ROI:1:TSTotal"
 
 
@@ -153,6 +152,7 @@ def test_instantiate_channel_class():
     assert channel_2.mcaroi.ts_control.pvname == "Xsp3:MCA2ROI:TSControl"
     assert channel_2.mcaroi.ts_num_points.pvname == "Xsp3:MCA2ROI:TSNumPoints"
     assert channel_2.mcaroi.ts_scan_rate.pvname == "Xsp3:MCA2ROI:TSRead.SCAN"
+    assert channel_2.mcaroi.ts_acquiring.pvname == "Xsp3:MCA2ROI:TSAcquiring"
 
     assert channel_2.mcaroi46.total_rbv.pvname == "Xsp3:MCA2ROI:46:Total_RBV"
     assert channel_2.mcaroi47.total_rbv.pvname == "Xsp3:MCA2ROI:47:Total_RBV"
