@@ -20,7 +20,7 @@ class RunEngineRedisDict(UserDict):
     This class has two strong ideas about the metadata it manages:
       1. Some key-values are considered "global" or "facility-wide". These
          are in use at all NSLS-II bluesky beamlines and include
-         proposal_id, data_session, cycle, SAF, and scan_id. The "global"
+         proposal_id, data_session, cycle, saf_id, and scan_id. The "global"
          key-values are stored as Redis key-values. Redis does not support
          numeric types, so the RunEngineRedisDict also keeps track of the
          types of the "global" key-values. The intention is that this
@@ -77,7 +77,7 @@ class RunEngineRedisDict(UserDict):
                 "proposal_id",
                 "data_session",
                 "cycle",
-                "SAF",
+                "saf_id",
                 "scan_id",
             )
         else:
