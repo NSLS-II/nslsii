@@ -586,11 +586,12 @@ class McaRoiTimeSeries(ADBase):
 
     # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSAcquiring
     ts_acquiring = Cpt(EpicsSignal, "TSAcquiring")
-    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSControl
-    ts_control = Cpt(EpicsSignal, "TSControl")
-    #ts_total = Cpt(EpicsSignal, "TSTotal")
+    ts_read = Cpt(EpicsSignal, "TSRead")
     # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSNumPoints
     ts_num_points = Cpt(EpicsSignal, "TSNumPoints")
+    ts_current_point = Cpt(EpicsSignal, "TSCurrentPoint")
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSControl
+    ts_control = Cpt(EpicsSignal, "TSControl")
     # allowed values for TSRead.SCAN:
     #   https://epics.anl.gov/base/R7-0/6-docs/menuScan.html
     #   "10 second", "5 second", "2 second", "1 second", ".5 second", ".2 second", ".1 second"
@@ -614,8 +615,8 @@ class McaRoi(ADBase):
 
     def __init__(self, prefix, *args, **kwargs):
         super().__init__(prefix, *args, **kwargs)
-        # peel the 'number' off of the prefix
-        # the prefix looks like "MCA1ROI:1:"
+        # peel the 'number' off of the prefix,
+        # which looks like "MCA1ROI:1:",
         # and we want the 1 at the end
         mcaroi_prefix_match = self.mcaroi_prefix_re.search(prefix)
         if mcaroi_prefix_match is None:

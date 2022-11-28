@@ -149,10 +149,12 @@ def test_instantiate_channel_class():
 
     assert channel_2.mca_sum.array_data.pvname == "Xsp3:MCASUM2:ArrayData"
 
-    assert channel_2.mcaroi.ts_control.pvname == "Xsp3:MCA2ROI:TSControl"
-    assert channel_2.mcaroi.ts_num_points.pvname == "Xsp3:MCA2ROI:TSNumPoints"
-    assert channel_2.mcaroi.ts_scan_rate.pvname == "Xsp3:MCA2ROI:TSRead.SCAN"
     assert channel_2.mcaroi.ts_acquiring.pvname == "Xsp3:MCA2ROI:TSAcquiring"
+    assert channel_2.mcaroi.ts_read.pvname == "Xsp3:MCA2ROI:TSRead"
+    assert channel_2.mcaroi.ts_num_points.pvname == "Xsp3:MCA2ROI:TSNumPoints"
+    assert channel_2.mcaroi.ts_current_point.pvname == "Xsp3:MCA2ROI:TSCurrentPoint"
+    assert channel_2.mcaroi.ts_control.pvname == "Xsp3:MCA2ROI:TSControl"
+    assert channel_2.mcaroi.ts_scan_rate.pvname == "Xsp3:MCA2ROI:TSRead.SCAN"
 
     assert channel_2.mcaroi46.total_rbv.pvname == "Xsp3:MCA2ROI:46:Total_RBV"
     assert channel_2.mcaroi47.total_rbv.pvname == "Xsp3:MCA2ROI:47:Total_RBV"
