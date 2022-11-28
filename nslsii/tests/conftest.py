@@ -19,10 +19,17 @@ from nslsii.md_dict import RunEngineRedisDict
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--xs3-data-dir",
+        "--xs3-root-path",
         action="store",
         default=None,
-        help="path to directory where xspress3 writes data files"
+        help="path to bluesky 'root' directory where xspress3 writes data files"
+    )
+
+    parser.addoption(
+        "--xs3-path-template",
+        action="store",
+        default=None,
+        help="path to directory where xspress3 will write files"
     )
 
     parser.addoption(
@@ -41,8 +48,13 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture
-def xs3_data_dir(request):
-    return request.config.getoption("--xs3-data-dir")
+def xs3_root_path(request):
+    return request.config.getoption("--xs3-root-path")
+
+
+@pytest.fixture
+def xs3_path_template(request):
+    return request.config.getoption("--xs3-path-template")
 
 
 @pytest.fixture

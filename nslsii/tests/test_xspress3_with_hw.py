@@ -75,6 +75,7 @@ def test_hdf5plugin(xs3_pv_prefix):
     xspress3.hdf5plugin.unstage()
 
 
+@pytest.mark.skip("this test is not correct")
 def test_trigger(xs3_pv_prefix, xs3_data_dir):
     if xs3_data_dir is None or not os.path.exists(xs3_data_dir):
         pytest.skip("xspress3 data directory was not specified")
@@ -122,16 +123,17 @@ def test_trigger(xs3_pv_prefix, xs3_data_dir):
     xspress3.unstage()
 
 
-def test_document_stream(xs3_pv_prefix, xs3_data_dir):
+def test_document_stream(xs3_pv_prefix, xs3_root_path, xs3_path_template):
     """
     This test requires --xs3-pv-prefix and --xs3-data-dir command line
     parameters be specified to pytest, for example:
         $ python -m pytest \
             nslsii/tests/test_xspress3_with_hw.py \
             --xs3-pv-prefix XF:05IDD-ES{Xsp:1}: \
-            --xs3-data-dir "/nsls2/data/staff/jlynch/data"
+            --xs3-root-path "/nsls2/lob1/lab3/" \ 
+            --xs3-path-template "/nsls2/lob1/lab3/xspress3/ophyd_testing/" 
     """
-    if xs3_data_dir is None or not os.path.exists(xs3_data_dir):
+    if xs3_root_path is None or not os.path.exists(xs3_root_path):
         pytest.skip("xspress3 data directory was not specified")
     if xs3_pv_prefix is None:
         pytest.skip("xspress3 PV prefix was not specified")
@@ -154,32 +156,41 @@ def test_document_stream(xs3_pv_prefix, xs3_data_dir):
                 Xspress3HDF5Plugin,
                 name="h5p",
                 prefix=f"{xs3_pv_prefix}HDF1:",
-                root_path=xs3_data_dir,
-                path_template=xs3_data_dir,
+                root_path=xs3_root_path,
+                path_template=xs3_path_template,
                 resource_kwargs={},
             )
         },
     )
     xspress3 = xspress3_class(prefix=xs3_pv_prefix, name="xs3")
 
+    #
+
     RE(count([xspress3]))
 
+    # expect one datum document per channel
     expected_document_names = (
         "start",
         "descriptor",
         "resource",
-        "event",
         "datum",
+        "datum",
+        "datum",
+        "event",
         "stop"
     )
 
-    unseen_document_names = list(expected_document_names)
+    actual_document_names = list()
+
+    filled_documents = list()
 
     with Filler({Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}, inplace=True) as filler:
         for name, document in document_list:
-            assert unseen_document_names[0] == name
-            unseen_document_names.pop(0)
+            assert name in expected_document_names
+            actual_document_names.append(name)
 
             filler(name, document)
 
-    assert len(unseen_document_names) == 0
+            filled_documents.append((name, document))
+
+    assert tuple(actual_document_names) == expected_document_names
