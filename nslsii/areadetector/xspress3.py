@@ -798,9 +798,8 @@ def build_channel_class(
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
-    # the next seven functions will become methods of the generated channel class
+    # the following functions will become methods of the generated channel class
     def __init__(self, *args, **kwargs):
-        """ this may not be necessary """
         super(type(self), self).__init__(*args, **kwargs)
 
     def __repr__(self):
