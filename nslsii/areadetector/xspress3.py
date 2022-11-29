@@ -119,7 +119,7 @@ class Xspress3Trigger(Device):
 
 
 class Xspress3ExternalFileReference(Signal):
-    """ """
+    """ A special Signal for datum document information. """
 
     def __init__(self, *args, bin_count=4096, dim_name="bin_count", **kwargs):
         super().__init__(*args, **kwargs)
