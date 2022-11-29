@@ -221,14 +221,12 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         file_path = self.file_path.get()
         file_name = self.file_name.get()
         file_number = self.file_number.get()
-        # 6. strip root_path off the front of results from 5
         # the next line assembles file_path, file_name, and file_number
         #   in the same way as AreaDetector
         full_file_path = Path(
             self.stage_sigs[self.file_template] % (file_path, file_name, file_number)
         )
-        # strip root_path from the full file path to produce the resource_path
-        #   needed by compose_resource
+        # 6. strip root_path from the full file path to produce the resource_path needed by compose_resource
         # for example, if
         #   full_file_path is /a/b/c/d_0.h5
         #   root_path is /a/b
