@@ -199,7 +199,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self.stage_sigs[self.file_write_mode] = "Stream"
 
     def stage(self):
-        logger.debug("stage()")
+        logger.debug("staging '%s' of '%s'", self.name, self.parent.name)
         staged_devices = super().stage()
 
         self.array_counter.set(0).wait()
