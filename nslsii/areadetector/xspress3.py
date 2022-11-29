@@ -4,8 +4,8 @@ import re
 import time as ttime
 
 from collections import deque
-
 from pathlib import Path
+from uuid import uuid4
 
 from databroker.assets.handlers import Xspress3HDF5Handler
 
@@ -202,12 +202,6 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         logger.debug("stage()")
         staged_devices = super().stage()
 
-        def automatic_ad_file_name():
-            from uuid import uuid4
-
-            "uuid4, skipping the last stanza because of AD length restrictions."
-            return "-".join(str(uuid4()).split("-")[:-1])
-
         self.array_counter.set(0).wait()
 
         # 1. fill in ophyd path_template with date
@@ -218,7 +212,8 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         )
         self.file_path.set(the_full_data_dir_path).wait()
         # 3. set file_name to be uuid
-        the_real_file_name = automatic_ad_file_name()
+        # remove the last stanza because of AD length restrictions
+        the_real_file_name = "-".join(str(uuid4()).split("-")[:-1])
         self.file_name.set(the_real_file_name).wait()
         # 4. set file_number to 0
         self.file_number.set(0).wait()
