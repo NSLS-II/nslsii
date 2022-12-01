@@ -40,6 +40,20 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
+        "--xs3-channel-numbers",
+        action="store",
+        default=None,
+        help="comma-separated xspress3 channel numbers, for example `1,2,3`"
+    )
+
+    parser.addoption(
+        "--xs3-mcaroi-numbers",
+        action="store",
+        default=None,
+        help="comma-separated xspress3 mcaroi numbers, for example `1,2,3`"
+    )
+
+    parser.addoption(
         "--kafka-bootstrap-servers",
         action="store",
         default="127.0.0.1:9092",
@@ -60,6 +74,26 @@ def xs3_path_template(request):
 @pytest.fixture
 def xs3_pv_prefix(request):
     return request.config.getoption("--xs3-pv-prefix")
+
+
+@pytest.fixture
+def xs3_channel_numbers(request):
+    comma_separated_numbers = request.config.getoption("--xs3-mcaroi-numbers")
+    if comma_separated_numbers is None:
+        return None
+    else:
+        number_list = [int(n) for n in comma_separated_numbers.split(",")]
+        return number_list
+
+
+@pytest.fixture
+def xs3_mcaroi_numbers(request):
+    comma_separated_numbers = request.config.getoption("--xs3-mcaroi-numbers")
+    if comma_separated_numbers is None:
+        return None
+    else:
+        number_list = [int(n) for n in comma_separated_numbers.split(",")]
+        return number_list
 
 
 @pytest.fixture

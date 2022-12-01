@@ -130,37 +130,59 @@ def test_trigger(xs3_pv_prefix, xs3_root_path, xs3_path_template):
     xspress3.unstage()
 
 
-def test_array_data_egu(xs3_pv_prefix):
+def test_array_data_egu(xs3_pv_prefix, xs3_channel_numbers, xs3_mcaroi_numbers):
+    """
+    This test requires command line parameters be specified to pytest, for example:
+        $ python -m pytest \
+            nslsii/tests/test_xspress3_with_hw.py \
+            --xs3-pv-prefix XF:05IDD-ES{Xsp:1}: \
+            --xs3-channel-numbers 1,2,3 \
+            --xs3-mcaroi-numbers 1,2,3
+    """
     if xs3_pv_prefix is None:
         pytest.skip("xspress3 PV prefix was not specified")
+    if xs3_channel_numbers is None:
+        pytest.skip("xspress3 channel numbers were not specified")
+    if xs3_mcaroi_numbers is None:
+        pytest.skip("xspress3 mcaroi numbers were not specified")
 
     xspress3_class = build_xspress3_class(
-        channel_numbers=(1, 2, 4),
-        mcaroi_numbers=(3, 5),
+        channel_numbers=xs3_channel_numbers,
+        mcaroi_numbers=xs3_mcaroi_numbers,
         image_data_key="image",
         xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
     )
     xspress3 = xspress3_class(prefix=xs3_pv_prefix, name="xs3")
 
-    assert xspress3.channel01.mca.array_data_egu.get() == "10"
-    assert xspress3.channel02.mca.array_data_egu.get() == "10"
-    assert xspress3.channel04.mca.array_data_egu.get() == "10"
+    for channel in xspress3.iterate_channels():
+        assert channel.mca.array_data_egu.get() is not None
 
 
-def test_document_stream(xs3_pv_prefix, xs3_root_path, xs3_path_template):
+def test_document_stream(
+    xs3_pv_prefix,
+    xs3_root_path,
+    xs3_path_template,
+    xs3_channel_numbers,
+    xs3_mcaroi_numbers,
+):
     """
-    This test requires --xs3-pv-prefix, --xs3-root-path, and xs3-path-template
-    command line parameters be specified to pytest, for example:
+    This test requires command line parameters be specified to pytest, for example:
         $ python -m pytest \
             nslsii/tests/test_xspress3_with_hw.py \
             --xs3-pv-prefix XF:05IDD-ES{Xsp:1}: \
             --xs3-root-path "/nsls2/lob1/lab3/" \ 
-            --xs3-path-template "/nsls2/lob1/lab3/xspress3/ophyd_testing/" 
+            --xs3-path-template "/nsls2/lob1/lab3/xspress3/ophyd_testing/" \
+            --xs3-channel-numbers 1,2,3 \
+            --xs3-mcaroi-numbers 1,2,3
     """
     if xs3_root_path is None or not os.path.exists(xs3_root_path):
         pytest.skip("xspress3 root path was not specified")
     if xs3_pv_prefix is None:
         pytest.skip("xspress3 PV prefix was not specified")
+    if xs3_channel_numbers is None:
+        pytest.skip("xspress3 channel numbers were not specified")
+    if xs3_mcaroi_numbers is None:
+        pytest.skip("xspress3 mcaroi numbers were not specified")
 
     document_list = []
 
@@ -171,8 +193,8 @@ def test_document_stream(xs3_pv_prefix, xs3_root_path, xs3_path_template):
     RE.subscribe(append_document)
 
     xspress3_class = build_xspress3_class(
-        channel_numbers=(1, 2, 4),
-        mcaroi_numbers=(3, 5),
+        channel_numbers=xs3_channel_numbers,
+        mcaroi_numbers=xs3_mcaroi_numbers,
         image_data_key="image",
         xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
         extra_class_members={
@@ -201,14 +223,16 @@ def test_document_stream(xs3_pv_prefix, xs3_root_path, xs3_path_template):
         "datum",
         "datum",
         "event",
-        "stop"
+        "stop",
     )
 
     actual_document_names = list()
 
     filled_documents = list()
 
-    with Filler({Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}, inplace=True) as filler:
+    with Filler(
+        {Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}, inplace=True
+    ) as filler:
         for name, document in document_list:
             assert name in expected_document_names
             actual_document_names.append(name)
