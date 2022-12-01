@@ -146,8 +146,10 @@ def test_instantiate_channel_class():
     assert channel_2.sca.clock_ticks.pvname == "Xsp3:C2SCA:0:Value_RBV"
 
     assert channel_2.mca.array_data.pvname == "Xsp3:MCA2:ArrayData"
+    assert channel_2.mca.array_data_egu.pvname == "Xsp3:MCA2:ArrayData.EGU"
 
     assert channel_2.mca_sum.array_data.pvname == "Xsp3:MCASUM2:ArrayData"
+    assert channel_2.mca_sum.array_data_egu.pvname == "Xsp3:MCASUM2:ArrayData.EGU"
 
     assert channel_2.mcaroi.ts_acquiring.pvname == "Xsp3:MCA2ROI:TSAcquiring"
     assert channel_2.mcaroi.ts_read.pvname == "Xsp3:MCA2ROI:TSRead"

@@ -130,6 +130,23 @@ def test_trigger(xs3_pv_prefix, xs3_root_path, xs3_path_template):
     xspress3.unstage()
 
 
+def test_array_data_egu(xs3_pv_prefix):
+    if xs3_pv_prefix is None:
+        pytest.skip("xspress3 PV prefix was not specified")
+
+    xspress3_class = build_xspress3_class(
+        channel_numbers=(1, 2, 4),
+        mcaroi_numbers=(3, 5),
+        image_data_key="image",
+        xspress3_parent_classes=(Xspress3Detector, Xspress3Trigger),
+    )
+    xspress3 = xspress3_class(prefix=xs3_pv_prefix, name="xs3")
+
+    assert xspress3.channel01.mca.array_data_egu.get() == "10"
+    assert xspress3.channel02.mca.array_data_egu.get() == "10"
+    assert xspress3.channel04.mca.array_data_egu.get() == "10"
+
+
 def test_document_stream(xs3_pv_prefix, xs3_root_path, xs3_path_template):
     """
     This test requires --xs3-pv-prefix, --xs3-root-path, and xs3-path-template

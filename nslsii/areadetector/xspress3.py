@@ -568,10 +568,12 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 # for now they are being used just for xspress3
 class Mca(ADBase):
     array_data = Cpt(EpicsSignal, "ArrayData")
+    array_data_egu = Cpt(EpicsSignalRO, "ArrayData.EGU")
 
 
 class McaSum(ADBase):
     array_data = Cpt(EpicsSignal, "ArrayData")
+    array_data_egu = Cpt(EpicsSignalRO, "ArrayData.EGU")
 
 
 class McaRoiTimeSeries(ADBase):
