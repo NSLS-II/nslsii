@@ -78,7 +78,7 @@ def xs3_pv_prefix(request):
 
 @pytest.fixture
 def xs3_channel_numbers(request):
-    comma_separated_numbers = request.config.getoption("--xs3-mcaroi-numbers")
+    comma_separated_numbers = request.config.getoption("--xs3-channel-numbers")
     if comma_separated_numbers is None:
         return None
     else:
