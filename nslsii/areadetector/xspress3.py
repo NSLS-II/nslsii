@@ -153,17 +153,17 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         **kwargs,
     ):
         """
-        root_path + path_template == the whole path
 
         Parameters
         ----------
         args:
             passed to the parent class
         root_path:
-            the "non-semantic" part of the path
+            the "non-semantic" part of the data path, for example /nsls2/data
         path_template:
-            the "semantic" part of the path, which gets glued on to root_path
-            may include %Y, %m, %d and other strftime replacements
+            path to the data directory, which must include the root_path,
+            and may include %Y, %m, %d and other strftime replacements,
+            for example /nsls2/data/tst/xspress3/2020/01/01
         resource_kwargs:
             placed in resource documents
         kwargs:
@@ -179,13 +179,6 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self.path_template.put(path_template)
         self.resource_kwargs = resource_kwargs
 
-        def default_date_formatter(strftime_template):
-            return datetime.datetime.now().strftime(strftime_template)
-
-        date_formatter = default_date_formatter
-
-        self.date_formatter = date_formatter
-
         self.stage_sigs[self.create_directory] = -3
         self.stage_sigs[self.auto_increment] = "Yes"
         self.stage_sigs[self.auto_save] = "Yes"
@@ -198,21 +191,56 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self.stage_sigs[self.file_template] = "%s%s_%6.6d.h5"
         self.stage_sigs[self.file_write_mode] = "Stream"
 
+    @staticmethod
+    def _build_data_dir_path(the_datetime, root_path, path_template):
+        """
+        Parameters
+        ----------
+        the_datetime: datetime.datetime
+            the date and time to use in formatting path_template
+        root_path: str
+            the "non-semantic" part of the data path, for example /nsls2/data/tst
+        path_template: str
+            path to the data directory, which must include the root_path,
+            and may include %Y, %m, %d and other strftime replacements,
+            for example /nsls2/data/tst/xspress3/%Y/%m/%m
+        Return
+        ------
+          str
+        """
+        # 1. fill in path_template with the_datetime as AreaDetector would do
+        # 2. concatenate result with root_path
+        #   if root_path is the prefix of the_data_dir_path
+        #   then
+        #     Path(root_path) / Path(the_data_dir_path)
+        #   will be
+        #     Path(the_data_dir_path)
+        #   for example, if
+        #     root_path         = "/nsls2/data"
+        #     the_data_dir_path = "/nsls2/data/tst/xspress3/2020/01/01"
+        #   then
+        #     the_full_data_dir_path = Path("/nsls2/data/tst/xspress3/2020/01/01")
+
+        the_data_dir_path = the_datetime.strftime(path_template)
+        the_full_data_dir_path = Path(root_path) / Path(the_data_dir_path)
+        return str(the_full_data_dir_path)
+
     def stage(self):
         logger.debug("staging '%s' of '%s'", self.name, self.parent.name)
         staged_devices = super().stage()
 
         self.array_counter.set(0).wait()
 
-        # 1. fill in ophyd path_template with date
-        the_data_dir_path_suffix = self.date_formatter(self.path_template.get())
+        # 1. fill in path_template with date as AreaDetector would do
         # 2. concatenate result with root_path
-        the_full_data_dir_path = Path(self.root_path.get()) / Path(
-            the_data_dir_path_suffix
+        the_full_data_dir_path = self._build_data_dir_path(
+            the_datetime=datetime.datetime.now(),
+            root_path=self.root_path.get(),
+            path_template=self.path_template.get()
         )
         self.file_path.set(the_full_data_dir_path).wait()
-        # 3. set file_name to be uuid
-        # remove the last stanza because of AD length restrictions
+        # 3. set file_name to a uuid
+        #   remove the last stanza because of AD length restrictions
         the_real_file_name = "-".join(str(uuid4()).split("-")[:-1])
         self.file_name.set(the_real_file_name).wait()
         # 4. set file_number to 0
