@@ -197,6 +197,8 @@ class Xspress3HDF5Plugin(HDF5Plugin):
     @staticmethod
     def _build_data_dir_path(the_datetime, root_path, path_template):
         """
+        Construct a data directory path from root_path and path_template.
+
         Parameters
         ----------
         the_datetime: datetime.datetime
@@ -206,7 +208,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         path_template: str
             path to the data directory, which must include the root_path,
             and may include %Y, %m, %d and other strftime replacements,
-            for example /nsls2/data/tst/xspress3/%Y/%m/%m
+            for example /nsls2/data/tst/xspress3/%Y/%m/%d
         Return
         ------
           str
