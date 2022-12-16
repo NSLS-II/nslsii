@@ -1,19 +1,24 @@
+import datetime
 import logging
 import re
 import time as ttime
-from collections import OrderedDict
+
+from collections import deque
+from pathlib import Path
+from uuid import uuid4
 
 from databroker.assets.handlers import Xspress3HDF5Handler
 
-from ophyd import Component as Cpt
-from ophyd import DynamicDeviceComponent as DynamicDeviceCpt
+from event_model import compose_resource
+
+from ophyd import Component as Cpt, Device, Kind
 from ophyd import EpicsSignal, EpicsSignalRO, Signal
 from ophyd.areadetector import ADBase
 from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
 from ophyd.areadetector import Xspress3Detector
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
-from ophyd.areadetector.plugins import HDF5Plugin
-from ophyd.device import BlueskyInterface, Staged
+from ophyd.areadetector.plugins import HDF5Plugin_V34 as HDF5Plugin
+from ophyd.device import Staged
 from ophyd.status import DeviceStatus
 
 from ..detectors.utils import makedirs
@@ -22,9 +27,12 @@ from ..detectors.utils import makedirs
 logger = logging.getLogger(__name__)
 
 
-class Xspress3Trigger(BlueskyInterface):
+class Xspress3Trigger(Device):
     """
     A basic trigger mixin. Good enough for simple cases.
+    Inheriting from Device makes this class's trigger
+    method the first one in MRO regardless of the order
+    of classes in multiple inheritance situations.
     """
 
     def __init__(self, *args, **kwargs):
@@ -75,18 +83,21 @@ class Xspress3Trigger(BlueskyInterface):
 
     def new_acquire_status(self):
         """
-        Create, remember, and return a Status object that will be marked
+        Create and return a Status object that will be marked
         as `finished` when acquisition is done (see _acquire_changed). The
         intention is that this Status will be used by another object,
         for example a RunEngine.
+
+        This method is intended only to be used by the trigger method.
+
+        Override this method if a more complex status object is needed.
 
         Returns
         -------
         DeviceStatus
         """
 
-        self._acquire_status = DeviceStatus(self)
-        return self._acquire_status
+        return DeviceStatus(self)
 
     def trigger(self):
         logger.debug("trigger")
@@ -95,23 +106,220 @@ class Xspress3Trigger(BlueskyInterface):
                 "tried to trigger Xspress3 with prefix {self.prefix} but it is not staged"
             )
 
-        acquire_status = self.new_acquire_status()
+        self._acquire_status = self.new_acquire_status()
         self.cam.acquire.put(1, wait=False)
         trigger_time = ttime.time()
 
-        # tell the associated file plugins to do something about
-        # each channel's data by invoking
-        # FileStore.generate_datum(key=channel.name, ...)
-        for channel in self.iterate_channels():
-            self.dispatch(key=channel.name, timestamp=trigger_time)
-
+        # call generate_datum on all plugins
+        self.generate_datum(
+            key=None,
+            timestamp=trigger_time,
+            datum_kwargs={"frame": self._abs_trigger_count},
+        )
         self._abs_trigger_count += 1
 
-        return acquire_status
+        return self._acquire_status
+
+
+class Xspress3ExternalFileReference(Signal):
+    """ A special Signal for datum document information. """
+
+    def __init__(self, *args, bin_count=4096, dim_name="bin_count", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape = (bin_count,)
+        self.dims = (dim_name,)
+
+    def describe(self):
+        res = super().describe()
+        res[self.name].update(
+            dict(
+                external="FILESTORE:",
+                dtype="array",
+                dtype_str="uint32",  # <u4
+                shape=self.shape,
+                dims=self.dims,
+            )
+        )
+        return res
+
+
+class Xspress3HDF5Plugin(HDF5Plugin):
+    root_path = Cpt(Signal, kind=Kind.config)
+    path_template = Cpt(Signal, kind=Kind.config)
+
+    def __init__(
+        self,
+        *args,
+        root_path,
+        path_template,
+        resource_kwargs,
+        **kwargs,
+    ):
+        """
+
+        Parameters
+        ----------
+        args:
+            passed to the parent class
+        root_path:
+            the "non-semantic" part of the data path, for example /nsls2/data
+        path_template:
+            path to the data directory, which must include the root_path,
+            and may include %Y, %m, %d and other strftime replacements,
+            for example /nsls2/data/tst/xspress3/2020/01/01
+        resource_kwargs:
+            placed in resource documents
+        kwargs:
+            passed to the parent class
+        """
+        super().__init__(*args, **kwargs)
+        self._resource = None
+        self._datum_factory = None
+
+        self._asset_docs_cache = None
+
+        self.root_path.put(root_path)
+        self.path_template.put(path_template)
+        self.resource_kwargs = resource_kwargs
+
+        self.stage_sigs[self.create_directory] = -3
+        self.stage_sigs[self.auto_increment] = "Yes"
+        self.stage_sigs[self.auto_save] = "Yes"
+        self.stage_sigs[self.num_capture] = 0  # 0 means take as many as you want
+        self.stage_sigs[self.enable] = 1
+        self.stage_sigs[self.compression] = "zlib"
+
+        # set hdf5 chunk size in a good way
+
+        self.stage_sigs[self.file_template] = "%s%s_%6.6d.h5"
+        self.stage_sigs[self.file_write_mode] = "Stream"
+
+    @staticmethod
+    def _build_data_dir_path(the_datetime, root_path, path_template):
+        """
+        Construct a data directory path from root_path and path_template.
+
+        Parameters
+        ----------
+        the_datetime: datetime.datetime
+            the date and time to use in formatting path_template
+        root_path: str
+            the "non-semantic" part of the data path, for example /nsls2/data/tst
+        path_template: str
+            path to the data directory, which must include the root_path,
+            and may include %Y, %m, %d and other strftime replacements,
+            for example /nsls2/data/tst/xspress3/%Y/%m/%d
+        Return
+        ------
+          str
+        """
+        # 1. fill in path_template with the_datetime as AreaDetector would do
+        # 2. concatenate result with root_path
+        #   if root_path is the prefix of the_data_dir_path
+        #   then
+        #     Path(root_path) / Path(the_data_dir_path)
+        #   will be
+        #     Path(the_data_dir_path)
+        #   for example, if
+        #     root_path         = "/nsls2/data"
+        #     the_data_dir_path = "/nsls2/data/tst/xspress3/2020/01/01"
+        #   then
+        #     the_full_data_dir_path = Path("/nsls2/data/tst/xspress3/2020/01/01")
+
+        the_data_dir_path = the_datetime.strftime(path_template)
+        the_full_data_dir_path = Path(root_path) / Path(the_data_dir_path)
+        return str(the_full_data_dir_path)
+
+    def stage(self):
+        logger.debug("staging '%s' of '%s'", self.name, self.parent.name)
+        staged_devices = super().stage()
+
+        self.array_counter.set(0).wait()
+
+        # 1. fill in path_template with date as AreaDetector would do
+        # 2. concatenate result with root_path
+        the_full_data_dir_path = self._build_data_dir_path(
+            the_datetime=datetime.datetime.now(),
+            root_path=self.root_path.get(),
+            path_template=self.path_template.get()
+        )
+        self.file_path.set(the_full_data_dir_path).wait()
+        # 3. set file_name to a uuid
+        #   remove the last stanza because of AD length restrictions
+        the_real_file_name = "-".join(str(uuid4()).split("-")[:-1])
+        self.file_name.set(the_real_file_name).wait()
+        # 4. set file_number to 0
+        self.file_number.set(0).wait()
+        # 5. ask IOC what are file_path, file_name, file_number and use them to fill in the file_template on this side
+        file_path = self.file_path.get()
+        file_name = self.file_name.get()
+        file_number = self.file_number.get()
+        # the next line assembles file_path, file_name, and file_number
+        #   in the same way as AreaDetector
+        full_file_path = Path(
+            self.stage_sigs[self.file_template] % (file_path, file_name, file_number)
+        )
+        # 6. strip root_path from the full file path to produce the resource_path needed by compose_resource
+        # for example, if
+        #   full_file_path is /a/b/c/d_0.h5
+        #   root_path is /a/b
+        # then
+        #   resource_path is c/d_0.h5
+        resource_path = full_file_path.relative_to(self.root_path.get())
+
+        self._resource, self._datum_factory, _ = compose_resource(
+            # a UID is _required_ here, so we provide a fake and then remove it from
+            #   the resource document; later a RunEngine will provide a real id
+            start={"uid": "to be replaced"},
+            spec=Xspress3HDF5Handler.HANDLER_NAME,
+            root=self.root_path.get(),
+            resource_path=str(resource_path),
+            resource_kwargs=self.resource_kwargs,
+        )
+        # remove the fake id specified above from the resource document; later
+        #   a RunEngine will provide a real one
+        self._resource.pop("run_start")
+
+        self._asset_docs_cache = deque()
+        self._asset_docs_cache.append(("resource", self._resource))
+
+        # this should be the last thing we do here
+        self.capture.set(1).wait()
+
+        return staged_devices
+
+    def unstage(self):
+
+        self.capture.set(0).wait()
+
+        return super().unstage()
+
+    def generate_datum(self, key, timestamp, datum_kwargs):
+        if key is not None:
+            raise ValueError(f"'key' must be None but key='{key}'")
+
+        # generate datum documents for all channels of Kind.normal
+        for channel in self.parent.iterate_channels():
+            if channel.get_external_file_ref().kind & Kind.normal:
+                datum = self._datum_factory(
+                    datum_kwargs={
+                        **datum_kwargs,
+                        "channel": channel.channel_number,
+                    }
+                )
+                self._asset_docs_cache.append(("datum", datum))
+                channel.get_external_file_ref().put(datum["datum_id"])
+
+    def collect_asset_docs(self):
+        items = list(self._asset_docs_cache)
+        self._asset_docs_cache.clear()
+        for item in items:
+            yield item
 
 
 class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
     """
+    Retained for reference. This will be removed soon.
     Create resource and datum documents.
     """
 
@@ -393,10 +601,29 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 # for now they are being used just for xspress3
 class Mca(ADBase):
     array_data = Cpt(EpicsSignal, "ArrayData")
+    array_data_egu = Cpt(EpicsSignalRO, "ArrayData.EGU")
 
 
 class McaSum(ADBase):
     array_data = Cpt(EpicsSignal, "ArrayData")
+    array_data_egu = Cpt(EpicsSignalRO, "ArrayData.EGU")
+
+
+class McaRoiTimeSeries(ADBase):
+    # TimeSeries plugin PVs
+
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSAcquiring
+    ts_acquiring = Cpt(EpicsSignal, "TSAcquiring")
+    ts_read = Cpt(EpicsSignal, "TSRead")
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSNumPoints
+    ts_num_points = Cpt(EpicsSignal, "TSNumPoints")
+    ts_current_point = Cpt(EpicsSignal, "TSCurrentPoint")
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:TSControl
+    ts_control = Cpt(EpicsSignal, "TSControl")
+    # allowed values for TSRead.SCAN:
+    #   https://epics.anl.gov/base/R7-0/6-docs/menuScan.html
+    #   "10 second", "5 second", "2 second", "1 second", ".5 second", ".2 second", ".1 second"
+    ts_scan_rate = Cpt(EpicsSignal, "TSRead.SCAN")
 
 
 class McaRoi(ADBase):
@@ -407,14 +634,17 @@ class McaRoi(ADBase):
 
     use = Cpt(SignalWithRBV, "Use")
 
+    # eg XF:05IDD-ES{Xsp:3}:MCA1ROI:1:TSTotal
+    ts_total = Cpt(EpicsSignal, "TSTotal")
+
     mcaroi_prefix_re = re.compile(
         r"MCA(?P<channel_number>\d+)ROI:(?P<mcaroi_number>\d+):"
     )
 
     def __init__(self, prefix, *args, **kwargs):
         super().__init__(prefix, *args, **kwargs)
-        # peel the 'number' off of the prefix
-        # the prefix looks like "MCA1ROI:1:"
+        # peel the 'number' off of the prefix,
+        # which looks like "MCA1ROI:1:",
         # and we want the 1 at the end
         mcaroi_prefix_match = self.mcaroi_prefix_re.search(prefix)
         if mcaroi_prefix_match is None:
@@ -546,7 +776,9 @@ def _validate_mcaroi_number(mcaroi_number):
         pass
 
 
-def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=None):
+def build_channel_class(
+    channel_number, mcaroi_numbers, image_data_key=None, channel_parent_classes=None
+):
     """Build an Xspress3 channel class with the specified channel number and MCAROI numbers.
 
     MCAROI numbers need not be consecutive.
@@ -562,7 +794,9 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
     channel_number: int
         the channel number, 1-16
     mcaroi_numbers: Sequence of int
-         sequence of MCAROI numbers, not necessarily consecutive, allowed values are 1-48
+        sequence of MCAROI numbers, not necessarily consecutive, allowed values are 1-48
+    image_data_key: str
+        event document key for an Xspress3ExternalFileReference, optional
     channel_parent_classes: list-like, optional
         sequence of all parent classes for the generated channel class,
         by default the only parent is ophyd.areadetector.ADBase
@@ -597,7 +831,10 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
 
     mcaroi_name_re = re.compile(r"mcaroi\d{2}")
 
-    # the next six functions will become methods of the generated channel class
+    # the following functions will become methods of the generated channel class
+    def __init__(self, *args, **kwargs):
+        super(type(self), self).__init__(*args, **kwargs)
+
     def __repr__(self):
         return f"{self.__class__.__name__}(channel_number={self.channel_number}, mcaroi_numbers={self.mcaroi_numbers})"
 
@@ -636,19 +873,36 @@ def build_channel_class(channel_number, mcaroi_numbers, channel_parent_classes=N
         for mcaroi in self.iterate_mcarois():
             mcaroi.clear()
 
+    def get_external_file_ref(self):
+        """Return the Xspress3ExternalFileReference."""
+        return getattr(self, image_data_key)
+
     channel_fields_and_methods = {
+        "__init__": __init__,
         "__repr__": __repr__,
+        # keep the read and configuration attrs defined by the Components
+        "_default_read_attrs": None,
+        "_default_configuration_attrs": None,
         "channel_number": channel_number,
         "mcaroi_numbers": tuple(sorted(mcaroi_numbers)),
         "sca": Cpt(Sca, f"C{channel_number}SCA:"),
         "mca": Cpt(Mca, f"MCA{channel_number}:"),
         "mca_sum": Cpt(McaSum, f"MCASUM{channel_number}:"),
+        "mcaroi": Cpt(McaRoiTimeSeries, f"MCA{channel_number}ROI:"),
+        # plain old methods
         "get_mcaroi_count": get_mcaroi_count,
         "get_mcaroi": get_mcaroi,
         "iterate_mcaroi_attr_names": iterate_mcaroi_attr_names,
         "iterate_mcarois": iterate_mcarois,
         "clear_all_rois": clear_all_rois,
+        "get_external_file_ref": get_external_file_ref,
     }
+
+    # Xspress3ExternalFileReference is optional
+    if image_data_key:
+        channel_fields_and_methods[image_data_key] = Cpt(
+            Xspress3ExternalFileReference, kind=Kind.normal
+        )
 
     channel_fields_and_methods.update(
         {
@@ -695,17 +949,16 @@ def build_detector_class(
     detector_parent_classes=None,
     extra_class_members=None,
 ):
-    return build_xspress3_class(
-        channel_numbers=channel_numbers,
-        mcaroi_numbers=mcaroi_numbers,
-        xspress3_parent_classes=detector_parent_classes,
-        extra_class_members=extra_class_members,
+    raise NotImplementedError(
+        "build_detector_class() has been removed, use build_xspress3_class()"
     )
 
 
 def build_xspress3_class(
     channel_numbers,
     mcaroi_numbers,
+    image_data_key=None,
+    channel_parent_classes=None,
     xspress3_parent_classes=None,
     extra_class_members=None,
 ):
@@ -729,6 +982,12 @@ def build_xspress3_class(
         sequence of channel numbers, 1-16, for the detector; for example [1, 2, 3, 8]
     mcaroi_numbers: Sequence of int
         sequence of MCAROI numbers, 1-48, for each channel; for example [1, 2, 3, 10]
+    image_data_key: str
+        event document key for an Xspress3ExternalFileReference, which is the recommended
+        way to generate datum documents, optional
+    channel_parent_classes: list-like, optional
+        sequence of all parent classes for the generated channel classes,
+        by default the only parent is ophyd.areadetector.ADBase
     xspress3_parent_classes: list-like, optional
         sequence of all parent classes for the generated detector class,
         if specified include *all* necessary parent classes; if not specified
@@ -857,11 +1116,18 @@ def build_xspress3_class(
     xspress3_fields_and_methods.update(
         {
             f"channel{c:02d}": Cpt(
-                build_channel_class(channel_number=c, mcaroi_numbers=mcaroi_numbers),
+                build_channel_class(
+                    channel_number=c,
+                    mcaroi_numbers=mcaroi_numbers,
+                    image_data_key=image_data_key,
+                    channel_parent_classes=channel_parent_classes,
+                ),
                 # there is no discrete channel prefix
                 # for the Xspress3 IOC PVs
                 # so specify an empty string here
                 "",
+                # TODO: this does not stick
+                kind=Kind.normal,
             )
             for c in channel_numbers
         }
