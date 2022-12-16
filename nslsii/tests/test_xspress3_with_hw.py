@@ -170,8 +170,8 @@ def test_document_stream(
         $ python -m pytest \
             nslsii/tests/test_xspress3_with_hw.py \
             --xs3-pv-prefix XF:05IDD-ES{Xsp:1}: \
-            --xs3-root-path "/nsls2/lob1/lab3/" \ 
-            --xs3-path-template "/nsls2/lob1/lab3/xspress3/ophyd_testing/" \
+            --xs3-root-path "/nsls2/data/lob1/lab3/" \
+            --xs3-path-template "/nsls2/data/lob1/lab3/xspress3/ophyd_testing/" \
             --xs3-channel-numbers 1,2,3 \
             --xs3-mcaroi-numbers 1,2,3
     """
