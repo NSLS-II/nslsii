@@ -83,18 +83,21 @@ class Xspress3Trigger(Device):
 
     def new_acquire_status(self):
         """
-        Create, remember, and return a Status object that will be marked
+        Create and return a Status object that will be marked
         as `finished` when acquisition is done (see _acquire_changed). The
         intention is that this Status will be used by another object,
         for example a RunEngine.
+
+        This method is intended only to be used by the trigger method.
+
+        Override this method if a more complex status object is needed.
 
         Returns
         -------
         DeviceStatus
         """
 
-        self._acquire_status = DeviceStatus(self)
-        return self._acquire_status
+        return DeviceStatus(self)
 
     def trigger(self):
         logger.debug("trigger")
@@ -103,7 +106,7 @@ class Xspress3Trigger(Device):
                 "tried to trigger Xspress3 with prefix {self.prefix} but it is not staged"
             )
 
-        acquire_status = self.new_acquire_status()
+        self._acquire_status = self.new_acquire_status()
         self.cam.acquire.put(1, wait=False)
         trigger_time = ttime.time()
 
@@ -115,7 +118,7 @@ class Xspress3Trigger(Device):
         )
         self._abs_trigger_count += 1
 
-        return acquire_status
+        return self._acquire_status
 
 
 class Xspress3ExternalFileReference(Signal):
