@@ -2,6 +2,14 @@
 Release History
 ***************
 
+v0.8.0 (2022-12-19)
+===================
+* add ophyd classes for QEPro spectrometer IOC
+* rationalize global key names for ``nslsii.md_dict.RunEngineRedisDict``
+* add time series and units PVs to ``nslsii.areadetector.xspress3``
+* add external file reference class to ``nslsii.areadetector.xspress3``
+* add hdf5 plugin class to ``nslsii.areadetector.xspress3``
+
 v0.7.0 (2022-08-05)
 ===================
 * support for new sections in the Kafka configuration file
