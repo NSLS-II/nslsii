@@ -38,8 +38,8 @@ def test_hdf5plugin(xs3_pv_prefix):
         extra_class_members={
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
+                "HDF1:",
                 name="h5p",
-                prefix=f"{xs3_pv_prefix}HDF1:",
                 root_path="/a/b/c",
                 path_template="/a/b/c/%Y/%m/%d",
                 resource_kwargs={},
@@ -100,8 +100,8 @@ def test_trigger(xs3_pv_prefix, xs3_root_path, xs3_path_template):
         extra_class_members={
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
+                "HDF1:",
                 name="h5p",
-                prefix=f"{xs3_pv_prefix}HDF1:",
                 root_path=xs3_root_path,
                 path_template=xs3_path_template,
                 resource_kwargs={},
@@ -200,8 +200,8 @@ def test_document_stream(
         extra_class_members={
             "hdf5plugin": Component(
                 Xspress3HDF5Plugin,
+                "HDF1:",
                 name="h5p",
-                prefix=f"{xs3_pv_prefix}HDF1:",
                 root_path=xs3_root_path,
                 path_template=xs3_path_template,
                 resource_kwargs={},
