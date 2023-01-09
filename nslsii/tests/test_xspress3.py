@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from ophyd import ADBase, Component, Kind, Signal
+from ophyd import ADBase, Component, EpicsSignal, Kind, Signal
 
 from nslsii.areadetector.xspress3 import (
     Mca,
@@ -365,7 +365,10 @@ def test_extra_class_members():
         channel_numbers=(3, 5),
         mcaroi_numbers=(4, 6),
         image_data_key="image",
-        extra_class_members={"ten": 10, "a_signal": Component(Signal, value=0)},
+        extra_class_members={
+            "ten": 10,
+            "a_signal": Component(EpicsSignal, "Signal")
+        },
     )
 
     assert detector_class.ten == 10
@@ -375,7 +378,7 @@ def test_extra_class_members():
 
     assert detector.ten == 10
     assert isinstance(detector.a_signal, Signal)
-    assert detector.a_signal.get() == 0
+    assert detector.a_signal.pvname == "Xsp3:Signal"
 
 
 def test_extra_class_members_failure():
