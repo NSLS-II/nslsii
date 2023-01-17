@@ -141,6 +141,9 @@ def test_instantiate_channel_class():
     )
     channel_2 = channel_class(prefix="Xsp3:", name="channel_2")
 
+    assert channel_2.image.dtype_str == "uint32"
+    assert channel_2.image.shape == (4096,)
+    assert channel_2.image.dims == ("bin_count",)
     assert channel_2.get_external_file_ref().name == "channel_2_image"
 
     assert channel_2.sca.clock_ticks.pvname == "Xsp3:C2SCA:0:Value_RBV"
