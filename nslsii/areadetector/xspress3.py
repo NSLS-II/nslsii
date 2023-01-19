@@ -122,10 +122,23 @@ class Xspress3Trigger(Device):
 
 
 class Xspress3ExternalFileReference(Signal):
-    """ A special Signal for datum document information. """
+    """ A special Signal for datum document information.
 
-    def __init__(self, *args, bin_count=4096, dim_name="bin_count", **kwargs):
+    Parameters
+    ----------
+    dtype_str: str
+        numpy type string describing the array data saved by the xspress3,
+        allowed values are found in numpy.sctypeDict, default is "uint32"
+    bin_count: int
+        number of bins in the array data, default is 4096
+    dim_name: str
+        name for the first dimension of the array data, default is "bin_count"
+
+    """
+
+    def __init__(self, *args, dtype_str="uint32", bin_count=4096, dim_name="bin_count", **kwargs):
         super().__init__(*args, **kwargs)
+        self.dtype_str = dtype_str
         self.shape = (bin_count,)
         self.dims = (dim_name,)
 
@@ -135,7 +148,7 @@ class Xspress3ExternalFileReference(Signal):
             dict(
                 external="FILESTORE:",
                 dtype="array",
-                dtype_str="uint32",  # <u4
+                dtype_str=self.dtype_str,
                 shape=self.shape,
                 dims=self.dims,
             )
