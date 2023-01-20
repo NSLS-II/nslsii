@@ -2,6 +2,11 @@
 Release History
 ***************
 
+v0.9.0 (2023-01-20)
+===================
+* fix incorrect usage of ``prefix=`` keyword argument in tests 
+* add ``nslsii.areadetector.xspress3.Xspress3ExternalFileReference.dtype_str``
+
 v0.8.0 (2022-12-19)
 ===================
 * add ophyd classes for QEPro spectrometer IOC
