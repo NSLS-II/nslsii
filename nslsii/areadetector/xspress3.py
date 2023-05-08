@@ -166,6 +166,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         root_path,
         path_template,
         resource_kwargs,
+        spec=Xspress3HDF5Handler.HANDLER_NAME,
         **kwargs,
     ):
         """
@@ -182,6 +183,9 @@ class Xspress3HDF5Plugin(HDF5Plugin):
             for example /nsls2/data/tst/xspress3/2020/01/01
         resource_kwargs:
             placed in resource documents
+        spec:
+            data handler name for resource documents,
+            Xspress3HDF5Handler.HANDLER_NAME by default
         kwargs:
             passed to the parent class
         """
@@ -193,6 +197,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
         self.root_path.put(root_path)
         self.path_template.put(path_template)
+        self.spec = spec
         self.resource_kwargs = resource_kwargs
 
         self.stage_sigs[self.create_directory] = -3
@@ -284,7 +289,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
             # a UID is _required_ here, so we provide a fake and then remove it from
             #   the resource document; later a RunEngine will provide a real id
             start={"uid": "to be replaced"},
-            spec=Xspress3HDF5Handler.HANDLER_NAME,
+            spec=self.spec,
             root=self.root_path.get(),
             resource_path=str(resource_path),
             resource_kwargs=self.resource_kwargs,
