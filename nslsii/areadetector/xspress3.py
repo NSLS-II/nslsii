@@ -1131,12 +1131,6 @@ def build_xspress3_class(
         **extra_class_members,
     )
 
-    # Xspress3ExternalFileReference is optional
-    if image_data_key:
-        xspress3_fields_and_methods[image_data_key] = Cpt(
-            Xspress3ExternalFileReference, kind=Kind.normal
-        )
-
     xspress3_fields_and_methods.update(
         {
             f"channel{c:02d}": Cpt(
