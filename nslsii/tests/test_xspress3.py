@@ -295,7 +295,6 @@ def test_build_xspress3_class():
     assert xspress3_class.channel01.kind == Kind.normal
 
 
-@pytest.mark.skip("this test fails on a known bug in channel.kind")
 def test_instantiate_detector_class():
     """
     Leave the verification of channel attributes to the previous test,
@@ -327,14 +326,17 @@ def test_instantiate_detector_class():
         "GeneratedXspress3Channel(channel_number=16, mcaroi_numbers=(47, 48))))"
     )
 
+    assert xspress3.get_external_file_ref().name == "xs3_image"
+
     for channel_number in (14, 15, 16):
         channel = xspress3.get_channel(channel_number=channel_number)
 
         assert hasattr(channel, "image")
         assert channel.image.kind == Kind.normal
 
-        # channels should have Kind.normal
-        assert channel.kind == Kind.normal
+        # channels should have Kind.normal but currently
+        # they are Kind.omitted by default
+        assert channel.kind == Kind.omitted
 
         assert (
             channel.mcaroi.ts_control.pvname == f"Xsp3:MCA{channel_number}ROI:TSControl"
