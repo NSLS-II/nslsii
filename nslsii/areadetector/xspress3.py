@@ -343,7 +343,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
             bulk_data_datum = self._bulk_data_datum_factory(
                 datum_kwargs={}
             )
-            self._asset_docs_cache.appen(("datum", bulk_data_datum))
+            self._asset_docs_cache.append(("datum", bulk_data_datum))
             self.parent.get_external_file_ref().put(bulk_data_datum["datum_id"])
 
         # generate datum documents for all channels of Kind.normal
