@@ -165,7 +165,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         *args,
         root_path,
         path_template,
-        resource_kwargs,
+        resource_kwargs=None,
         spec=Xspress3HDF5Handler.HANDLER_NAME,
         **kwargs,
     ):
@@ -194,6 +194,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self._datum_factory = None
 
         self.bulk_data_spec = None
+        self.bulk_data_resource_kwargs = {}
         self._bulk_data_resource = None
         self._bulk_data_datum_factory = None
 
@@ -202,6 +203,8 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self.root_path.put(root_path)
         self.path_template.put(path_template)
         self.spec = spec
+        if resource_kwargs is None:
+            resource_kwargs = {}
         self.resource_kwargs = resource_kwargs
 
         self.stage_sigs[self.create_directory] = -3
