@@ -193,7 +193,8 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self._resource = None
         self._datum_factory = None
 
-        self.bulk_data_spec = None
+        # TODO: be certain this handler is widely available
+        self.bulk_data_spec = "XSP3_FLY"
         self.bulk_data_resource_kwargs = {}
         self._bulk_data_resource = None
         self._bulk_data_datum_factory = None
