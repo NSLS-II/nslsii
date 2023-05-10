@@ -29,3 +29,13 @@ def test__build_data_dir_path_relative_path_template():
     )
 
     assert the_full_data_dir_path == "/abc/def/ghi/jkl/mno/2020/01/01"
+
+
+def test_default_spec():
+    hdf5 = Xspress3HDF5Plugin(
+        name="hdf5",
+        root_path="",
+        path_template="",
+        resource_kwargs={}
+    )
+    assert hdf5.spec == "XSP3"
