@@ -339,7 +339,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
             raise ValueError(f"'key' must be None but key='{key}'")
 
         # generate datum document for "bulk" image data (the whole array)
-        if self.parent.get_external_image_ref() and self.parent.get_external_image_ref().kind & Kind.normal:
+        if self.parent.get_external_file_ref() and self.parent.get_external_file_ref().kind & Kind.normal:
             bulk_data_datum = self._bulk_data_datum_factory(
                 datum_kwargs={}
             )
