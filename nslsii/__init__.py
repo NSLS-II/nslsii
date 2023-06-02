@@ -32,6 +32,7 @@ def configure_base(
     *,
     bec=True,
     bec_derivative=False,
+    call_returns_result=False,
     epics_context=False,
     magics=True,
     mpl=True,
@@ -78,6 +79,9 @@ def configure_base(
     bec_derivative : boolean, optional
         False by default. Set True to enable derivative and its stats
         calculation in BestEffortCallback.
+    call_returns_result: boolean, optional
+        False by default. Set True to have RunEngine return a RunEngineResult
+        object that contains the plan result, error status, and uuid list.
     epics_context : boolean, optional
         True by default. Set False to skip ``setup_ophyd()``.
     magics : boolean, optional
@@ -139,7 +143,7 @@ def configure_base(
     if "RE" in user_ns:
         RE = user_ns["RE"]
     else:
-        RE = RunEngine(md)
+        RE = RunEngine(md, call_returns_result=call_returns_result)
         ns["RE"] = RE
 
     # Set up SupplementalData.
