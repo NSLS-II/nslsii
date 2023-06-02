@@ -44,6 +44,7 @@ class VideoStreamDet(Device):
         root_dir="/tmp/video-stream-data",
         assets_dir=None,
         video_stream_url=None,
+        frame_shape=(1080, 1920),
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -56,7 +57,7 @@ class VideoStreamDet(Device):
         self._resource_document = None
         self._datum_factory = None
 
-        self._frame_shape = (480, 704)
+        self._frame_shape = frame_shape
 
     def stage(self):
         super().stage()
