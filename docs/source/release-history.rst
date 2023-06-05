@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.9.1 (2023-06-02)
+====================
+* add optional call_returns_result parameter to be propagated to the RunEngine
+
 v0.9.0 (2023-01-20)
 ===================
 * fix incorrect usage of ``prefix=`` keyword argument in tests 
