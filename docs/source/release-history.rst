@@ -2,9 +2,10 @@
 Release History
 ***************
 
-v0.9.1 (2023-06-02)
+v0.9.1 (2023-06-05)
 ====================
 * add optional call_returns_result parameter to be propagated to the RunEngine
+* add an ophyd class for a webcam streaming to a URL (Axis cameras)
 
 v0.9.0 (2023-01-20)
 ===================
