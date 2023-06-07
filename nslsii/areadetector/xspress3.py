@@ -165,7 +165,8 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         *args,
         root_path,
         path_template,
-        resource_kwargs,
+        resource_kwargs=None,
+        spec=Xspress3HDF5Handler.HANDLER_NAME,
         **kwargs,
     ):
         """
@@ -182,6 +183,9 @@ class Xspress3HDF5Plugin(HDF5Plugin):
             for example /nsls2/data/tst/xspress3/2020/01/01
         resource_kwargs:
             placed in resource documents
+        spec:
+            data handler name for resource documents,
+            Xspress3HDF5Handler.HANDLER_NAME by default
         kwargs:
             passed to the parent class
         """
@@ -189,10 +193,19 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         self._resource = None
         self._datum_factory = None
 
+        # TODO: be certain this handler is widely available
+        self.bulk_data_spec = "XSP3_FLY"
+        self.bulk_data_resource_kwargs = {}
+        self._bulk_data_resource = None
+        self._bulk_data_datum_factory = None
+
         self._asset_docs_cache = None
 
         self.root_path.put(root_path)
         self.path_template.put(path_template)
+        self.spec = spec
+        if resource_kwargs is None:
+            resource_kwargs = {}
         self.resource_kwargs = resource_kwargs
 
         self.stage_sigs[self.create_directory] = -3
@@ -280,11 +293,27 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         #   resource_path is c/d_0.h5
         resource_path = full_file_path.relative_to(self.root_path.get())
 
+        self._asset_docs_cache = deque()
+
+        self._bulk_data_resource, self._bulk_data_datum_factory, _ = compose_resource(
+            # a UID is _required_ here, so we provide a fake and then remove it from
+            #   the resource document; later a RunEngine will provide a real id
+            start={"uid": "to be replaced"},
+            spec=self.bulk_data_spec,
+            root=self.root_path.get(),
+            resource_path=str(resource_path),
+            resource_kwargs=self.bulk_data_resource_kwargs,
+        )
+        # remove the fake id specified above from the resource document; later
+        #   a RunEngine will provide a real one
+        self._bulk_data_resource.pop("run_start")
+        self._asset_docs_cache.append(("resource", self._bulk_data_resource))
+
         self._resource, self._datum_factory, _ = compose_resource(
             # a UID is _required_ here, so we provide a fake and then remove it from
             #   the resource document; later a RunEngine will provide a real id
             start={"uid": "to be replaced"},
-            spec=Xspress3HDF5Handler.HANDLER_NAME,
+            spec=self.spec,
             root=self.root_path.get(),
             resource_path=str(resource_path),
             resource_kwargs=self.resource_kwargs,
@@ -292,8 +321,6 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         # remove the fake id specified above from the resource document; later
         #   a RunEngine will provide a real one
         self._resource.pop("run_start")
-
-        self._asset_docs_cache = deque()
         self._asset_docs_cache.append(("resource", self._resource))
 
         # this should be the last thing we do here
@@ -310,6 +337,14 @@ class Xspress3HDF5Plugin(HDF5Plugin):
     def generate_datum(self, key, timestamp, datum_kwargs):
         if key is not None:
             raise ValueError(f"'key' must be None but key='{key}'")
+
+        # generate datum document for "bulk" image data (the whole array)
+        if self.parent.get_external_file_ref() and self.parent.get_external_file_ref().kind & Kind.normal:
+            bulk_data_datum = self._bulk_data_datum_factory(
+                datum_kwargs={}
+            )
+            self._asset_docs_cache.append(("datum", bulk_data_datum))
+            self.parent.get_external_file_ref().put(bulk_data_datum["datum_id"])
 
         # generate datum documents for all channels of Kind.normal
         for channel in self.parent.iterate_channels():
@@ -887,8 +922,15 @@ def build_channel_class(
             mcaroi.clear()
 
     def get_external_file_ref(self):
-        """Return the Xspress3ExternalFileReference."""
-        return getattr(self, image_data_key)
+        """Return the Xspress3ExternalFileReference.
+        
+           image_data_key is an optional attribute
+           if it is not present return None
+        """
+        if image_data_key:
+            return getattr(self, image_data_key)
+        else:
+            return None
 
     channel_fields_and_methods = {
         "__init__": __init__,
@@ -1098,6 +1140,17 @@ def build_xspress3_class(
             if channel_attr_name_re.match(channel_attr_name):
                 yield getattr(self, channel_attr_name)
 
+    def get_external_file_ref(self):
+        """Return the Xspress3ExternalFileReference.
+        
+           image_data_key is an optional attribute
+           if it is not present return None
+        """
+        if image_data_key:
+            return getattr(self, image_data_key)
+        else:
+            return None
+
     xspress3_fields_and_methods = dict(
         **{
             "channel_numbers": tuple(sorted(channel_numbers)),
@@ -1122,9 +1175,16 @@ def build_xspress3_class(
             "get_channel_count": get_channel_count,
             "get_channel": get_channel,
             "iterate_channels": iterate_channels,
+            "get_external_file_ref": get_external_file_ref,
         },
         **extra_class_members,
     )
+
+    # Xspress3ExternalFileReference is optional
+    if image_data_key:
+        xspress3_fields_and_methods[image_data_key] = Cpt(
+            Xspress3ExternalFileReference, kind=Kind.normal
+        )
 
     xspress3_fields_and_methods.update(
         {
