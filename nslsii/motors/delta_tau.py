@@ -23,8 +23,8 @@ class PMACStatus(EpicsSignalRO):
 class PMACKillSwitch(Device):
     """
     A device to kill the PMAC-PC controller.
-    In the named version of the EPICS record, the status is expected at Sts:4-Sts.
-    Whereas in the axis numbered version, the status is expected at Sts:1-Sts.
+    In the named version of the EPICS record (e.g., XF:23ID1-ES{Dif-Ax:Del}), the status is expected at Sts:4-Sts.
+    Whereas in the axis numbered version (e.g., XF:23ID1-CT{MC:12-Ax:1}), the status is expected at Sts:1-Sts.
     """
 
     kill = Cpt(EpicsSignal, "Cmd:Kill-Cmd.PROC", kind=Kind.omitted)
