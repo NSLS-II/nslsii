@@ -6,7 +6,6 @@ import logging
 
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO, Kind
-from ophyd.utils.epics_pvs import raise_if_disconnected
 
 
 class PMACStatus(EpicsSignalRO):
@@ -14,10 +13,8 @@ class PMACStatus(EpicsSignalRO):
     A signal to read the status of the PMAC-PC controller by checking the bit 11 of the status register.
     """
 
-    @raise_if_disconnected
-    def read(self):
-        value = self.get() >> 11 & 1 == 0
-        return {self.name: {"value": value, "timestamp": self.timestamp}}
+    def get(self):
+        return int(super().get() >> 11 & 1 == 0)
 
 
 class PMACKillSwitch(Device):
@@ -40,3 +37,9 @@ class PMACKillSwitch(Device):
             )
             value = 1
         self.kill.set(value, *args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        """
+        Get the value of the kill switch
+        """
+        return self.status.get(*args, **kwargs)
