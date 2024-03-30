@@ -41,6 +41,7 @@ def configure_base(
     ipython_logging=True,
     publish_documents_with_kafka=False,
     tb_minimize=True,
+    user_defined_loop=None,
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -143,7 +144,10 @@ def configure_base(
     if "RE" in user_ns:
         RE = user_ns["RE"]
     else:
-        RE = RunEngine(md, call_returns_result=call_returns_result)
+        re_kwargs = {"call_returns_result": call_returns_result}
+        if user_defined_loop is not None:
+            re_kwargs.update({"loop": user_defined_loop})
+        RE = RunEngine(md, **re_kwargs)
         ns["RE"] = RE
 
     # Set up SupplementalData.
