@@ -141,7 +141,7 @@ class Xspress3ExternalFileReference(Signal):
         self.dtype_str = dtype_str
         self.shape = (bin_count,)
         if isinstance(dim_name, str):
-            self.dims = (dim_name,) # Keeping this option for backwards compatibility with some beamlines
+            self.dims = (dim_name,)  # Keeping this option for backward compatibility with some beamlines
         elif isinstance(dim_name, list):
             self.dims = (*dim_name,)
         else:
