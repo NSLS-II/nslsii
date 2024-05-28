@@ -27,4 +27,10 @@ setuptools.setup(
     description='Tools for data collection and analysis at NSLS-II',
     author='Brookhaven National Laboratory',
     install_requires=requirements,
+    entry_points={
+        "console_scripts": [
+            # 'command = some.module:some_function',
+            "sync-redis = nslsii.sync_redis:main",
+        ],
+    },
 )
