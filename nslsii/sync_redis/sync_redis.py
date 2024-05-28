@@ -134,6 +134,3 @@ def main():
 
     args = parser.parse_args()
     switch_experiment(proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose)
-
-
-# e.g. start_experiment(proposal_number=314062, beamline="chx")
