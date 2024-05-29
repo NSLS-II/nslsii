@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.10.0 (2024-05-29)
+====================
+* add a utility to start/switch beamline experiment
+
 v0.9.1 (2023-06-08)
 ====================
 * add optional call_returns_result parameter to be propagated to the RunEngine
