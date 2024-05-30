@@ -2,6 +2,10 @@
 Release History
 ***************
 
+v0.10.1 (2024-05-30)
+====================
+* rename sync-redis to sync-experiment
+
 v0.10.0 (2024-05-29)
 ====================
 * add a utility to start/switch beamline experiment
