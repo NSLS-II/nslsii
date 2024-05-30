@@ -30,7 +30,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": [
             # 'command = some.module:some_function',
-            "sync-redis = nslsii.sync_redis:main",
+            "sync-experiment = nslsii.sync_experiment:main",
         ],
     },
 )
