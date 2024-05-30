@@ -89,7 +89,7 @@ def should_they_be_here(username, new_data_session, beamline):
 class AuthorizationError(Exception): ...
 
 
-def switch_experiment(proposal_number, beamline, verbose=False, prefix=""):
+def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
 
     redis_client = redis.Redis(host=f"info.{beamline.lower()}.nsls2.bnl.gov")
 
@@ -125,7 +125,7 @@ def switch_experiment(proposal_number, beamline, verbose=False, prefix=""):
 
 
 def main():
-    # Used by the `sync-redis` command
+    # Used by the `sync-experiment` command
 
     parser = argparse.ArgumentParser(description="Start or switch beamline experiment and record it in Redis")
     parser.add_argument("-b", "--beamline", dest="beamline", type=str, help="Which beamline (e.g. CHX)", required=True)
