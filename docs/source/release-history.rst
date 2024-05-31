@@ -2,6 +2,13 @@
 Release History
 ***************
 
+v0.10.2 (2024-05-31)
+====================
+
+* Add a CLI tool to get IOC hostname for a given PV
+* Add more proposal info to sync-experiment tool
+* Support running nslsii.start_experiment as CLI
+
 v0.10.1 (2024-05-30)
 ====================
 * rename sync-redis to sync-experiment
