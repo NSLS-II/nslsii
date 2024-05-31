@@ -112,10 +112,16 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
         if not should_they_be_here(username, new_data_session, beamline):
             raise AuthorizationError(f"User '{username}' is not allowed to take data on proposal {new_data_session}")
 
+        pi_name = ""
+        for user in users:
+            if user.get("is_pi"):
+                pi_name = f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
+
         md["data_session"] = new_data_session
         md["username"] = username
         md["start_datetime"] = datetime.now().isoformat()
         md["cycle"] = get_current_cycle()
+        md["proposal"] = {"proposal_id": proposal_data.get("proposal_id"), "title": proposal_data.get("title"), "pi_name": pi_name}
 
         print(f"Started experiment {new_data_session}.")
         if verbose:
@@ -133,4 +139,4 @@ def main():
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
-    switch_experiment(proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose)
+    sync_experiment(proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose)
