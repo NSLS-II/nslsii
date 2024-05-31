@@ -121,7 +121,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
         md["username"] = username
         md["start_datetime"] = datetime.now().isoformat()
         md["cycle"] = get_current_cycle()
-        md["proposal"] = {"id": proposal_data.get("proposal_id"), "title": proposal_data.get("title"), "pi_name": pi_name}
+        md["proposal"] = {"proposal_id": proposal_data.get("proposal_id"), "title": proposal_data.get("title"), "pi_name": pi_name}
 
         print(f"Started experiment {new_data_session}.")
         if verbose:
