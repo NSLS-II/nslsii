@@ -115,7 +115,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
         pi_name = ""
         for user in users:
             if user.get("is_pi"):
-                pi_name = f'{user.get("first_name", "")} {user.get("last_name", "")}'
+                pi_name = f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
 
         md["data_session"] = new_data_session
         md["username"] = username
