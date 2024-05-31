@@ -139,4 +139,4 @@ def main():
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
-    switch_experiment(proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose)
+    sync_experiment(proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose)
