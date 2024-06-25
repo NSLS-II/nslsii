@@ -18,7 +18,9 @@ nslsii_api_client = httpx.Client(base_url="https://api.nsls2.bnl.gov")
 
 
 def get_current_cycle() -> str:
-    cycle_response = nslsii_api_client.get(f"/v1/facility/nsls2/cycles/current").raise_for_status()
+    cycle_response = nslsii_api_client.get(
+        f"/v1/facility/nsls2/cycles/current"
+    ).raise_for_status()
     return cycle_response.json()["cycle"]
 
 
@@ -27,20 +29,29 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
     data_session_match = data_session_re.match(data_session_value)
 
     if data_session_match is None:
-        raise ValueError(f"RE.md['data_session']='{data_session_value}' " f"is not matched by regular expression '{data_session_re.pattern}'")
+        raise ValueError(
+            f"RE.md['data_session']='{data_session_value}' "
+            f"is not matched by regular expression '{data_session_re.pattern}'"
+        )
 
     try:
         current_cycle = get_current_cycle()
         proposal_number = data_session_match.group("proposal_number")
-        proposal_response = nslsii_api_client.get(f"/v1/proposal/{proposal_number}").raise_for_status()
+        proposal_response = nslsii_api_client.get(
+            f"/v1/proposal/{proposal_number}"
+        ).raise_for_status()
         proposal_data = proposal_response.json()["proposal"]
         if "error_message" in proposal_data:
             raise ValueError(
-                f"while verifying data_session '{data_session_value}' " f"an error was returned by {proposal_response.url}: " f"{proposal_data}"
+                f"while verifying data_session '{data_session_value}' "
+                f"an error was returned by {proposal_response.url}: "
+                f"{proposal_data}"
             )
         else:
             if current_cycle not in proposal_data["cycles"]:
-                raise ValueError(f"Proposal {data_session_value} is not valid in the current NSLS2 cycle ({current_cycle}).")
+                raise ValueError(
+                    f"Proposal {data_session_value} is not valid in the current NSLS2 cycle ({current_cycle})."
+                )
             if beamline.upper() not in proposal_data["instruments"]:
                 raise ValueError(
                     f"Wrong beamline ({beamline.upper()}) for proposal {data_session_value} ({', '.join(proposal_data['instruments'])})."
@@ -50,7 +61,11 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
     except httpx.RequestError as rerr:
         # give the user a warning but allow the run to start
         proposal_data = {}
-        warnings.warn(f"while verifying data_session '{data_session_value}' " f"the request {rerr.request.url!r} failed with " f"'{rerr}'")
+        warnings.warn(
+            f"while verifying data_session '{data_session_value}' "
+            f"the request {rerr.request.url!r} failed with "
+            f"'{rerr}'"
+        )
 
     finally:
         return proposal_data
@@ -62,7 +77,12 @@ def authenticate(username):
 
     try:
         connection = Connection(
-            auth_server, user=f"BNL\\{username}", password=getpass("Password : "), authentication=NTLM, auto_bind=True, raise_exceptions=True
+            auth_server,
+            user=f"BNL\\{username}",
+            password=getpass("Password : "),
+            authentication=NTLM,
+            auto_bind=True,
+            raise_exceptions=True,
         )
         print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}")
 
@@ -98,9 +118,13 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     new_data_session = f"pass-{proposal_number}"
     username = input("Username : ")
 
-    if (new_data_session == md.get("data_session")) and (username == md.get("username")):
+    if (new_data_session == md.get("data_session")) and (
+        username == md.get("username")
+    ):
 
-        warnings.warn(f"Experiment {new_data_session} was already started by the same user.")
+        warnings.warn(
+            f"Experiment {new_data_session} was already started by the same user."
+        )
 
     else:
 
@@ -110,18 +134,27 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
         authenticate(username)
 
         if not should_they_be_here(username, new_data_session, beamline):
-            raise AuthorizationError(f"User '{username}' is not allowed to take data on proposal {new_data_session}")
+            raise AuthorizationError(
+                f"User '{username}' is not allowed to take data on proposal {new_data_session}"
+            )
 
         pi_name = ""
         for user in users:
             if user.get("is_pi"):
-                pi_name = f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
+                pi_name = (
+                    f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
+                )
 
         md["data_session"] = new_data_session
         md["username"] = username
         md["start_datetime"] = datetime.now().isoformat()
         md["cycle"] = get_current_cycle()
-        md["proposal"] = {"proposal_id": proposal_data.get("proposal_id"), "title": proposal_data.get("title"), "pi_name": pi_name}
+        md["proposal"] = {
+            "proposal_id": proposal_data.get("proposal_id"),
+            "title": proposal_data.get("title"),
+            "type": proposal_data.get("type"),
+            "pi_name": pi_name,
+        }
 
         print(f"Started experiment {new_data_session}.")
         if verbose:
@@ -133,10 +166,28 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
 def main():
     # Used by the `sync-experiment` command
 
-    parser = argparse.ArgumentParser(description="Start or switch beamline experiment and record it in Redis")
-    parser.add_argument("-b", "--beamline", dest="beamline", type=str, help="Which beamline (e.g. CHX)", required=True)
-    parser.add_argument("-p", "--proposal", dest="proposal", type=int, help="Which proposal (e.g. 123456)", required=True)
+    parser = argparse.ArgumentParser(
+        description="Start or switch beamline experiment and record it in Redis"
+    )
+    parser.add_argument(
+        "-b",
+        "--beamline",
+        dest="beamline",
+        type=str,
+        help="Which beamline (e.g. CHX)",
+        required=True,
+    )
+    parser.add_argument(
+        "-p",
+        "--proposal",
+        dest="proposal",
+        type=int,
+        help="Which proposal (e.g. 123456)",
+        required=True,
+    )
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
-    sync_experiment(proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose)
+    sync_experiment(
+        proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose
+    )
