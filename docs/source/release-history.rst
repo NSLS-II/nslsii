@@ -2,6 +2,12 @@
 Release History
 ***************
 
+v0.10.3 (2024-06-28)
+====================
+
+* Add additional property 'type' to sync-experiment, requested by SRX.
+* Add pmac kill device signal to delta tau motor controls.
+
 v0.10.2 (2024-05-31)
 ====================
 
