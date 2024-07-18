@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 import logging
 from logging.handlers import SysLogHandler, TimedRotatingFileHandler
 import os
@@ -114,6 +113,7 @@ def configure_base(
 
     >>>> configure_base(get_ipython().user_ns, 'chx');
     """
+    from packaging.version import parse
 
     ipython = get_ipython()
 
@@ -126,7 +126,7 @@ def configure_base(
     # Set up a RunEngine and use metadata backed by files on disk.
     from bluesky import RunEngine, __version__ as bluesky_version
 
-    if LooseVersion(bluesky_version) >= LooseVersion("1.6.0"):
+    if parse(bluesky_version) >= parse("1.6.0"):
         # current approach using PersistentDict
         from bluesky.utils import PersistentDict
 
@@ -202,7 +202,7 @@ def configure_base(
         plt.ion()
 
         # Make plots update live while scans run.
-        if LooseVersion(bluesky_version) < LooseVersion("1.6.0"):
+        if parse(bluesky_version) < parse("1.6.0"):
             from bluesky.utils import install_kicker
 
             install_kicker()
