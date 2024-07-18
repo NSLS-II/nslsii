@@ -13,6 +13,7 @@ msgpack >=1.0.0
 msgpack-numpy
 numpy
 ophyd
+packaging
 psutil
 pycryptodome
 pyolog
