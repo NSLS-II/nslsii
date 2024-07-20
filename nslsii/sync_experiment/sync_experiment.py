@@ -26,6 +26,7 @@ def get_current_cycle() -> str:
 
 def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
 
+    proposal_data = {}
     data_session_match = data_session_re.match(data_session_value)
 
     if data_session_match is None:
@@ -60,7 +61,6 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
 
     except httpx.RequestError as rerr:
         # give the user a warning but allow the run to start
-        proposal_data = {}
         warnings.warn(
             f"while verifying data_session '{data_session_value}' "
             f"the request {rerr.request.url!r} failed with "
