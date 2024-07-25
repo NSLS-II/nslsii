@@ -19,3 +19,4 @@ pycryptodome
 pyolog
 redis
 redis-json-dict
+setuptools
