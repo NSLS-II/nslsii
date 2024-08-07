@@ -3,6 +3,7 @@ from ldap3.core.exceptions import LDAPInvalidCredentialsResult
 
 import json
 import re
+import os
 import redis
 import httpx
 import warnings
@@ -174,8 +175,7 @@ def main():
         "--beamline",
         dest="beamline",
         type=str,
-        help="Which beamline (e.g. CHX)",
-        required=True,
+        help="Which beamline (e.g. CHX)"
     )
     parser.add_argument(
         "-p",
@@ -188,6 +188,16 @@ def main():
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
 
     args = parser.parse_args()
+    
+    # Read from env:
+    if "BEAMLINE_ACRONYM" in os.environ:
+        beamline = os.environ["BEAMLINE_ACRONYM"]
+    # Override if in command line args:
+    if args.beamline:
+        beamline = args.beamline
+    # Make required:
+    if not beamline:
+        raise ValueError("Beamline needs to be specified. Either provide -b, --beamline or set BEAMLINE_ACRONYM in env vars.")
     sync_experiment(
-        proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose
+        proposal_number=args.proposal, beamline=beamline, verbose=args.verbose
     )
