@@ -189,12 +189,7 @@ def main():
 
     args = parser.parse_args()
     
-    # Read from env:
-    if "BEAMLINE_ACRONYM" in os.environ:
-        beamline = os.environ["BEAMLINE_ACRONYM"]
-    # Override if in command line args:
-    if args.beamline:
-        beamline = args.beamline
+    beamline = args.beamline or os.getenv("BEAMLINE_ACRONYM")
     # Make required:
     if not beamline:
         raise ValueError("Beamline needs to be specified. Either provide -b, --beamline or set BEAMLINE_ACRONYM in env vars.")
