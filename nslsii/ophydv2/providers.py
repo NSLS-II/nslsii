@@ -41,7 +41,7 @@ class ProposalNumScanNumPathProvider(AutoIncrementingPathProvider):
     ):
         self._metadata_dict = metadata_dict
         self._beamline_proposals_dir = (
-            f"/nsls2/data/{os.environ['BEAMLINE_ACRONYM'].lower()}/proposals/"
+            Path(f"/nsls2/data/{os.environ['BEAMLINE_ACRONYM'].lower()}/proposals/")
         )
         super().__init__(
             filename_provider,
@@ -58,7 +58,7 @@ class ProposalNumScanNumPathProvider(AutoIncrementingPathProvider):
             / self._metadata_dict["data_session"]
             / "assets"
         )
-        return super.__call__(device_name=device_name)
+        return super().__call__(device_name=device_name)
 
 
 class ShortUUIDFilenameProvider(FilenameProvider):
