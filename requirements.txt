@@ -20,3 +20,5 @@ pyolog
 redis
 redis-json-dict
 setuptools
+ophyd-async
+shortuuid
