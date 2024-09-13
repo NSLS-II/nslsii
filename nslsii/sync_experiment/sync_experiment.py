@@ -183,7 +183,6 @@ def main():
         required=True,
     )
     parser.add_argument(
-        "-e",
         "--prefix",
         dest="prefix",
         type=str,
