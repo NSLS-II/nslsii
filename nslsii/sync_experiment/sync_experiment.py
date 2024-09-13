@@ -118,7 +118,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
     redis_client = redis.Redis(host=f"info.{redis_beamline.lower()}.nsls2.bnl.gov")
 
-    md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
+    md = RedisJSONDict(redis_client=redis_client, prefix=f"{prefix}-")
 
     new_data_session = f"pass-{proposal_number}"
     username = input("Username : ")
