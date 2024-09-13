@@ -183,7 +183,8 @@ def main():
         required=True,
     )
     parser.add_argument(
-        "--prefix",
+        "-e",
+        "--endstation",
         dest="prefix",
         type=str,
         help="Prefix for redis keys (e.g. by endstation)",
