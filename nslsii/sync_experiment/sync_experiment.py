@@ -111,9 +111,15 @@ class AuthorizationError(Exception): ...
 
 def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
 
-    redis_client = redis.Redis(host=f"info.{beamline.lower()}.nsls2.bnl.gov")
+    normalized_beamlines = {
+        "sst1": "sst",
+        "sst2": "sst",
+    }
+    redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
+    redis_client = redis.Redis(host=f"info.{redis_beamline.lower()}.nsls2.bnl.gov")
 
-    md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
+    redis_prefix = f"{prefix}-" if prefix else ""
+    md = RedisJSONDict(redis_client=redis_client, prefix=redis_prefix)
 
     new_data_session = f"pass-{proposal_number}"
     username = input("Username : ")
@@ -178,6 +184,14 @@ def main():
         required=True,
     )
     parser.add_argument(
+        "-e",
+        "--endstation",
+        dest="prefix",
+        type=str,
+        help="Prefix for redis keys (e.g. by endstation)",
+        required=False,
+    )
+    parser.add_argument(
         "-p",
         "--proposal",
         dest="proposal",
@@ -189,5 +203,8 @@ def main():
 
     args = parser.parse_args()
     sync_experiment(
-        proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose
+        proposal_number=args.proposal,
+        beamline=args.beamline,
+        verbose=args.verbose,
+        prefix=args.prefix,
     )
