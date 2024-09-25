@@ -26,21 +26,6 @@ from .utils import now, save_hdf5_nd, save_image
 from PIL import Image
 
 
-class ExternalFileReference(Signal):
-    """
-    A pure software Signal that describe()s an image in an external file.
-    """
-
-    def describe(self):
-        resource_document_data = super().describe()
-        resource_document_data[self.name].update(
-            dict(
-                external="FILESTORE:",
-                dtype="array",
-            )
-        )
-        return resource_document_data
-
 class AcqStatuses(Enum):
     """Enum class for acquisition statuses."""
 
@@ -184,8 +169,9 @@ class CaprotoSaveIOC(PVGroup):
             full_file_name = file_name
 
         try:
-            base_filename = full_file_name.split('.')[0]
-            extension = f".{full_file_name.split('.')[1]}"
+            filename_and_ext = os.path.splitext(full_file_name)
+            base_filename = filename_and_ext[0]
+            extension = filename_and_ext[1]
         except IndexError:
             # Case that we didn't get an extension
             base_filename = full_file_name
@@ -366,10 +352,10 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
         """Helper function to process caproto CLI args."""
         parsed_args = parser.parse_args()
         prefix = parsed_args.prefix
-        url = parsed_args.prefix
+        camera_host = parsed_args.camera_host
         if not prefix:
             parser.error("The 'prefix' argument must be specified.")
-        if not url:
+        if not camera_host:
             parser.error("The 'camera_host' argument must be specified.")
 
         ioc_opts, run_opts = split_args(parsed_args)
@@ -383,8 +369,8 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
         resp = requests.get(url, timeout=10)
         img = Image.open(BytesIO(resp.content))
 
-        dataset = img
-        print(f"{now()}:\n{dataset.size}")
+        dataset = np.asarray(img).sum(axis=-1)
+        print(f"{now()}: {dataset.shape}")
 
         return dataset
 
@@ -397,12 +383,13 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
             data = received["data"]
             # 'frame_number' is not used for this exporter.
             try:
-                save_image(fname=filename, data=data, file_format="jpeg", mode="x")
-                print(f"{now()}: saved data into:\n  {filename}")
+                save_hdf5_nd(fname=filename, data=data, dtype="|u1", mode="a")
+                #TODO: Change all of these prints to use the caproto logger instead
+                print(f"{now()}: saved data into: {filename}")
 
                 success = True
                 error_message = ""
-            except Exception as exc:  # pylint: disable=broad-exception-caught
+            except ZeroDivisionError as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
                 print(
@@ -412,12 +399,22 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
             response = {"success": success, "error_message": error_message}
             response_queue.put(response)
 
-    async def on_startup(self, async_lib):
-        for key in self.pvdb:
-            print(key)
 
-        await self.file_name.write("test.jpg")
-        await self._write_dir_callback(None, "/tmp")
+class ExternalFileReference(Signal):
+    """
+    A pure software Signal that describe()s an image in an external file.
+    """
+
+    def describe(self):
+        resource_document_data = super().describe()
+        resource_document_data[self.name].update(
+            dict(
+                external="FILESTORE:",
+                dtype="array",
+            )
+        )
+        return resource_document_data
+
 
 class CaprotoSaverDevice(Device):
     """An ophyd Device which works with the base caproto extension IOC."""
@@ -534,36 +531,7 @@ class CaprotoSaverDevice(Device):
     def unstage(self):
         self._resource_document = None
         self._datum_factory = None
-        self.ioc_stage.put(0)
         super().unstage()
-
-    def set(self, command):
-        """The set method with values for staging and acquiring."""
-
-        expected_old_value = None
-        expected_new_value = None
-        obj = None
-        cmd = None
-
-        # print(f"{now()}: {command = }")
-
-        if command in [AcqStatuses.ACQUIRING.value, "acquire"]:
-            expected_old_value = AcqStatuses.ACQUIRING.value
-            expected_new_value = AcqStatuses.IDLE.value
-            obj = self.acquire
-            cmd = AcqStatuses.ACQUIRING.value
-
-        def cb(value, old_value, **kwargs):
-            # pylint: disable=unused-argument
-            # print(f"{now()}: {old_value} -> {value}")
-            if value == expected_new_value and old_value == expected_old_value:
-                return True
-            return False
-
-        st = SubscriptionStatus(obj, callback=cb, run=False)
-        # print(f"{now()}: {cmd = }")
-        obj.put(cmd)
-        return st
 
 
 class TwoDimCaprotoCam(CaprotoSaverDevice):
