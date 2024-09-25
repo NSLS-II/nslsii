@@ -17,14 +17,29 @@ from caproto import ChannelType
 from caproto.ioc_examples.mini_beamline import no_reentry
 from caproto.server import PVGroup, pvproperty, run, template_arg_parser
 from ophyd import Component as Cpt
-from ophyd import Device, EpicsSignal, EpicsSignalRO, Kind
+from ophyd import Device, EpicsSignal, EpicsSignalRO, Kind, Signal
 from ophyd.status import SubscriptionStatus
 from event_model import compose_resource
-from nslsii.detectors.webcam import ExternalFileReference
 
 from .utils import now, save_hdf5_nd, save_image
 
 from PIL import Image
+
+
+class ExternalFileReference(Signal):
+    """
+    A pure software Signal that describe()s an image in an external file.
+    """
+
+    def describe(self):
+        resource_document_data = super().describe()
+        resource_document_data[self.name].update(
+            dict(
+                external="FILESTORE:",
+                dtype="array",
+            )
+        )
+        return resource_document_data
 
 class AcqStatuses(Enum):
     """Enum class for acquisition statuses."""
