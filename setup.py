@@ -31,6 +31,7 @@ setuptools.setup(
         "console_scripts": [
             "sync-experiment = nslsii.sync_experiment:main",
             "what-is-ioc = nslsii.epics_utils:main",
+            "axis-saver-ioc = nslsii.iocs.caproto_saver:start_axis_ioc"
         ],
     },
 )
