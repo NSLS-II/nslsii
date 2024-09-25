@@ -20,3 +20,6 @@ pyolog
 redis
 redis-json-dict
 setuptools
+scikit-image
+requests
+pillow
