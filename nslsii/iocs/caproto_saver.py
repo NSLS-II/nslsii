@@ -389,7 +389,7 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
 
                 success = True
                 error_message = ""
-            except ZeroDivisionError as exc:  # pylint: disable=broad-exception-caught
+            except Exception as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
                 print(
