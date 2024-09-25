@@ -11,8 +11,8 @@ import uuid
 from enum import Enum
 from pathlib import Path
 
+import numpy as np
 import requests
-import skimage.data
 from caproto import ChannelType
 from caproto.ioc_examples.mini_beamline import no_reentry
 from caproto.server import PVGroup, pvproperty, run, template_arg_parser
@@ -261,9 +261,8 @@ class CaprotoSaveIOC(PVGroup):
         See https://scikit-image.org/docs/stable/auto_examples/data/plot_3d.html
         for details about the dataset returned by the base class' method.
         """
-        dataset = skimage.data.cells3d().sum(axis=1)
-        # This particular example dataset has 60 frames available, so we will cycle the slices for frame>=60.
-        return dataset[frame % dataset.shape[0], ...]
+        return np.random.random((480, 640))
+
 
     @acquire.putter
     @no_reentry
