@@ -14,23 +14,10 @@ from ophyd import Component as Cpt
 from ophyd import Device, Signal
 from ophyd.sim import NullStatus, new_uid
 
+from nslsii.iocs.caproto_saver import ExternalFileReference
+
 logger = logging.getLogger("vstream")
 
-
-class ExternalFileReference(Signal):
-    """
-    A pure software Signal that describe()s an image in an external file.
-    """
-
-    def describe(self):
-        resource_document_data = super().describe()
-        resource_document_data[self.name].update(
-            dict(
-                external="FILESTORE:",
-                dtype="array",
-            )
-        )
-        return resource_document_data
 
 
 class VideoStreamDet(Device):

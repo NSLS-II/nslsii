@@ -20,3 +20,5 @@ pyolog
 redis
 redis-json-dict
 setuptools
+requests
+pillow
