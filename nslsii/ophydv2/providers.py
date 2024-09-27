@@ -9,15 +9,24 @@ from ophyd_async.core import (
 import os
 import shortuuid
 
+def get_beamline_proposals_dir():
+    beamline_tla = os.getenv(
+        'ENDSTATION_ACRONYM', 
+        os.getenv('BEAMLINE_ACRONYM', '')
+    ).lower()
+    beamline_proposals_dir = (
+        Path(f"/nsls2/data/{beamline_tla}/proposals/")
+    )
+
+    return beamline_proposals_dir
+
 
 class ProposalNumYMDPathProvider(YMDPathProvider):
     def __init__(
         self, filename_provider: FilenameProvider, metadata_dict: dict, **kwargs
     ):
         self._metadata_dict = metadata_dict
-        self._beamline_proposals_dir = (
-            Path(f"/nsls2/data/{os.environ['BEAMLINE_ACRONYM'].lower()}/proposals/")
-        )
+        self._beamline_proposals_dir = get_beamline_proposals_dir()
         super().__init__(
             filename_provider,
             self._beamline_proposals_dir,
@@ -40,9 +49,8 @@ class ProposalNumScanNumPathProvider(AutoIncrementingPathProvider):
         self, filename_provider: FilenameProvider, metadata_dict: dict, **kwargs
     ):
         self._metadata_dict = metadata_dict
-        self._beamline_proposals_dir = (
-            Path(f"/nsls2/data/{os.environ['BEAMLINE_ACRONYM'].lower()}/proposals/")
-        )
+        self._beamline_proposals_dir = get_beamline_proposals_dir()
+
         super().__init__(
             filename_provider,
             self._beamline_proposals_dir,
@@ -81,3 +89,25 @@ class DeviceNameFilenameProvider(FilenameProvider):
                 "Device name must be passed in when calling DeviceNameFilenameProvider!"
             )
         return device_name
+
+
+class NSLS2PathProvider(ProposalNumYMDPathProvider):
+    """
+    Default NSLS2 path provider
+    
+    Generates paths in the following format:
+
+    /nsls2/data/{TLA}/proposals/{CYCLE}/{PROPOSAL}/assets/{DETECTOR}/{Y}/{M}/{D}
+
+    Filenames will be {DETECTOR}_{SHORT_UID} followed by the appropriate
+    extension as determined by your detector writer.
+
+    Parameters
+    ----------
+    metadata_dict : dict
+        Typically `RE.md`. Used for dynamic save path generation from sync-d experiment
+    """
+
+    def __init__(self, *args, **kwargs):
+        default_filename_provider = ShortUUIDFilenameProvider()
+        super().__init__(default_filename_provider, *args, **kwargs)
