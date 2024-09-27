@@ -25,6 +25,7 @@ def get_current_cycle() -> str:
 
 
 def is_commissioning_proposal(proposal_number, beamline) -> bool:
+    """True if proposal_number is registered as a commissioning proposal; else False."""
     commissioning_proposals_response = nslsii_api_client.get(
         f"/v1/proposals/commissioning?beamline={beamline}"
     ).raise_for_status()
