@@ -24,15 +24,14 @@ def get_current_cycle() -> str:
     return cycle_response.json()["cycle"]
 
 
-def get_commissioning_status(proposal_number, beamline) -> bool:
+def is_commissioning_proposal(proposal_number, beamline) -> bool:
     commissioning_proposals_response = nslsii_api_client.get(
         f"/v1/proposals/commissioning?beamline={beamline}"
     ).raise_for_status()
     commissioning_proposals = commissioning_proposals_response.json()[
         "commissioning_proposals"
     ]
-    commissioning_status = proposal_number in commissioning_proposals
-    return commissioning_status
+    return proposal_number in commissioning_proposals
 
 
 def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
@@ -49,7 +48,7 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
     try:
         current_cycle = get_current_cycle()
         proposal_number = data_session_match.group("proposal_number")
-        is_commissioning_proposal = get_commissioning_status(proposal_number, beamline)
+        proposal_commissioning = is_commissioning_proposal(proposal_number, beamline)
         proposal_response = nslsii_api_client.get(
             f"/v1/proposal/{proposal_number}"
         ).raise_for_status()
@@ -62,7 +61,7 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
             )
         else:
             if (
-                not is_commissioning_proposal
+                not proposal_commissioning
                 and current_cycle not in proposal_data["cycles"]
             ):
                 raise ValueError(
@@ -171,7 +170,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
         md["start_datetime"] = datetime.now().isoformat()
         md["cycle"] = (
             "commissioning"
-            if get_commissioning_status(str(proposal_number), beamline)
+            if is_commissioning_proposal(str(proposal_number), beamline)
             else get_current_cycle()
         )
         md["proposal"] = {
