@@ -1,15 +1,28 @@
+from datetime import date
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 from ophyd_async.core import (
     FilenameProvider,
-    YMDPathProvider,
-    AutoIncrementingPathProvider,
+    PathProvider,
     PathInfo,
 )
 import os
 import shortuuid
 
+
+class YMDGranularity(int, Enum):
+    none = 0
+    year = 1
+    month = 2
+    day = 3
+
+
 def get_beamline_proposals_dir():
+    """
+    Function that computes path to the proposals directory based on TLA env vars
+    """
+
     beamline_tla = os.getenv(
         'ENDSTATION_ACRONYM', 
         os.getenv('BEAMLINE_ACRONYM', '')
@@ -21,55 +34,114 @@ def get_beamline_proposals_dir():
     return beamline_proposals_dir
 
 
-class ProposalNumYMDPathProvider(YMDPathProvider):
-    def __init__(
-        self, filename_provider: FilenameProvider, metadata_dict: dict, **kwargs
-    ):
-        self._metadata_dict = metadata_dict
-        self._beamline_proposals_dir = get_beamline_proposals_dir()
-        super().__init__(
-            filename_provider,
-            self._beamline_proposals_dir,
-            create_dir_depth=-4,
-            **kwargs,
+def generate_date_dir_path(
+        device_name: Optional[str] = None,
+        ymd_separator: str = os.path.sep,
+        granularity: YMDGranularity = YMDGranularity.day,
+):
+    """Helper function that generates ymd path structure"""
+
+    current_date_template = ''
+    if granularity == YMDGranularity.day:
+        current_date_template = f"%Y{ymd_separator}%m{ymd_separator}%d"
+    elif granularity == YMDGranularity.month:
+        current_date_template = f"%Y{ymd_separator}%m"
+    elif granularity == YMDGranularity.year:
+        current_date_template = f"%Y{ymd_separator}"
+
+    current_date = date.today().strftime(current_date_template)
+
+    if device_name is None:
+        ymd_dir_path = current_date
+    else:
+        ymd_dir_path = os.path.join(
+            device_name,
+            current_date,
         )
 
-    def __call__(self, device_name=None) -> PathInfo:
-        self._base_directory_path = (
+    return ymd_dir_path
+
+
+class ProposalNumYMDPathProvider(PathProvider):
+    def __init__(
+        self, filename_provider: FilenameProvider,
+        metadata_dict: dict, 
+        granularity: YMDGranularity = YMDGranularity.day,
+        separator = os.path.sep,
+        **kwargs
+    ):
+        self._filename_provider = filename_provider
+        self._metadata_dict = metadata_dict
+        self._granularity = granularity
+        self._ymd_separator = separator
+        self._beamline_proposals_dir = get_beamline_proposals_dir()
+        super().__init__(filename_provider, **kwargs)
+
+    def _create_ymd_device_dirpath(self, device_name: str = None) -> Path:
+        directory_path = (
             self._beamline_proposals_dir
             / self._metadata_dict["cycle"]
             / self._metadata_dict["data_session"]
             / "assets"
+            / generate_date_dir_path(
+                device_name=device_name,
+                ymd_separator = self._ymd_separator,
+                granularity=self._granularity
+              )
         )
-        return super().__call__(device_name=device_name)
+
+        return directory_path
+
+    def __call__(self, device_name: str = None) -> PathInfo:
+
+        directory_path = self._create_ymd_device_dirpath(device_name = device_name)
+
+        return PathInfo(
+            directory_path = directory_path,
+            filename = self._filename_provider(),
+            create_dir_depth = - self._granularity,
+        )
 
 
-class ProposalNumScanNumPathProvider(AutoIncrementingPathProvider):
+class ProposalNumScanNumPathProvider(ProposalNumYMDPathProvider):
     def __init__(
-        self, filename_provider: FilenameProvider, metadata_dict: dict, **kwargs
+        self, filename_provider: FilenameProvider,
+        metadata_dict: dict,
+        base_name: str = "scan",
+        granularity: YMDGranularity = YMDGranularity.none,
+        ymd_separator = os.path.sep,
+        **kwargs
     ):
-        self._metadata_dict = metadata_dict
-        self._beamline_proposals_dir = get_beamline_proposals_dir()
 
+        self._base_name = base_name
         super().__init__(
             filename_provider,
-            self._beamline_proposals_dir,
-            base_name="scan",
-            create_dir_depth=-1,
-            **kwargs,
+            metadata_dict,
+            granularity = granularity,
+            ymd_separator=ymd_separator,
+            **kwargs
         )
 
     def __call__(self, device_name: Optional[str] = None) -> PathInfo:
-        self._base_directory_path = (
-            self._beamline_proposals_dir
-            / self._metadata_dict["cycle"]
-            / self._metadata_dict["data_session"]
-            / "assets"
+        directory_path = self._create_ymd_device_dirpath(device_name = device_name)
+
+        final_dir_path = (
+            directory_path / 
+            f"{self._base_name}_{self._metadata_dict['scan_id']:06}"
         )
-        return super().__call__(device_name=device_name)
+
+        return PathInfo(
+            directory_path = final_dir_path,
+            filename = self._filename_provider(),
+            # 
+            create_dir_depth = - self._granularity - 1,
+        )
+
 
 
 class ShortUUIDFilenameProvider(FilenameProvider):
+    """Generates short uuid filenames with device name as prefix"""
+
     def __init__(self, separator="_", **kwargs):
         self._separator = separator
         super().__init__(**kwargs)
@@ -83,6 +155,8 @@ class ShortUUIDFilenameProvider(FilenameProvider):
 
 
 class DeviceNameFilenameProvider(FilenameProvider):
+    """Filename provider that uses device name as filename"""
+
     def __call__(self, device_name: Optional[str] = None) -> str:
         if device_name is None:
             raise RuntimeError(

@@ -1,3 +1,4 @@
+from datetime import datetime
 import pytest
 import os
 from ophyd_async.core import StaticFilenameProvider
@@ -7,6 +8,7 @@ from nslsii.ophydv2 import (
     ProposalNumScanNumPathProvider,
     ShortUUIDFilenameProvider,
     DeviceNameFilenameProvider,
+    YMDGranularity,
 )
 
 
@@ -20,41 +22,50 @@ def dummy_re_md_dict():
     md = {
         "data_session": "pass-000000",
         "cycle": "2024-3",
+        "scan_id": 0,
     }
     return md
 
 
 @pytest.mark.parametrize(
-    ("dev_name_base", "use_dev_name", "expected_devname_pos"),
+    ("ymd_granularity", "ymd_separator"),
     [
-        (True, True, -1),
-        (False, True, -4),
-        (False, False, None),
+        (YMDGranularity.none, "_"),
+        (YMDGranularity.year, os.path.sep),
+        (YMDGranularity.month, "_"),
+        (YMDGranularity.day, os.path.sep),
     ],
 )
 def test_proposal_num_ymd_path_provider(
-    dev_name_base, use_dev_name, expected_devname_pos, fp, dummy_re_md_dict
+    ymd_granularity, ymd_separator, dummy_re_md_dict, fp
 ):
     os.environ["BEAMLINE_ACRONYM"] = "tst"
 
     pp = ProposalNumYMDPathProvider(
-        fp, dummy_re_md_dict, device_name_as_base_dir=dev_name_base
+        fp, dummy_re_md_dict, granularity=ymd_granularity, separator=ymd_separator
     )
 
-    if use_dev_name:
-        info = pp(device_name="test")
-    else:
-        info = pp()
+    today = datetime.today()
 
-    assert str(info.directory_path).startswith(
-        "/nsls2/data/tst/proposals/2024-3/pass-000000/assets"
+    info = pp(device_name="test")
+    dirpath = str(info.directory_path)
+
+    assert dirpath.startswith(
+        "/nsls2/data/tst/proposals/2024-3/pass-000000/assets/test"
     )
-    assert info.create_dir_depth == -4
 
-    if use_dev_name:
-        str(info.directory_path).split("/")[expected_devname_pos] == "test"
-    else:
-        assert "test" not in str(info.directory_path)
+    if ymd_granularity == YMDGranularity.none:
+        assert info.create_dir_depth == 0
+        assert dirpath.endswith("test")
+    elif ymd_granularity == YMDGranularity.year:
+        assert info.create_dir_depth == -1
+        assert dirpath.endswith(str(today.year))
+    elif ymd_granularity == YMDGranularity.month:
+        assert info.create_dir_depth == -2
+        assert dirpath.endswith(str(f"{today.year}{ymd_separator}{today.month:02}"))
+    elif ymd_granularity == YMDGranularity.day:
+        assert info.create_dir_depth == -3
+        assert dirpath.endswith(str(f"{today.year}{ymd_separator}{today.month:02}{ymd_separator}{today.day:02}"))
 
 
 def test_proposal_num_scan_num_path_provider(fp, dummy_re_md_dict):
@@ -62,19 +73,22 @@ def test_proposal_num_scan_num_path_provider(fp, dummy_re_md_dict):
 
     pp = ProposalNumScanNumPathProvider(fp, dummy_re_md_dict)
 
-    info = pp()
+    info = pp(device_name = "test")
 
     assert (
         str(info.directory_path)
-        == "/nsls2/data/tst/proposals/2024-3/pass-000000/assets/scan_00000"
+        == "/nsls2/data/tst/proposals/2024-3/pass-000000/assets/test/scan_000000"
     )
     assert info.create_dir_depth == -1
+
+    # Simulate scan id incrementing.
+    pp._metadata_dict['scan_id'] += 1
 
     info_b = pp()
 
     assert (
         str(info_b.directory_path)
-        == "/nsls2/data/tst/proposals/2024-3/pass-000000/assets/scan_00001"
+        == "/nsls2/data/tst/proposals/2024-3/pass-000000/assets/scan_000001"
     )
     assert info_b.create_dir_depth == -1
 

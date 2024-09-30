@@ -3,6 +3,8 @@ from .providers import (
     ProposalNumYMDPathProvider,
     ShortUUIDFilenameProvider,
     DeviceNameFilenameProvider,
+    NSLS2PathProvider,
+    YMDGranularity,
 )
 
 __all__ = [
@@ -10,4 +12,6 @@ __all__ = [
     "ProposalNumYMDPathProvider",
     "ShortUUIDFilenameProvider",
     "DeviceNameFilenameProvider",
+    "NSLS2PathProvider",
+    "YMDGranularity"
 ]
