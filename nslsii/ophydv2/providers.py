@@ -200,5 +200,4 @@ class NSLS2PathProvider(ProposalNumYMDPathProvider):
     """
 
     def __init__(self, *args, **kwargs):
-        default_filename_provider = ShortUUIDFilenameProvider()
-        super().__init__(default_filename_provider, *args, **kwargs)
+        super().__init__(ShortUUIDFilenameProvider(), *args, **kwargs)
