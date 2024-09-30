@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 import pytest
 import os
 from ophyd_async.core import StaticFilenameProvider
@@ -10,6 +11,13 @@ from nslsii.ophydv2 import (
     DeviceNameFilenameProvider,
     YMDGranularity,
 )
+from nslsii.ophydv2.providers import AcqModeFilenameProvider
+
+
+class TomoFrameType(Enum):
+    proj = "proj"
+    flat = "flat"
+    dark = "dark"
 
 
 @pytest.fixture
@@ -108,3 +116,22 @@ def test_short_uuid_filename_provider():
     assert filename.startswith("test")
     assert "_" in filename
     assert len(filename.split("_")[-1]) == 22
+
+
+def test_acq_mode_filename_provider():
+    am_fp = AcqModeFilenameProvider(TomoFrameType.proj)
+
+    assert am_fp._mode_type == TomoFrameType
+    assert am_fp._mode == TomoFrameType.proj
+
+    assert am_fp().startswith("proj")
+
+    am_fp.switch_mode(TomoFrameType.dark)
+
+    assert am_fp().startswith("dark")
+
+    with pytest.raises(RuntimeError):
+        am_fp.switch_mode(20)
+
+    with pytest.raises(TypeError):
+        am_fp = AcqModeFilenameProvider(0)

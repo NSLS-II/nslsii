@@ -34,6 +34,12 @@ class ProposalNumYMDPathProvider(PathProvider):
         self._beamline_proposals_dir = self.get_beamline_proposals_dir()
         super().__init__(filename_provider, **kwargs)
 
+
+    @property
+    def filename_provider(self):
+        return self._filename_provider
+
+
     def get_beamline_proposals_dir(self):
         """
         Function that computes path to the proposals directory based on TLA env vars
@@ -142,6 +148,27 @@ class ShortUUIDFilenameProvider(FilenameProvider):
             return f"{device_name}{self._separator}{sid}"
         else:
             return sid
+
+
+class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
+
+    def __init__(self, initial_mode, **kwargs):
+        if not isinstance(initial_mode, Enum) or not isinstance(initial_mode.value, str):
+            raise TypeError("Initial acquisition mode type must be a string enum!")
+
+        self._mode = initial_mode
+        self._mode_type = type(initial_mode)
+        super().__init__(**kwargs)
+
+    def switch_mode(self, new_mode):
+
+        if not isinstance(new_mode, self._mode_type):
+            raise RuntimeError(f"{new_mode} is not a valid option for {self._mode_type}!")
+        else:
+            self._mode = new_mode
+
+    def __call__(self, **kwargs):
+        return super().__call__(device_name=self._mode.value)
 
 
 class DeviceNameFilenameProvider(FilenameProvider):
