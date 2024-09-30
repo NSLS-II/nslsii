@@ -18,49 +18,6 @@ class YMDGranularity(int, Enum):
     day = 3
 
 
-def get_beamline_proposals_dir():
-    """
-    Function that computes path to the proposals directory based on TLA env vars
-    """
-
-    beamline_tla = os.getenv(
-        'ENDSTATION_ACRONYM', 
-        os.getenv('BEAMLINE_ACRONYM', '')
-    ).lower()
-    beamline_proposals_dir = (
-        Path(f"/nsls2/data/{beamline_tla}/proposals/")
-    )
-
-    return beamline_proposals_dir
-
-
-def generate_date_dir_path(
-        device_name: Optional[str] = None,
-        ymd_separator: str = os.path.sep,
-        granularity: YMDGranularity = YMDGranularity.day,
-):
-    """Helper function that generates ymd path structure"""
-
-    current_date_template = ''
-    if granularity == YMDGranularity.day:
-        current_date_template = f"%Y{ymd_separator}%m{ymd_separator}%d"
-    elif granularity == YMDGranularity.month:
-        current_date_template = f"%Y{ymd_separator}%m"
-    elif granularity == YMDGranularity.year:
-        current_date_template = f"%Y{ymd_separator}"
-
-    current_date = date.today().strftime(current_date_template)
-
-    if device_name is None:
-        ymd_dir_path = current_date
-    else:
-        ymd_dir_path = os.path.join(
-            device_name,
-            current_date,
-        )
-
-    return ymd_dir_path
-
 
 class ProposalNumYMDPathProvider(PathProvider):
     def __init__(
@@ -74,27 +31,60 @@ class ProposalNumYMDPathProvider(PathProvider):
         self._metadata_dict = metadata_dict
         self._granularity = granularity
         self._ymd_separator = separator
-        self._beamline_proposals_dir = get_beamline_proposals_dir()
+        self._beamline_proposals_dir = self.get_beamline_proposals_dir()
         super().__init__(filename_provider, **kwargs)
 
-    def _create_ymd_device_dirpath(self, device_name: str = None) -> Path:
+    def get_beamline_proposals_dir(self):
+        """
+        Function that computes path to the proposals directory based on TLA env vars
+        """
+
+        beamline_tla = os.getenv(
+            'ENDSTATION_ACRONYM', 
+            os.getenv('BEAMLINE_ACRONYM', '')
+        ).lower()
+        beamline_proposals_dir = (
+            Path(f"/nsls2/data/{beamline_tla}/proposals/")
+        )
+
+        return beamline_proposals_dir
+
+
+    def generate_directory_path(self, device_name: Optional[str] = None):
+        """Helper function that generates ymd path structure"""
+
+        current_date_template = ''
+        if self._granularity == YMDGranularity.day:
+            current_date_template = f"%Y{self._ymd_separator}%m{self._ymd_separator}%d"
+        elif self._granularity == YMDGranularity.month:
+            current_date_template = f"%Y{self._ymd_separator}%m"
+        elif self._granularity == YMDGranularity.year:
+            current_date_template = f"%Y{self._ymd_separator}"
+
+        current_date = date.today().strftime(current_date_template)
+
+        if device_name is None:
+            ymd_dir_path = current_date
+        else:
+            ymd_dir_path = os.path.join(
+                device_name,
+                current_date,
+            )
+
         directory_path = (
             self._beamline_proposals_dir
             / self._metadata_dict["cycle"]
             / self._metadata_dict["data_session"]
             / "assets"
-            / generate_date_dir_path(
-                device_name=device_name,
-                ymd_separator = self._ymd_separator,
-                granularity=self._granularity
-              )
+            / ymd_dir_path
         )
 
         return directory_path
 
+
     def __call__(self, device_name: str = None) -> PathInfo:
 
-        directory_path = self._create_ymd_device_dirpath(device_name = device_name)
+        directory_path = self.generate_directory_path(device_name = device_name)
 
         return PathInfo(
             directory_path = directory_path,
@@ -123,7 +113,7 @@ class ProposalNumScanNumPathProvider(ProposalNumYMDPathProvider):
         )
 
     def __call__(self, device_name: Optional[str] = None) -> PathInfo:
-        directory_path = self._create_ymd_device_dirpath(device_name = device_name)
+        directory_path = self.generate_directory_path(device_name = device_name)
 
         final_dir_path = (
             directory_path / 
@@ -133,7 +123,7 @@ class ProposalNumScanNumPathProvider(ProposalNumYMDPathProvider):
         return PathInfo(
             directory_path = final_dir_path,
             filename = self._filename_provider(),
-            # 
+            # Add one to dir depth creation level to account for scan dir
             create_dir_depth = - self._granularity - 1,
         )
 
