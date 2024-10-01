@@ -4,14 +4,14 @@ import pytest
 import os
 from ophyd_async.core import StaticFilenameProvider
 
-from nslsii.ophydv2 import (
+from nslsii.ophyd_async import (
     ProposalNumYMDPathProvider,
     ProposalNumScanNumPathProvider,
     ShortUUIDFilenameProvider,
     DeviceNameFilenameProvider,
     YMDGranularity,
 )
-from nslsii.ophydv2.providers import AcqModeFilenameProvider
+from nslsii.ophyd_async.providers import AcqModeFilenameProvider
 
 
 class TomoFrameType(Enum):
