@@ -24,6 +24,17 @@ def get_current_cycle() -> str:
     return cycle_response.json()["cycle"]
 
 
+def is_commissioning_proposal(proposal_number, beamline) -> bool:
+    """True if proposal_number is registered as a commissioning proposal; else False."""
+    commissioning_proposals_response = nslsii_api_client.get(
+        f"/v1/proposals/commissioning?beamline={beamline}"
+    ).raise_for_status()
+    commissioning_proposals = commissioning_proposals_response.json()[
+        "commissioning_proposals"
+    ]
+    return proposal_number in commissioning_proposals
+
+
 def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
 
     proposal_data = {}
@@ -38,6 +49,7 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
     try:
         current_cycle = get_current_cycle()
         proposal_number = data_session_match.group("proposal_number")
+        proposal_commissioning = is_commissioning_proposal(proposal_number, beamline)
         proposal_response = nslsii_api_client.get(
             f"/v1/proposal/{proposal_number}"
         ).raise_for_status()
@@ -49,7 +61,10 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
                 f"{proposal_data}"
             )
         else:
-            if current_cycle not in proposal_data["cycles"]:
+            if (
+                not proposal_commissioning
+                and current_cycle not in proposal_data["cycles"]
+            ):
                 raise ValueError(
                     f"Proposal {data_session_value} is not valid in the current NSLS2 cycle ({current_cycle})."
                 )
@@ -111,9 +126,15 @@ class AuthorizationError(Exception): ...
 
 def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
 
-    redis_client = redis.Redis(host=f"info.{beamline.lower()}.nsls2.bnl.gov")
+    normalized_beamlines = {
+        "sst1": "sst",
+        "sst2": "sst",
+    }
+    redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
+    redis_client = redis.Redis(host=f"info.{redis_beamline.lower()}.nsls2.bnl.gov")
 
-    md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
+    redis_prefix = f"{prefix}-" if prefix else ""
+    md = RedisJSONDict(redis_client=redis_client, prefix=redis_prefix)
 
     new_data_session = f"pass-{proposal_number}"
     username = input("Username : ")
@@ -148,7 +169,11 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
         md["data_session"] = new_data_session
         md["username"] = username
         md["start_datetime"] = datetime.now().isoformat()
-        md["cycle"] = get_current_cycle()
+        md["cycle"] = (
+            "commissioning"
+            if is_commissioning_proposal(str(proposal_number), beamline)
+            else get_current_cycle()
+        )
         md["proposal"] = {
             "proposal_id": proposal_data.get("proposal_id"),
             "title": proposal_data.get("title"),
@@ -178,6 +203,14 @@ def main():
         required=True,
     )
     parser.add_argument(
+        "-e",
+        "--endstation",
+        dest="prefix",
+        type=str,
+        help="Prefix for redis keys (e.g. by endstation)",
+        required=False,
+    )
+    parser.add_argument(
         "-p",
         "--proposal",
         dest="proposal",
@@ -189,5 +222,8 @@ def main():
 
     args = parser.parse_args()
     sync_experiment(
-        proposal_number=args.proposal, beamline=args.beamline, verbose=args.verbose
+        proposal_number=args.proposal,
+        beamline=args.beamline,
+        verbose=args.verbose,
+        prefix=args.prefix,
     )

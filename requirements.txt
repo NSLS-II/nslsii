@@ -22,3 +22,5 @@ redis-json-dict
 setuptools
 ophyd-async
 shortuuid
+requests
+pillow

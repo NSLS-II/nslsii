@@ -24,7 +24,7 @@ jobs:
       uses: supercharge/redis-github-action@1.4.0
 
     - name: start Kafka and Zookeeper
-      run: docker-compose -f scripts/bitnami-kafka-docker-compose.yml up -d
+      run: docker compose -f scripts/bitnami-kafka-docker-compose.yml up -d
 
     - name: is Kafka running?
       run: docker ps -a
