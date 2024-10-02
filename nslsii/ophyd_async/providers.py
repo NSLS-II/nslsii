@@ -177,7 +177,7 @@ class DeviceNameFilenameProvider(FilenameProvider):
     def __call__(self, device_name: Optional[str] = None) -> str:
         if device_name is None:
             raise RuntimeError(
-                "Device name must be passed in when calling DeviceNameFilenameProvider!"
+                f"Device name must be passed in when calling {self.__name__}!"
             )
         return device_name
 
