@@ -124,7 +124,7 @@ def should_they_be_here(username, new_data_session, beamline):
 class AuthorizationError(Exception): ...
 
 
-def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
+def sync_experiment(proposal_number, beamline, username, verbose=False, prefix=""):
 
     normalized_beamlines = {
         "sst1": "sst",
@@ -137,28 +137,23 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     md = RedisJSONDict(redis_client=redis_client, prefix=redis_prefix)
 
     new_data_session = f"pass-{proposal_number}"
-    username = input("Username : ")
 
     if (new_data_session == md.get("data_session")) and (
         username == md.get("username")
     ):
-
         warnings.warn(
             f"Experiment {new_data_session} was already started by the same user."
         )
 
     else:
 
-        proposal_data = validate_proposal(new_data_session, beamline)
-        users = proposal_data.pop("users")
-
-        authenticate(username)
-
         if not should_they_be_here(username, new_data_session, beamline):
             raise AuthorizationError(
                 f"User '{username}' is not allowed to take data on proposal {new_data_session}"
             )
 
+        proposal_data = validate_proposal(new_data_session, beamline)
+        users = proposal_data.pop("users")
         pi_name = ""
         for user in users:
             if user.get("is_pi"):
@@ -219,11 +214,15 @@ def main():
         required=True,
     )
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
-
     args = parser.parse_args()
+
+    username=input("Username : ")
+    authenticate(username)
+
     sync_experiment(
         proposal_number=args.proposal,
         beamline=args.beamline,
+        username=username,
         verbose=args.verbose,
         prefix=args.prefix,
     )
