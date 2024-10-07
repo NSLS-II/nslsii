@@ -73,7 +73,11 @@ def test_proposal_num_ymd_path_provider(
         assert dirpath.endswith(str(f"{today.year}{ymd_separator}{today.month:02}"))
     elif ymd_granularity == YMDGranularity.day:
         assert info.create_dir_depth == -3
-        assert dirpath.endswith(str(f"{today.year}{ymd_separator}{today.month:02}{ymd_separator}{today.day:02}"))
+        assert dirpath.endswith(
+            str(
+                f"{today.year}{ymd_separator}{today.month:02}{ymd_separator}{today.day:02}"
+            )
+        )
 
 
 def test_proposal_num_scan_num_path_provider(fp, dummy_re_md_dict):
@@ -81,7 +85,7 @@ def test_proposal_num_scan_num_path_provider(fp, dummy_re_md_dict):
 
     pp = ProposalNumScanNumPathProvider(fp, dummy_re_md_dict)
 
-    info = pp(device_name = "test")
+    info = pp(device_name="test")
 
     assert (
         str(info.directory_path)
@@ -90,7 +94,7 @@ def test_proposal_num_scan_num_path_provider(fp, dummy_re_md_dict):
     assert info.create_dir_depth == -1
 
     # Simulate scan id incrementing.
-    pp._metadata_dict['scan_id'] += 1
+    pp._metadata_dict["scan_id"] += 1
 
     info_b = pp()
 
@@ -105,6 +109,7 @@ def test_device_name_filename_provider():
     dev_name_fp = DeviceNameFilenameProvider()
     assert "test" == dev_name_fp(device_name="test")
 
+    # Device name filename provider must be called with device_name kwarg
     with pytest.raises(RuntimeError):
         dev_name_fp()
 
