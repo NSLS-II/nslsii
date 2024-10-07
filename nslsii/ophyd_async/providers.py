@@ -18,14 +18,14 @@ class YMDGranularity(int, Enum):
     day = 3
 
 
-
 class ProposalNumYMDPathProvider(PathProvider):
     def __init__(
-        self, filename_provider: FilenameProvider,
-        metadata_dict: dict, 
+        self,
+        filename_provider: FilenameProvider,
+        metadata_dict: dict,
         granularity: YMDGranularity = YMDGranularity.day,
-        separator = os.path.sep,
-        **kwargs
+        separator=os.path.sep,
+        **kwargs,
     ):
         self._filename_provider = filename_provider
         self._metadata_dict = metadata_dict
@@ -34,11 +34,9 @@ class ProposalNumYMDPathProvider(PathProvider):
         self._beamline_proposals_dir = self.get_beamline_proposals_dir()
         super().__init__(filename_provider, **kwargs)
 
-
     @property
     def filename_provider(self):
         return self._filename_provider
-
 
     def get_beamline_proposals_dir(self):
         """
@@ -46,20 +44,16 @@ class ProposalNumYMDPathProvider(PathProvider):
         """
 
         beamline_tla = os.getenv(
-            'ENDSTATION_ACRONYM', 
-            os.getenv('BEAMLINE_ACRONYM', '')
+            "ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "")
         ).lower()
-        beamline_proposals_dir = (
-            Path(f"/nsls2/data/{beamline_tla}/proposals/")
-        )
+        beamline_proposals_dir = Path(f"/nsls2/data/{beamline_tla}/proposals/")
 
         return beamline_proposals_dir
-
 
     def generate_directory_path(self, device_name: Optional[str] = None):
         """Helper function that generates ymd path structure"""
 
-        current_date_template = ''
+        current_date_template = ""
         if self._granularity == YMDGranularity.day:
             current_date_template = f"%Y{self._ymd_separator}%m{self._ymd_separator}%d"
         elif self._granularity == YMDGranularity.month:
@@ -87,52 +81,48 @@ class ProposalNumYMDPathProvider(PathProvider):
 
         return directory_path
 
-
     def __call__(self, device_name: str = None) -> PathInfo:
-
-        directory_path = self.generate_directory_path(device_name = device_name)
+        directory_path = self.generate_directory_path(device_name=device_name)
 
         return PathInfo(
-            directory_path = directory_path,
-            filename = self._filename_provider(),
-            create_dir_depth = - self._granularity,
+            directory_path=directory_path,
+            filename=self._filename_provider(),
+            create_dir_depth=-self._granularity,
         )
 
 
 class ProposalNumScanNumPathProvider(ProposalNumYMDPathProvider):
     def __init__(
-        self, filename_provider: FilenameProvider,
+        self,
+        filename_provider: FilenameProvider,
         metadata_dict: dict,
         base_name: str = "scan",
         granularity: YMDGranularity = YMDGranularity.none,
-        ymd_separator = os.path.sep,
-        **kwargs
+        ymd_separator=os.path.sep,
+        **kwargs,
     ):
-
         self._base_name = base_name
         super().__init__(
             filename_provider,
             metadata_dict,
-            granularity = granularity,
+            granularity=granularity,
             ymd_separator=ymd_separator,
-            **kwargs
+            **kwargs,
         )
 
     def __call__(self, device_name: Optional[str] = None) -> PathInfo:
-        directory_path = self.generate_directory_path(device_name = device_name)
+        directory_path = self.generate_directory_path(device_name=device_name)
 
         final_dir_path = (
-            directory_path / 
-            f"{self._base_name}_{self._metadata_dict['scan_id']:06}"
+            directory_path / f"{self._base_name}_{self._metadata_dict['scan_id']:06}"
         )
 
         return PathInfo(
-            directory_path = final_dir_path,
-            filename = self._filename_provider(),
+            directory_path=final_dir_path,
+            filename=self._filename_provider(),
             # Add one to dir depth creation level to account for scan dir
-            create_dir_depth = - self._granularity - 1,
+            create_dir_depth=-self._granularity - 1,
         )
-
 
 
 class ShortUUIDFilenameProvider(FilenameProvider):
@@ -151,9 +141,10 @@ class ShortUUIDFilenameProvider(FilenameProvider):
 
 
 class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
-
     def __init__(self, initial_mode, **kwargs):
-        if not isinstance(initial_mode, Enum) or not isinstance(initial_mode.value, str):
+        if not isinstance(initial_mode, Enum) or not isinstance(
+            initial_mode.value, str
+        ):
             raise TypeError("Initial acquisition mode type must be a string enum!")
 
         self._mode = initial_mode
@@ -161,9 +152,10 @@ class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
         super().__init__(**kwargs)
 
     def switch_mode(self, new_mode):
-
         if not isinstance(new_mode, self._mode_type):
-            raise RuntimeError(f"{new_mode} is not a valid option for {self._mode_type}!")
+            raise RuntimeError(
+                f"{new_mode} is not a valid option for {self._mode_type}!"
+            )
         else:
             self._mode = new_mode
 
@@ -177,7 +169,7 @@ class DeviceNameFilenameProvider(FilenameProvider):
     def __call__(self, device_name: Optional[str] = None) -> str:
         if device_name is None:
             raise RuntimeError(
-                f"Device name must be passed in when calling {self.__name__}!"
+                f"Device name must be passed in when calling {type(self).__name__}!"
             )
         return device_name
 
@@ -185,7 +177,7 @@ class DeviceNameFilenameProvider(FilenameProvider):
 class NSLS2PathProvider(ProposalNumYMDPathProvider):
     """
     Default NSLS2 path provider
-    
+
     Generates paths in the following format:
 
     /nsls2/data/{TLA}/proposals/{CYCLE}/{PROPOSAL}/assets/{DETECTOR}/{Y}/{M}/{D}
