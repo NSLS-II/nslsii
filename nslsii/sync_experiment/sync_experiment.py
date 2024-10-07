@@ -182,6 +182,8 @@ def sync_experiment(proposal_number, beamline, username, verbose=False, prefix="
             print("Users:")
             print(users)
 
+    return md
+
 
 def main():
     # Used by the `sync-experiment` command
