@@ -1,5 +1,6 @@
 from ldap3 import Server, Connection, NTLM
 from ldap3.core.exceptions import LDAPInvalidCredentialsResult
+from typing import Union, Optional
 
 import json
 import re
@@ -124,20 +125,37 @@ def should_they_be_here(username, new_data_session, beamline):
 class AuthorizationError(Exception): ...
 
 
-def sync_experiment(proposal_number, beamline, username, verbose=False, prefix=""):
+def switch_redis_proposal(
+    proposal_number: Union[int, str],
+    beamline: str,
+    username: Optional[str] = None,
+    prefix: str = "",
+) -> RedisJSONDict:
+    """Update information in RedisJSONDict for a specific beamline
 
-    normalized_beamlines = {
-        "sst1": "sst",
-        "sst2": "sst",
-    }
-    redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
-    redis_client = redis.Redis(host=f"info.{redis_beamline.lower()}.nsls2.bnl.gov")
+    Paraneters
+    ----------
+    proposal_number : int or str
+        number of the desired proposal, e.g. `123456`
+    beamline : str
+        normalized beamline acronym, case-insensitive, e.g. `SMI` or `sst`
+    username : str or None
+        login name of the user assigned to the proposal; if None, current user will be kept
+    prefix : str
+        optional prefix to identigy a specific endstation, e.g. `opls`
 
+    Returns
+    -------
+    md : RedisJSONDict
+        The updated redis dictionary.
+    """
+
+    redis_client = redis.Redis(host=f"info.{beamline.lower()}.nsls2.bnl.gov")
     redis_prefix = f"{prefix}-" if prefix else ""
     md = RedisJSONDict(redis_client=redis_client, prefix=redis_prefix)
+    username = username or md.get("username")
 
     new_data_session = f"pass-{proposal_number}"
-
     if (new_data_session == md.get("data_session")) and (
         username == md.get("username")
     ):
@@ -176,11 +194,29 @@ def sync_experiment(proposal_number, beamline, username, verbose=False, prefix="
             "pi_name": pi_name,
         }
 
-        print(f"Started experiment {new_data_session}.")
-        if verbose:
-            print(json.dumps(proposal_data, indent=2))
-            print("Users:")
-            print(users)
+        print(f"Started experiment {md['data_session']} by {md['username']}.")
+
+    return md
+
+
+def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
+
+    # Authenticate the user
+    username = input("Username : ")
+    authenticate(username)
+
+    normalized_beamlines = {
+        "sst1": "sst",
+        "sst2": "sst",
+    }
+    redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
+
+    md = switch_redis_proposal(
+        proposal_number, beamline=redis_beamline, username=username, prefix=prefix
+    )
+
+    if verbose:
+        print(json.dumps(md, indent=2))
 
     return md
 
@@ -218,13 +254,9 @@ def main():
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
-    username=input("Username : ")
-    authenticate(username)
-
     sync_experiment(
         proposal_number=args.proposal,
         beamline=args.beamline,
-        username=username,
         verbose=args.verbose,
         prefix=args.prefix,
     )
