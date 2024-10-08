@@ -13,12 +13,14 @@ msgpack >=1.0.0
 msgpack-numpy
 numpy
 ophyd
+ophyd-async
 packaging
+pillow
 psutil
 pycryptodome
 pyolog
 redis
 redis-json-dict
-setuptools
 requests
-pillow
+setuptools
+shortuuid
