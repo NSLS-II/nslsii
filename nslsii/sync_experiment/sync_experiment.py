@@ -142,7 +142,7 @@ def switch_redis_proposal(
     username : str or None
         login name of the user assigned to the proposal; if None, current user will be kept
     prefix : str
-        optional prefix to identigy a specific endstation, e.g. `opls`
+        optional prefix to identify a specific endstation, e.g. `opls`
 
     Returns
     -------
