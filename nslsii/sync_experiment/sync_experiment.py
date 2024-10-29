@@ -133,7 +133,7 @@ def switch_redis_proposal(
 ) -> RedisJSONDict:
     """Update information in RedisJSONDict for a specific beamline
 
-    Paraneters
+    Parameters
     ----------
     proposal_number : int or str
         number of the desired proposal, e.g. `123456`
