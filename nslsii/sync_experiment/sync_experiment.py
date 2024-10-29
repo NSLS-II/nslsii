@@ -1,5 +1,5 @@
 from ldap3 import Server, Connection, NTLM
-from ldap3.core.exceptions import LDAPInvalidCredentialsResult
+from ldap3.core.exceptions import LDAPInvalidCredentialsResult, LDAPSocketOpenError
 
 import json
 import re
@@ -88,21 +88,31 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
 
 def authenticate(username):
 
-    auth_server = Server("dc2.bnl.gov", use_ssl=True)
+    authenticated = False
+    for server in ["1", "2", "3"]:
+        if authenticated:
+            break
+        auth_server = Server(f"dc{server}.bnl.gov", use_ssl=True)
 
-    try:
-        connection = Connection(
-            auth_server,
-            user=f"BNL\\{username}",
-            password=getpass("Password : "),
-            authentication=NTLM,
-            auto_bind=True,
-            raise_exceptions=True,
-        )
-        print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}")
+        try:
+            connection = Connection(
+                auth_server,
+                user=f"BNL\\{username}",
+                password=getpass("Password : "),
+                authentication=NTLM,
+                auto_bind=True,
+                raise_exceptions=True,
+            )
+            print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}")
+            authenticated = True
 
-    except LDAPInvalidCredentialsResult:
-        raise RuntimeError(f"Invalid credentials for user '{username}'.") from None
+        except LDAPInvalidCredentialsResult:
+            raise RuntimeError(f"Invalid credentials for user '{username}'.") from None
+        except LDAPSocketOpenError:
+            print(f"DC{server} server connection failed...")
+
+    if not authenticated:
+        raise RuntimeError("All authentication servers are unavailable.")
 
 
 def should_they_be_here(username, new_data_session, beamline):
