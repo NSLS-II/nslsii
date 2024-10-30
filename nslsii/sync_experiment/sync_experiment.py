@@ -1,16 +1,18 @@
-from ldap3 import Server, Connection, NTLM
-from ldap3.core.exceptions import LDAPInvalidCredentialsResult, LDAPSocketOpenError
-
+import argparse
 import json
+import os
 import re
-import redis
-import httpx
 import warnings
 from datetime import datetime
 from getpass import getpass
+from typing import Any, Dict
+
+import httpx
+import redis
+import yaml
+from ldap3 import NTLM, Connection, Server
+from ldap3.core.exceptions import LDAPInvalidCredentialsResult, LDAPSocketOpenError
 from redis_json_dict import RedisJSONDict
-from typing import Dict, Any
-import argparse
 
 data_session_re = re.compile(r"^pass-(?P<proposal_number>\d+)$")
 
@@ -36,7 +38,6 @@ def is_commissioning_proposal(proposal_number, beamline) -> bool:
 
 
 def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
-
     proposal_data = {}
     data_session_match = data_session_re.match(data_session_value)
 
@@ -85,37 +86,53 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
     return proposal_data
 
 
-def authenticate(username):
+config_files = [
+    os.path.expanduser("~/.config/n2sn_tools.yml"),
+    "/etc/n2sn_tools.yml",
+]
 
-    authenticated = False
-    for server in ["1", "2", "3"]:
-        if authenticated:
-            break
-        auth_server = Server(f"dc{server}.bnl.gov", use_ssl=True)
 
+def authenticate(
+    username,
+):
+    config = None
+    for fn in config_files:
         try:
-            connection = Connection(
-                auth_server,
-                user=f"BNL\\{username}",
-                password=getpass("Password : "),
-                authentication=NTLM,
-                auto_bind=True,
-                raise_exceptions=True,
-            )
-            print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}")
-            authenticated = True
+            with open(fn) as f:
+                config = yaml.safe_load(f)
+        except IOError:
+            pass
+        else:
+            break
 
-        except LDAPInvalidCredentialsResult:
-            raise RuntimeError(f"Invalid credentials for user '{username}'.") from None
-        except LDAPSocketOpenError:
-            print(f"DC{server} server connection failed...")
+    if config is None:
+        raise RuntimeError("Unable to open a config file")
 
-    if not authenticated:
-        raise RuntimeError("All authentication servers are unavailable.")
+    server = config.get("common", {}).get("server")
+
+    if server is None:
+        raise RuntimeError(f"Server name not found!")
+
+    auth_server = Server(server, use_ssl=True)
+
+    try:
+        connection = Connection(
+            auth_server,
+            user=f"BNL\\{username}",
+            password=getpass("Password : "),
+            authentication=NTLM,
+            auto_bind=True,
+            raise_exceptions=True,
+        )
+        print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}")
+
+    except LDAPInvalidCredentialsResult:
+        raise RuntimeError(f"Invalid credentials for user '{username}'.") from None
+    except LDAPSocketOpenError:
+        print(f"{server} server connection failed...")
 
 
 def should_they_be_here(username, new_data_session, beamline):
-
     user_access_json = nslsii_api_client.get(f"/v1/data-session/{username}").json()
 
     if "nsls2" in user_access_json["facility_all_access"]:
@@ -134,7 +151,6 @@ class AuthorizationError(Exception): ...
 
 
 def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
-
     normalized_beamlines = {
         "sst1": "sst",
         "sst2": "sst",
@@ -151,13 +167,11 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     if (new_data_session == md.get("data_session")) and (
         username == md.get("username")
     ):
-
         warnings.warn(
             f"Experiment {new_data_session} was already started by the same user."
         )
 
     else:
-
         proposal_data = validate_proposal(new_data_session, beamline)
         users = proposal_data.pop("users")
 
