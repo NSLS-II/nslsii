@@ -82,8 +82,7 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
             f"'{rerr}'"
         )
 
-    finally:
-        return proposal_data
+    return proposal_data
 
 
 def authenticate(username):
