@@ -1,14 +1,14 @@
 import datetime
+import itertools
 import logging
 import time as ttime
+import warnings
 from collections import deque
-import itertools
 from pathlib import Path
 
 import cv2
 import h5py
 import numpy as np
-from area_detector_handlers.handlers import HandlerBase
 from event_model import compose_resource
 from ophyd import Component as Cpt
 from ophyd import Device, Signal
@@ -17,7 +17,6 @@ from ophyd.sim import NullStatus, new_uid
 from nslsii.iocs.caproto_saver import ExternalFileReference
 
 logger = logging.getLogger("vstream")
-
 
 
 class VideoStreamDet(Device):
@@ -34,6 +33,10 @@ class VideoStreamDet(Device):
         frame_shape=(1080, 1920),
         **kwargs,
     ):
+        warnings.warn(
+            f"This class {self.__class__.__name__} will be removed in the future."
+        )
+
         super().__init__(*args, **kwargs)
 
         self._root_dir = root_dir
@@ -73,13 +76,14 @@ class VideoStreamDet(Device):
 
         self._h5file_desc = h5py.File(self._data_file, "x")
         group = self._h5file_desc.create_group("/entry")
-        self._dataset = group.create_dataset("averaged",
-                                             data=np.full(fill_value=np.nan,
-                                                          shape=(1, *self._frame_shape)),
-                                             maxshape=(None, *self._frame_shape),
-                                             chunks=(1, *self._frame_shape),
-                                             dtype="float64",
-                                             compression="lzf")
+        self._dataset = group.create_dataset(
+            "averaged",
+            data=np.full(fill_value=np.nan, shape=(1, *self._frame_shape)),
+            maxshape=(None, *self._frame_shape),
+            chunks=(1, *self._frame_shape),
+            dtype="float64",
+            compression="lzf",
+        )
         self._counter = itertools.count()
 
     def trigger(self, *args, **kwargs):
