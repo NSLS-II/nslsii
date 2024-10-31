@@ -27,7 +27,7 @@ def import_star(module, ns):
 
 def configure_base(
     user_ns,
-    broker_name,
+    broker_name=None,
     *,
     bec=True,
     bec_derivative=False,
@@ -71,8 +71,8 @@ def configure_base(
     ----------
     user_ns: dict
         a namespace --- for example, ``get_ipython().user_ns``
-    broker_name : Union[str, Broker]
-        Name of databroker configuration or a Broker instance.
+    broker_name : Union[str, Broker, None], optional
+        Name of databroker configuration or a Broker instance. If None, no RE subscription is made
     bec : boolean, optional
         True by default. Set False to skip BestEffortCallback.
     bec_derivative : boolean, optional
@@ -163,8 +163,8 @@ def configure_base(
         ns["db"] = db
     else:
         db = broker_name
-
-    RE.subscribe(db.insert)
+    if db is not None:
+        RE.subscribe(db.insert)
 
     if pbar:
         # Add a progress bar.
