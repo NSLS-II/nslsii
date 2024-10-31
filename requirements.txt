@@ -1,6 +1,6 @@
 appdirs
-bluesky>=1.8.1
 bluesky-kafka>=0.8.0
+bluesky>=1.8.1
 caproto
 databroker
 h5py
@@ -12,6 +12,7 @@ matplotlib
 msgpack >=1.0.0
 msgpack-numpy
 numpy
+opencv-python
 ophyd
 ophyd-async
 packaging
