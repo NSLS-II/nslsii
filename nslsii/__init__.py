@@ -223,7 +223,10 @@ def configure_base(
         configure_ipython_logging(exception_logger=log_exception, ipython=ipython)
 
     if publish_documents_with_kafka:
-        configure_kafka_publisher(RE, beamline_name=broker_name)
+        if isinstance(broker_name, str):
+            configure_kafka_publisher(RE, beamline_name=broker_name)
+        elif isinstance(broker_name, Broker):
+            configure_kafka_publisher(RE, beamline_name=broker_name.name.lower())
 
     if tb_minimize and ipython:
         # configure %xmode minimal
