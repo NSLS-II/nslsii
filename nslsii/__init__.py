@@ -96,9 +96,10 @@ def configure_base(
     ipython_logging : boolean, optional
         True by default. Console output and exception stack traces will be
         written to IPython log file when IPython logging is enabled.
-    publish_documents_with_kafka: boolean, optional
+    publish_documents_with_kafka: Union[boolean, str], optional
         False by default. If True publish bluesky documents to a Kafka message broker using
-        configuration parameters read from a file.
+        configuration parameters read from a file. If bool used, the Kafka topic is auto-configured if the 
+        broker_name is a string. If a string is used, it will override the TLA for the auto-configured topic.
     tb_minimize : boolean, optional
         If IPython should print out 'minimal' tracebacks.
 
@@ -223,7 +224,12 @@ def configure_base(
         configure_ipython_logging(exception_logger=log_exception, ipython=ipython)
 
     if publish_documents_with_kafka:
-        configure_kafka_publisher(RE, beamline_name=broker_name)
+        if isinstance(publish_documents_with_kafka, str):
+            configure_kafka_publisher(RE, beamline_name=publish_documents_with_kafka)
+        elif isinstance(broker_name, str):
+            configure_kafka_publisher(RE, beamline_name=broker_name)
+        else:
+            raise ValueError("broker_name or publish_documents_with_kafka must be a string")
 
     if tb_minimize and ipython:
         # configure %xmode minimal
