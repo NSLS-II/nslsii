@@ -226,10 +226,13 @@ def configure_base(
     if publish_documents_with_kafka:
         if isinstance(publish_documents_with_kafka, str):
             configure_kafka_publisher(RE, beamline_name=publish_documents_with_kafka)
+        elif hasattr(broker_name, "name"):
+            configure_kafka_publisher(RE, beamline_name=broker_name.name)
         elif isinstance(broker_name, str):
             configure_kafka_publisher(RE, beamline_name=broker_name)
         else:
-            raise ValueError("broker_name or publish_documents_with_kafka must be a string")
+            raise ValueError("If broker_name is not a string and lacks a name attribute, "
+                             "publish_documents_with_kafka must be a string")
 
     if tb_minimize and ipython:
         # configure %xmode minimal
