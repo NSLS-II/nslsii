@@ -227,7 +227,7 @@ def configure_base(
         if isinstance(publish_documents_with_kafka, str):
             configure_kafka_publisher(RE, beamline_name=publish_documents_with_kafka)
         elif hasattr(broker_name, "name"):
-            configure_kafka_publisher(RE, beamline_name=broker_name.name)
+            configure_kafka_publisher(RE, beamline_name=broker_name.name.lower())
         elif isinstance(broker_name, str):
             configure_kafka_publisher(RE, beamline_name=broker_name)
         else:
