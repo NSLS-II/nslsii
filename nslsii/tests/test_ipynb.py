@@ -6,3 +6,8 @@ def test_ipynb():
     obj.metadata
     obj.url
     obj.reload()
+
+def test_touchbl():
+    from nslsii.common.ipynb import if_touch_beamline
+    if if_touch_beamline():
+        pass
