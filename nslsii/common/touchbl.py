@@ -1,5 +1,6 @@
 import os
 
+
 def if_touch_beamline(envvar="TOUCHBEAMLINE"):
     value = os.environ.get(envvar, "false").lower()
     if value in ("", "n", "no", "f", "false", "off", "0"):
