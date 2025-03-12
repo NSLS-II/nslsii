@@ -8,6 +8,6 @@ def test_ipynb():
     obj.reload()
 
 def test_touchbl():
-    from nslsii.common.ipynb import if_touch_beamline
+    from nslsii.common import if_touch_beamline
     if if_touch_beamline():
         pass
