@@ -10,7 +10,7 @@ def test_ipynb():
     obj.reload()
 
 def test_touchbl():
-    from .touchbl import if_touch_beamline
+    from common import if_touch_beamline
 
     if "TOUCHBEAMLINE" in os.environ:
         del os.environ["TOUCHBEAMLINE"]
