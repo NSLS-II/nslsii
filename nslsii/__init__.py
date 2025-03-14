@@ -27,6 +27,8 @@ def import_star(module, ns):
 
 def configure_base(
     user_ns,
+    redis_url,
+    redis_prefix,
     broker_name=None,
     *,
     bec=True,
@@ -128,12 +130,9 @@ def configure_base(
     from bluesky import RunEngine, __version__ as bluesky_version
 
     if parse(bluesky_version) >= parse("1.6.0"):
-        # current approach using PersistentDict
-        from bluesky.utils import PersistentDict
-
-        directory = os.path.expanduser("~/.config/bluesky/md")
-        os.makedirs(directory, exist_ok=True)
-        md = PersistentDict(directory)
+        from redis import Redis
+        from redis_json_dict import RedisJSONDict
+        RE.md = RedisJSONDict(Redis(redis_url), prefix=redis_prefix)
     else:
         # legacy approach using HistoryDict
         from bluesky.utils import get_history
@@ -627,14 +626,15 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
     return list(ns)
 
 
-def migrate_metadata():
+def migrate_metadata(url, prefix):
     """
     Copy metadata from (old) sqlite-backed file to (new) directory of msgpack.
     """
-    from bluesky.utils import get_history, PersistentDict
+    from redis_json_dict import RedisJSONDict
+    from redis import Redis
+    from bluesky.utils import get_history
 
     old_md = get_history()
-    directory = os.path.expanduser("~/.config/bluesky/md")
-    os.makedirs(directory, exist_ok=True)
-    new_md = PersistentDict(directory)
+    new_md = RedisJSONDict(Redis(url), prefix=prefix)
+
     new_md.update(old_md)
