@@ -132,7 +132,7 @@ def configure_base(
     if parse(bluesky_version) >= parse("1.6.0"):
         from redis import Redis
         from redis_json_dict import RedisJSONDict
-        RE.md = RedisJSONDict(Redis(redis_url), prefix=redis_prefix)
+        md = RedisJSONDict(Redis(redis_url), prefix=redis_prefix)
     else:
         # legacy approach using HistoryDict
         from bluesky.utils import get_history

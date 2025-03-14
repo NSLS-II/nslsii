@@ -26,6 +26,8 @@ import nslsii
 ip = IPython.core.interactiveshell.InteractiveShell()
 nslsii.configure_base(
     user_ns=ip.user_ns,
+    redis_url = "localhost",
+    redis_prefix = "",
     # a mock databroker will be enough for this test
     broker_name=Mock(),
     bec=False,
@@ -97,6 +99,8 @@ import nslsii
 ip = IPython.core.interactiveshell.InteractiveShell()
 nslsii.configure_base(
     user_ns=ip.user_ns,
+    redis_url = "localhost",
+    redis_prefix = "",
     # a mock databroker will be enough for this test
     broker_name=Mock(),
     bec=False,
