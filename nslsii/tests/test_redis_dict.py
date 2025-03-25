@@ -1,9 +1,8 @@
-from pprint import pformat
 import time
-
-import pytest
+from pprint import pformat
 
 import numpy as np
+import pytest
 import redis
 import redis.exceptions
 

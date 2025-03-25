@@ -1,12 +1,11 @@
 import logging
-from logging.handlers import SysLogHandler, TimedRotatingFileHandler
 import os
-from pathlib import Path
 import sys
 import warnings
+from logging.handlers import SysLogHandler, TimedRotatingFileHandler
+from pathlib import Path
 
 import appdirs
-
 from IPython import get_ipython
 
 from ._version import get_versions
@@ -27,6 +26,8 @@ def import_star(module, ns):
 
 def configure_base(
     user_ns,
+    redis_url=None,
+    redis_prefix="",
     broker_name=None,
     *,
     bec=True,
@@ -98,7 +99,7 @@ def configure_base(
         written to IPython log file when IPython logging is enabled.
     publish_documents_with_kafka: Union[boolean, str], optional
         False by default. If True publish bluesky documents to a Kafka message broker using
-        configuration parameters read from a file. If bool used, the Kafka topic is auto-configured if the 
+        configuration parameters read from a file. If bool used, the Kafka topic is auto-configured if the
         broker_name is a string. If a string is used, it will override the TLA for the auto-configured topic.
     tb_minimize : boolean, optional
         If IPython should print out 'minimal' tracebacks.
@@ -125,20 +126,17 @@ def configure_base(
         raise RuntimeError("configure_base should only be called once per process.")
     ns[SENTINEL] = True
     # Set up a RunEngine and use metadata backed by files on disk.
-    from bluesky import RunEngine, __version__ as bluesky_version
+    from bluesky import RunEngine
+    from bluesky import __version__ as bluesky_version
 
-    if parse(bluesky_version) >= parse("1.6.0"):
-        # current approach using PersistentDict
-        from bluesky.utils import PersistentDict
-
-        directory = os.path.expanduser("~/.config/bluesky/md")
-        os.makedirs(directory, exist_ok=True)
-        md = PersistentDict(directory)
+    if redis_url is None:
+        md = {}
     else:
-        # legacy approach using HistoryDict
-        from bluesky.utils import get_history
+        from redis import Redis
+        from redis_json_dict import RedisJSONDict
 
-        md = get_history()
+        md = RedisJSONDict(Redis(redis_url), prefix=redis_prefix)
+
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine
     if "RE" in user_ns:
@@ -231,8 +229,10 @@ def configure_base(
         elif isinstance(broker_name, str):
             configure_kafka_publisher(RE, beamline_name=broker_name)
         else:
-            raise ValueError("If broker_name is not a string and lacks a name attribute, "
-                             "publish_documents_with_kafka must be a string")
+            raise ValueError(
+                "If broker_name is not a string and lacks a name attribute, "
+                "publish_documents_with_kafka must be a string"
+            )
 
     if tb_minimize and ipython:
         # configure %xmode minimal
@@ -459,13 +459,15 @@ def configure_ipython_logging(
     with warnings.catch_warnings():
         warnings.simplefilter(action="error")
         # specify the file for ipython logging output
-        ipython.run_line_magic("logstart", f"-o -t {bluesky_ipython_log_file_path} append")
+        ipython.run_line_magic(
+            "logstart", f"-o -t {bluesky_ipython_log_file_path} append"
+        )
 
     return bluesky_ipython_log_file_path
 
 
 def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
-    """ Read a Kafka configuration file and subscribe a Kafka publisher to the RunEngine.
+    """Read a Kafka configuration file and subscribe a Kafka publisher to the RunEngine.
 
     A configuration file is required. Environment variable BLUESKY_KAFKA_CONFIG_FILE
     will be checked if `configuration_file_path` is not specified. Otherwise the default
@@ -479,7 +481,7 @@ def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
     from nslsii.kafka_utils import (
         _read_bluesky_kafka_config_file,
         _subscribe_kafka_publisher,
-        _subscribe_kafka_queue_thread_publisher
+        _subscribe_kafka_queue_thread_publisher,
     )
 
     bluesky_kafka_config_path = None
@@ -501,24 +503,26 @@ def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
 
     runengine_producer_config = {}
     if "producer_consumer_security_config" in bluesky_kafka_configuration:
-        runengine_producer_config.update(bluesky_kafka_configuration["producer_consumer_security_config"])
-    runengine_producer_config.update(bluesky_kafka_configuration["runengine_producer_config"])
+        runengine_producer_config.update(
+            bluesky_kafka_configuration["producer_consumer_security_config"]
+        )
+    runengine_producer_config.update(
+        bluesky_kafka_configuration["runengine_producer_config"]
+    )
 
     if bluesky_kafka_configuration["abort_run_on_kafka_exception"]:
         kafka_publisher_details = _subscribe_kafka_publisher(
             RE,
             beamline_name=beamline_name,
             bootstrap_servers=bootstrap_servers,
-            producer_config=bluesky_kafka_configuration["runengine_producer_config"]
+            producer_config=bluesky_kafka_configuration["runengine_producer_config"],
         )
     else:
         kafka_publisher_details = _subscribe_kafka_queue_thread_publisher(
             RE,
             beamline_name=beamline_name,
             bootstrap_servers=bootstrap_servers,
-            producer_config=bluesky_kafka_configuration[
-                "runengine_producer_config"
-            ],
+            producer_config=bluesky_kafka_configuration["runengine_producer_config"],
         )
 
     return bluesky_kafka_configuration, kafka_publisher_details
@@ -569,12 +573,13 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     ns = {}  # We will update user_ns with this at the end.
 
-    from bluesky.callbacks.olog import logbook_cb_factory
-    from functools import partial
-    from pyOlog import SimpleOlogClient
     import queue
     import threading
+    from functools import partial
     from warnings import warn
+
+    from bluesky.callbacks.olog import logbook_cb_factory
+    from pyOlog import SimpleOlogClient
 
     # This is for pyOlog.ophyd_tools.get_logbook, which simply looks for
     # a variable called 'logbook' in the global IPython namespace.
@@ -625,16 +630,3 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     user_ns.update(ns)
     return list(ns)
-
-
-def migrate_metadata():
-    """
-    Copy metadata from (old) sqlite-backed file to (new) directory of msgpack.
-    """
-    from bluesky.utils import get_history, PersistentDict
-
-    old_md = get_history()
-    directory = os.path.expanduser("~/.config/bluesky/md")
-    os.makedirs(directory, exist_ok=True)
-    new_md = PersistentDict(directory)
-    new_md.update(old_md)
