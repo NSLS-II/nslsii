@@ -129,7 +129,7 @@ def configure_base(
     from bluesky import RunEngine
     from bluesky import __version__ as bluesky_version
 
-    if redis_url == None:
+    if redis_url is None:
         md = {}
     else:
         from redis import Redis
