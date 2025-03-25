@@ -630,19 +630,3 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     user_ns.update(ns)
     return list(ns)
-
-
-def migrate_metadata(url=None, prefix=""):
-    """
-    Copy metadata from (old) sqlite-backed file to (new) directory of msgpack.
-    """
-    from bluesky.utils import get_history
-    from redis import Redis
-    from redis_json_dict import RedisJSONDict
-
-    old_md = get_history()
-    new_md = {}
-    if url:
-        new_md = RedisJSONDict(Redis(url), prefix=prefix)
-
-    new_md.update(old_md)
