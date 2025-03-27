@@ -26,8 +26,6 @@ def import_star(module, ns):
 
 def configure_base(
     user_ns,
-    redis_url=None,
-    redis_prefix="",
     broker_name=None,
     *,
     bec=True,
@@ -41,6 +39,8 @@ def configure_base(
     ipython_logging=True,
     publish_documents_with_kafka=False,
     tb_minimize=True,
+    redis_url=None,
+    redis_prefix="",
 ):
     """
     Perform base setup and instantiation of important objects.
