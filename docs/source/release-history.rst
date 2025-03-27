@@ -1,6 +1,15 @@
 ***************
 Release History
 ***************
+v0.11.1 (2025-03-27)
+====================
+What's Changed
+..............
+* Move redis parameters to the kwarg-only section by `@jennmald <https://github.com/jennmald>`_ in https://github.com/NSLS-II/nslsii/pull/214
+
+
+**Full Changelog**: https://github.com/NSLS-II/nslsii/compare/v0.11.0...v0.11.1
+
 
 v0.11.0 (2025-03-25)
 ====================
