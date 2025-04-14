@@ -8,7 +8,6 @@ from bluesky.tests.conftest import RE  # noqa
 from bluesky_kafka import BlueskyConsumer  # noqa
 from bluesky_kafka.tests.conftest import (  # noqa
     kafka_bootstrap_servers,
-    broker_authorization_config,
     consume_documents_from_kafka_until_first_stop_document,
     temporary_topics,
 )
