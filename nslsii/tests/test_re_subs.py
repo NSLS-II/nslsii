@@ -132,7 +132,7 @@ def test_json_bluesky_doc_writer(tmp_path, writing_enabled: bool, flush_each_doc
                                  expected_file_exists: list[bool], expected_file_contents: list[dict | None]):
     """Test that the JSONBlueskyDocWriter works as expected."""
 
-    writer = BlueskyDocJSONWriter(tmp_path, flush_on_each_doc=flush_each_doc_enabled)
+    writer = BlueskyDocJSONWriter(write_directory=tmp_path, flush_on_each_doc=flush_each_doc_enabled)
     expected_filename = TEST_DOCS[0][1]["uid"] + ".json"
 
     if writing_enabled:
