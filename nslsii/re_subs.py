@@ -5,7 +5,18 @@ from pathlib import Path
 
 class BlueskyDocJSONWriter:
 
-    def __init__(self, write_directory: Path):
+    def __init__(self, write_directory: Path, flush_on_each_doc: bool = True):
+        self.set_output_directory(write_directory)
+        self._write_json_file: bool = False
+        self._flush_on_each_doc = flush_on_each_doc
+        self._output_file_name: str | None  = None
+        self._document_cache = []
+
+    def set_output_directory(self, write_directory: Path):
+        """
+        Set the directory to write JSON files to.
+        """
+
         if not os.path.exists(write_directory):
             raise FileNotFoundError(
                 f"Directory does not exist: {write_directory}"
@@ -14,39 +25,45 @@ class BlueskyDocJSONWriter:
             raise PermissionError(
                 f"Cannot write to directory: {write_directory}"
             )
-        self.write_json_file: bool = False
-        self.write_directory = write_directory
-        self.output_file: TextIOWrapper | None  = None
-        self.document_cache = []
+
+        self._write_directory = write_directory
+
+    def enable_writing(self):
+        """
+        Enable writing of JSON files.
+        """
+
+        self._write_json_file = True
+
+    def disable_writing(self):
+        """
+        Disable writing of JSON files.
+        """
+
+        self._write_json_file = False
+        if self._output_file_name is not None:
+            self._document_cache = []
+            self._output_file_name = None
 
     def __call__(self, name: str, doc: dict):
-        if self.write_json_file:
+        if self._write_json_file:
             if name == "start":
-                self.output_file = open(
-                    os.path.join(self.write_directory, f"{doc['uid']}.json"), "w"
-                )
+                self._output_file_name = os.path.join(self._write_directory, f"{doc['uid']}.json")
 
-            if self.output_file is None:
-                # If we don't have an open file, just drop the docs on the floor.
-                pass
-            else:
-                self.document_cache.append({name: doc})
+            if self._output_file_name is not None:
+                self._document_cache.append({name: doc})
+
+                if self._flush_on_each_doc or name == "stop":
+                    with open(self._output_file_name, "w") as fp:
+                        json.dump(
+                            self._document_cache,
+                            fp,
+                            indent=4,
+                        )
 
                 if name == "stop":
-                    json.dump(
-                        self.document_cache,
-                        self.output_file,
-                        indent=4,
-                        sort_keys=True,
-                    )
-                    self.document_cache = []
-                    self.output_file.close()
-                    self.output_file = None
-        elif self.output_file is not None:
-            # If we toggled off writing, close any open file.
-            self.document_cache = []
-            self.output_file.close()
-            self.output_file = None
+                    self._document_cache = []
+                    self._output_file_name = None
 
 
 class BlueskyDocStreamPrinter:
@@ -55,10 +72,24 @@ class BlueskyDocStreamPrinter:
     """
 
     def __init__(self):
-        self.print_docs_to_stdout = False
+        self._print_docs_to_stdout = True
+
+    def enable_printing(self):
+        """
+        Enable printing of documents to stdout.
+        """
+
+        self._print_docs_to_stdout = True
+
+    def disable_printing(self):
+        """
+        Disable printing of documents to stdout.
+        """
+
+        self._print_docs_to_stdout = False
 
     def __call__(self, name: str, doc: dict):
-        if self.print_docs_to_stdout:
+        if self._print_docs_to_stdout:
             print("========= Emitting Doc =============")
             print(f"{name = }")
             print(f"{json.dumps(doc, indent=4)}")

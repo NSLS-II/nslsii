@@ -95,54 +95,67 @@ TEST_DOCS = [
 ]
 
 
-def test_bs_doc_stream_printer(capsys):
+@pytest.mark.parametrize(
+        "printing_enabled, expected_output",
+        [
+            (True, [(f"name = '{name}'", json.dumps(doc, indent=4)) for name, doc in TEST_DOCS]),
+            (False, [("", "")] * len(TEST_DOCS)),
+        ],
+)
+def test_bs_doc_stream_printer(capsys, printing_enabled: bool, expected_output: list[tuple[str, str]]):
     """Test that the dump_docs_to_stdout function works as expected."""
 
     doc_stream_printer = BlueskyDocStreamPrinter()
 
-    doc_stream_printer.print_docs_to_stdout = True
-    for name, doc in TEST_DOCS:
+    if printing_enabled:
+        doc_stream_printer.enable_printing()
+    else:
+        doc_stream_printer.disable_printing()
+
+    # Check that the output is as expected
+    for i, (name, doc) in enumerate(TEST_DOCS):
         doc_stream_printer(name, doc)
         out, err = capsys.readouterr()
-        assert f"name = '{name}'" in out
-        assert json.dumps(doc, indent=4) in out
-
-    doc_stream_printer.print_docs_to_stdout = False
-    for name, doc in TEST_DOCS:
-        doc_stream_printer(name, doc)
-        out, err = capsys.readouterr()
-        assert out == ""
-        assert err == ""
+        assert expected_output[i][0] in out
+        assert expected_output[i][1] in out
 
 
-def test_json_bluesky_doc_writer(tmp_path):
+@pytest.mark.parametrize(
+    "writing_enabled, flush_each_doc_enabled, expected_file_exists, expected_file_contents",
+    [
+        (True, True, [True] * len(TEST_DOCS), [[{name: doc} for name, doc in TEST_DOCS[:i]] for i in range(1, len(TEST_DOCS) + 1)]),
+        (True, False, [False] * (len(TEST_DOCS) - 1) + [True], [None] * (len(TEST_DOCS) - 1) + [[{name: doc} for name, doc in TEST_DOCS]]),
+        (False, True, [False] * len(TEST_DOCS), [None] * len(TEST_DOCS)),
+        (False, False, [False] * len(TEST_DOCS), [None] * len(TEST_DOCS)),
+    ],
+)
+def test_json_bluesky_doc_writer(tmp_path, writing_enabled: bool, flush_each_doc_enabled: bool,
+                                 expected_file_exists: list[bool], expected_file_contents: list[dict | None]):
     """Test that the JSONBlueskyDocWriter works as expected."""
-    writer = BlueskyDocJSONWriter(tmp_path)
+
+    writer = BlueskyDocJSONWriter(tmp_path, flush_on_each_doc=flush_each_doc_enabled)
     expected_filename = TEST_DOCS[0][1]["uid"] + ".json"
 
-    for name, doc in TEST_DOCS:
+    if writing_enabled:
+        writer.enable_writing()
+    else:
+        writer.disable_writing()
+
+    for i, (name, doc) in enumerate(TEST_DOCS):
         writer(name, doc)
 
-    # Make sure that the file wasn't created by default
-    assert not (tmp_path / expected_filename).exists()
+        assert (tmp_path / expected_filename).exists() == expected_file_exists[i]
+        if expected_file_contents[i] is not None:
+            with open(tmp_path / expected_filename) as fp:
+                data = json.load(fp)
+                assert data == expected_file_contents[i]
 
-    # Now turn on the writer and check that the file is created
-    # also, check to make sure if we recieve a doc that is not a start doc
-    # and the file isn't open, we just drop it.
-    writer.write_json_file = True
-    for name, doc in TEST_DOCS:
-        writer(name, doc)
 
-    assert (tmp_path / expected_filename).exists()
+def test_json_bluesky_doc_writer_no_start(tmp_path):
+    """Test that the JSONBlueskyDocWriter works as expected when there is no start document."""
 
-    # Check that the file contains the expected data
-    with open(tmp_path / expected_filename) as fp:
-        data = json.load(fp)
-        for i, doc in enumerate(data):
-            print(doc)
-            assert doc == {TEST_DOCS[i][0]: TEST_DOCS[i][1]}
-
-    os.remove(tmp_path / expected_filename)
+    writer = BlueskyDocJSONWriter(tmp_path)
+    expected_filename = TEST_DOCS[0][1]["uid"] + ".json"
 
     writer(*TEST_DOCS[1])
 
