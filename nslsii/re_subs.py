@@ -1,18 +1,19 @@
-from io import TextIOWrapper
 import json
 import os
 from pathlib import Path
 
 class BlueskyDocJSONWriter:
 
-    def __init__(self, write_directory: Path, flush_on_each_doc: bool = True):
-        self.set_output_directory(write_directory)
+    def __init__(self, write_directory: Path | None = None, flush_on_each_doc: bool = True):
         self._write_json_file: bool = False
         self._flush_on_each_doc = flush_on_each_doc
         self._output_file_name: str | None  = None
         self._document_cache = []
+        self._write_directory: Path = Path("/tmp")
+        if write_directory is not None:
+            self.set_write_directory(write_directory)
 
-    def set_output_directory(self, write_directory: Path):
+    def set_write_directory(self, write_directory: Path):
         """
         Set the directory to write JSON files to.
         """

@@ -1,6 +1,5 @@
 import pytest
 import json
-import os
 
 from nslsii.re_subs import BlueskyDocStreamPrinter, BlueskyDocJSONWriter
 
