@@ -54,7 +54,7 @@ class ProposalNumYMDPathProvider(PathProvider):
         """Helper function that generates ymd path structure"""
 
         current_date_template = ""
-        if self._granularity == YMDGranularity.day:
+        if self._granularity >= YMDGranularity.day:
             current_date_template = f"%Y{self._ymd_separator}%m{self._ymd_separator}%d"
         elif self._granularity == YMDGranularity.month:
             current_date_template = f"%Y{self._ymd_separator}%m"
