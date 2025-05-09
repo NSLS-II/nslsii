@@ -184,6 +184,12 @@ def switch_redis_proposal(
     if (new_data_session == md.get("data_session")) and (
         username == md.get("username")
     ):
+        # The cycle needs to get updated regardless of experiment status
+        md["cycle"] = (
+            "commissioning"
+            if is_commissioning_proposal(str(proposal_number), beamline)
+            else get_current_cycle()
+        )
         warnings.warn(
             f"Experiment {new_data_session} was already started by the same user."
         )
