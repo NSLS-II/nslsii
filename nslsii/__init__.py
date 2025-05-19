@@ -164,12 +164,11 @@ def configure_base(
         db = broker_name
 
     if db is not None:
-        from bluesky.callbacks.tiled_writer import TiledWriter
-        if isinstance(db, TiledWriter):
-            # subscribe to the TiledWriter
-            RE.subscribe(db)
-        else:
+        if isinstance(db, Broker):
+            # subscribe to the Broker
             RE.subscribe(db.insert)
+        else:
+            RE.subscribe(db)
 
     if pbar:
         # Add a progress bar.
