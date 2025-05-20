@@ -164,8 +164,8 @@ def configure_base(
         db = broker_name
 
     if db is not None:
-        if isinstance(db, Broker):
-            # subscribe to the Broker
+        if hasattr(db, "insert"):
+            # subscribe using insert if it exists
             RE.subscribe(db.insert)
         else:
             RE.subscribe(db)
