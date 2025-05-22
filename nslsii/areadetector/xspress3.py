@@ -4,12 +4,13 @@ import re
 import time as ttime
 
 from collections import deque
+import itertools
 from pathlib import Path
 from uuid import uuid4
 
 from databroker.assets.handlers import Xspress3HDF5Handler
 
-from event_model import compose_resource
+from event_model import compose_resource, compose_datum_page
 
 from ophyd import Component as Cpt, Device, Kind
 from ophyd import EpicsSignal, EpicsSignalRO, Signal
@@ -347,19 +348,36 @@ class Xspress3HDF5Plugin(HDF5Plugin):
             self.parent.get_external_file_ref().put(bulk_data_datum["datum_id"])
 
         # generate datum documents for all channels of Kind.normal
+        datums = {**{key: [] for (key, value) in datum_kwargs.items()},
+                  "channel": []}
+
+        print(f"datums before: {datums}")
+
+        counter = itertools.count()
         for channel in self.parent.iterate_channels():
             if channel.get_external_file_ref().kind & Kind.normal:
+                _datum_kwargs = {
+                    **datum_kwargs,
+                    "channel": channel.channel_number,
+                }
                 datum = self._datum_factory(
-                    datum_kwargs={
-                        **datum_kwargs,
-                        "channel": channel.channel_number,
-                    }
+                    datum_kwargs=_datum_kwargs
                 )
-                self._asset_docs_cache.append(("datum", datum))
+                print(f"{channel.name = }  {datum = }")
+                for key, value in datum_kwargs.items():
+                    datums[key].append(value)
+                datums["channel"].append(channel.channel_number)
+                # self._asset_docs_cache.append(("datum", datum))
                 channel.get_external_file_ref().put(datum["datum_id"])
+
+        print(f"datums after: {datums}")
+        datum_page = compose_datum_page(resource=self._resource, counter=counter, datum_kwargs=datums)
+        print(f"{datum_page = }")
+        self._asset_docs_cache.append(("datum_page", datum_page))
 
     def collect_asset_docs(self):
         items = list(self._asset_docs_cache)
+        print(f"In collect_asset_docs: {items}")
         self._asset_docs_cache.clear()
         for item in items:
             yield item
