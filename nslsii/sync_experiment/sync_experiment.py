@@ -209,10 +209,12 @@ def switch_redis_proposal(
                 pi_name = (
                     f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
                 )
-
-        md["data_session"] = new_data_session
+        md["data_session"] = new_data_session  # e.g. "pass-123456"
         md["username"] = username
         md["start_datetime"] = datetime.now().isoformat()
+        md["tiled_access_tags"] = (
+            new_data_session  # Used by bluesky-tiled-writer, not metadata
+        )
         md["cycle"] = (
             "commissioning"
             if is_commissioning_proposal(str(proposal_number), beamline)
