@@ -184,6 +184,12 @@ def switch_redis_proposal(
     if (new_data_session == md.get("data_session")) and (
         username == md.get("username")
     ):
+        # The cycle needs to get updated regardless of experiment status
+        md["cycle"] = (
+            "commissioning"
+            if is_commissioning_proposal(str(proposal_number), beamline)
+            else get_current_cycle()
+        )
         warnings.warn(
             f"Experiment {new_data_session} was already started by the same user."
         )
@@ -203,10 +209,12 @@ def switch_redis_proposal(
                 pi_name = (
                     f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
                 )
-
-        md["data_session"] = new_data_session
+        md["data_session"] = new_data_session  # e.g. "pass-123456"
         md["username"] = username
         md["start_datetime"] = datetime.now().isoformat()
+        md["tiled_access_tags"] = (
+            new_data_session  # Used by bluesky-tiled-writer, not metadata
+        )
         md["cycle"] = (
             "commissioning"
             if is_commissioning_proposal(str(proposal_number), beamline)
