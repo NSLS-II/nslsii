@@ -164,7 +164,7 @@ which may help identify what went wrong).
 ## Known Limitations
 
 Some situations are known to cause problems for Versioneer. This details the
-most significant ones. More can be found on Github
+most significant ones. More can be found on github
 [issues page](https://github.com/warner/python-versioneer/issues).
 
 ### Subprojects
@@ -287,6 +287,7 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 
 class VersioneerConfig:
@@ -1670,9 +1671,9 @@ def get_cmdclass():
 
     # we override different "sdist" commands for both environments
     if "setuptools" in sys.modules:
-        from setuptools.command.sdist import sdist as _sdist
+        from setuptools.command.sdist import sdist as _sdist # noqa: PLC0415
     else:
-        from distutils.command.sdist import sdist as _sdist
+        from distutils.command.sdist import sdist as _sdist # noqa: PLC0415
 
     class cmd_sdist(_sdist):
         def run(self):
@@ -1690,8 +1691,8 @@ def get_cmdclass():
             # now locate _version.py in the new base_dir directory
             # (remembering that it may be a hardlink) and replace it with an
             # updated value
-            target_versionfile = os.path.join(base_dir, cfg.versionfile_source)
-            print("UPDATING %s" % target_versionfile)
+            target_versionfile = Path.join(base_dir, cfg.versionfile_source)
+            print(f"UPDATING {target_versionfile}") # noqa: T201
             write_to_version_file(
                 target_versionfile, self._versioneer_generated_versions
             )
@@ -1752,14 +1753,14 @@ def do_setup():
         cfg = get_config_from_root(root)
     except (OSError, configparser.NoSectionError, configparser.NoOptionError) as e:
         if isinstance(e, (EnvironmentError, configparser.NoSectionError)):
-            print("Adding sample versioneer config to setup.cfg", file=sys.stderr)
-            with open(os.path.join(root, "setup.cfg"), "a") as f:
+            print("Adding sample versioneer config to setup.cfg", file=sys.stderr) # noqa: T201
+            with Path.open(Path.join(root, "setup.cfg"), "a") as f:
                 f.write(SAMPLE_CONFIG)
-        print(CONFIG_ERROR, file=sys.stderr)
+        print(CONFIG_ERROR, file=sys.stderr) # noqa: T201
         return 1
 
-    print(" creating %s" % cfg.versionfile_source)
-    with open(cfg.versionfile_source, "w") as f:
+    print(f" creating {cfg.versionfile_source}") # noqa: T201
+    with Path.open(cfg.versionfile_source, "w") as f:
         LONG = LONG_VERSION_PY[cfg.VCS]
         f.write(
             LONG
@@ -1772,31 +1773,31 @@ def do_setup():
             }
         )
 
-    ipy = os.path.join(os.path.dirname(cfg.versionfile_source), "__init__.py")
-    if os.path.exists(ipy):
+    ipy = Path(cfg.versionfile_source).parent / "__init__.py"
+    if Path.exists(ipy):
         try:
-            with open(ipy) as f:
+            with Path.open(ipy) as f:
                 old = f.read()
         except OSError:
             old = ""
         if INIT_PY_SNIPPET not in old:
-            print(" appending to %s" % ipy)
-            with open(ipy, "a") as f:
+            print(f" appending to {ipy}") # noqa: T201
+            with Path.open(ipy, "a") as f:
                 f.write(INIT_PY_SNIPPET)
         else:
-            print(" %s unmodified" % ipy)
+            print(f" {ipy} unmodified") # noqa: T201
     else:
-        print(" %s doesn't exist, ok" % ipy)
+        print(f" {ipy} doesn't exist, ok") # noqa: T201
         ipy = None
 
     # Make sure both the top-level "versioneer.py" and versionfile_source
     # (PKG/_version.py, used by runtime code) are in MANIFEST.in, so
     # they'll be copied into source distributions. Pip won't be able to
     # install the package without this.
-    manifest_in = os.path.join(root, "MANIFEST.in")
+    manifest_in = Path.join(root, "MANIFEST.in")
     simple_includes = set()
     try:
-        with open(manifest_in) as f:
+        with Path.open(manifest_in) as f:
             for line in f:
                 if line.startswith("include "):
                     for include in line.split()[1:]:
@@ -1808,20 +1809,17 @@ def do_setup():
     # it might give some false negatives. Appending redundant 'include'
     # lines is safe, though.
     if "versioneer.py" not in simple_includes:
-        print(" appending 'versioneer.py' to MANIFEST.in")
-        with open(manifest_in, "a") as f:
+        print(" appending 'versioneer.py' to MANIFEST.in") # noqa: T201
+        with Path.open(manifest_in, "a") as f:
             f.write("include versioneer.py\n")
     else:
-        print(" 'versioneer.py' already in MANIFEST.in")
+        print(" 'versioneer.py' already in MANIFEST.in") # noqa: T201
     if cfg.versionfile_source not in simple_includes:
-        print(
-            " appending versionfile_source ('%s') to MANIFEST.in"
-            % cfg.versionfile_source
-        )
-        with open(manifest_in, "a") as f:
-            f.write("include %s\n" % cfg.versionfile_source)
+        print(f" appending versionfile_source ('{cfg.versionfile_source}') to MANIFEST.in") # noqa: T201
+        with Path.open(manifest_in, "a") as f:
+            f.write(f"include {cfg.versionfile_source}\n")
     else:
-        print(" versionfile_source already in MANIFEST.in")
+        print(" versionfile_source already in MANIFEST.in") # noqa: T201
 
     # Make VCS-specific changes. For git, this means creating/changing
     # .gitattributes to mark _version.py for export-subst keyword
@@ -1835,7 +1833,7 @@ def scan_setup_py():
     found = set()
     setters = False
     errors = 0
-    with open("setup.py") as f:
+    with Path.open("setup.py") as f:
         for line in f.readlines():
             if "import versioneer" in line:
                 found.add("import")
@@ -1848,21 +1846,21 @@ def scan_setup_py():
             if "versioneer.versionfile_source" in line:
                 setters = True
     if len(found) != 3:
-        print("")
-        print("Your setup.py appears to be missing some important items")
-        print("(but I might be wrong). Please make sure it has something")
-        print("roughly like the following:")
-        print("")
-        print(" import versioneer")
-        print(" setup( version=versioneer.get_version(),")
-        print("        cmdclass=versioneer.get_cmdclass(),  ...)")
-        print("")
+        print("") # noqa: T201
+        print("Your setup.py appears to be missing some important items") # noqa: T201
+        print("(but I might be wrong). Please make sure it has something") # noqa: T201
+        print("roughly like the following:") # noqa: T201
+        print("") # noqa: T201
+        print(" import versioneer") # noqa: T201
+        print(" setup( version=versioneer.get_version(),") # noqa: T201
+        print("        cmdclass=versioneer.get_cmdclass(),  ...)") # noqa: T201
+        print("") # noqa: T201
         errors += 1
     if setters:
-        print("You should remove lines like 'versioneer.VCS = ' and")
-        print("'versioneer.versionfile_source = ' . This configuration")
-        print("now lives in setup.cfg, and should be removed from setup.py")
-        print("")
+        print("You should remove lines like 'versioneer.VCS = ' and") # noqa: T201
+        print("'versioneer.versionfile_source = ' . This configuration") # noqa: T201
+        print("now lives in setup.cfg, and should be removed from setup.py") # noqa: T201
+        print("") # noqa: T201
         errors += 1
     return errors
 
