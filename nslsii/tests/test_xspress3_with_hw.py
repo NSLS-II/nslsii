@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import os
 import re
 import time
 
 import pytest
-
 from area_detector_handlers.handlers import Xspress3HDF5Handler
 from bluesky import RunEngine
 from bluesky.plans import count
@@ -13,8 +14,8 @@ from ophyd import Component, Kind
 from ophyd.areadetector import Xspress3Detector
 
 from nslsii.areadetector.xspress3 import (
-    Xspress3Trigger,
     Xspress3HDF5Plugin,
+    Xspress3Trigger,
     build_xspress3_class,
 )
 
@@ -209,8 +210,6 @@ def test_document_stream(
         },
     )
     xspress3 = xspress3_class(prefix=xs3_pv_prefix, name="xs3")
-
-    #
 
     RE(count([xspress3]))
 

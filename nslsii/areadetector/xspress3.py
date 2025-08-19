@@ -1,28 +1,25 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import re
 import time as ttime
-
 from collections import deque
 from pathlib import Path
 from uuid import uuid4
 
 from databroker.assets.handlers import Xspress3HDF5Handler
-
 from event_model import compose_resource
-
-from ophyd import Component as Cpt, Device, Kind
-from ophyd import EpicsSignal, EpicsSignalRO, Signal
-from ophyd.areadetector import ADBase
+from ophyd import Component as Cpt
+from ophyd import Device, EpicsSignal, EpicsSignalRO, Kind, Signal
+from ophyd.areadetector import ADBase, Xspress3Detector
 from ophyd.areadetector import EpicsSignalWithRBV as SignalWithRBV
-from ophyd.areadetector import Xspress3Detector
 from ophyd.areadetector.filestore_mixins import FileStorePluginBase
 from ophyd.areadetector.plugins import HDF5Plugin_V34 as HDF5Plugin
 from ophyd.device import Staged
 from ophyd.status import DeviceStatus
 
 from ..detectors.utils import makedirs
-
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +119,7 @@ class Xspress3Trigger(Device):
 
 
 class Xspress3ExternalFileReference(Signal):
-    """ A special Signal for datum document information.
+    """A special Signal for datum document information.
 
     Parameters
     ----------
@@ -136,7 +133,9 @@ class Xspress3ExternalFileReference(Signal):
 
     """
 
-    def __init__(self, *args, dtype_str="uint32", bin_count=4096, dim_name="bin_count", **kwargs):
+    def __init__(
+        self, *args, dtype_str="uint32", bin_count=4096, dim_name="bin_count", **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.dtype_str = dtype_str
         self.shape = (bin_count,)
@@ -267,7 +266,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         the_full_data_dir_path = self._build_data_dir_path(
             the_datetime=datetime.datetime.now(),
             root_path=self.root_path.get(),
-            path_template=self.path_template.get()
+            path_template=self.path_template.get(),
         )
         self.file_path.set(the_full_data_dir_path).wait()
         # 3. set file_name to a uuid
@@ -329,7 +328,6 @@ class Xspress3HDF5Plugin(HDF5Plugin):
         return staged_devices
 
     def unstage(self):
-
         self.capture.set(0).wait()
 
         return super().unstage()
@@ -339,10 +337,11 @@ class Xspress3HDF5Plugin(HDF5Plugin):
             raise ValueError(f"'key' must be None but key='{key}'")
 
         # generate datum document for "bulk" image data (the whole array)
-        if self.parent.get_external_file_ref() and self.parent.get_external_file_ref().kind & Kind.normal:
-            bulk_data_datum = self._bulk_data_datum_factory(
-                datum_kwargs={}
-            )
+        if (
+            self.parent.get_external_file_ref()
+            and self.parent.get_external_file_ref().kind & Kind.normal
+        ):
+            bulk_data_datum = self._bulk_data_datum_factory(datum_kwargs={})
             self._asset_docs_cache.append(("datum", bulk_data_datum))
             self.parent.get_external_file_ref().put(bulk_data_datum["datum_id"])
 
@@ -512,7 +511,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         )
 
         if not self.file_path_exists.get():
-            raise IOError(f"path '{self.file_path.get()}' does not exist on the IOC")
+            raise OSError(f"path '{self.file_path.get()}' does not exist on the IOC")
 
         logger.debug("inserting the filestore resource: '%s'", self._fn)
         # JL: calling generate_resource() in stage is usual
@@ -609,8 +608,6 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                 )
                 # we are done
                 return
-            else:
-                pass
 
         # we have a problem
         # the `key` parameter did not match any of our channels
@@ -815,13 +812,11 @@ def _validate_mcaroi_number(mcaroi_number):
     """
     if not isinstance(mcaroi_number, int):
         raise ValueError(f"MCAROI number '{mcaroi_number}' is not an integer")
-    elif not 1 <= mcaroi_number <= 48:
+    if not 1 <= mcaroi_number <= 48:
         raise ValueError(
             f"MCAROI number '{mcaroi_number}' is outside the allowed interval [1,48]"
         )
-    else:
-        # everything is awesome
-        pass
+    # everything is awesome
 
 
 def build_channel_class(
@@ -923,14 +918,13 @@ def build_channel_class(
 
     def get_external_file_ref(self):
         """Return the Xspress3ExternalFileReference.
-        
-           image_data_key is an optional attribute
-           if it is not present return None
+
+        image_data_key is an optional attribute
+        if it is not present return None
         """
         if image_data_key:
             return getattr(self, image_data_key)
-        else:
-            return None
+        return None
 
     channel_fields_and_methods = {
         "__init__": __init__,
@@ -989,13 +983,11 @@ def _validate_channel_number(channel_number):
     """
     if not isinstance(channel_number, int):
         raise ValueError(f"channel number '{channel_number}' is not an integer")
-    elif not 1 <= channel_number <= 16:
+    if not 1 <= channel_number <= 16:
         raise ValueError(
             f"channel number '{channel_number}' is outside the allowed interval [1,16]"
         )
-    else:
-        # everything is great
-        pass
+    # everything is great
 
 
 def build_detector_class(
@@ -1142,41 +1134,36 @@ def build_xspress3_class(
 
     def get_external_file_ref(self):
         """Return the Xspress3ExternalFileReference.
-        
-           image_data_key is an optional attribute
-           if it is not present return None
+
+        image_data_key is an optional attribute
+        if it is not present return None
         """
         if image_data_key:
             return getattr(self, image_data_key)
-        else:
-            return None
+        return None
 
     xspress3_fields_and_methods = dict(
-        **{
-            "channel_numbers": tuple(sorted(channel_numbers)),
-            "external_trig": Cpt(Signal, value=False, doc="Use external triggering"),
-            "total_points": Cpt(
-                Signal,
-                value=-1,
-                doc="The total number of points to acquire overall",
-            ),
-            "spectra_per_point": Cpt(
-                Signal, value=1, doc="Number of spectra per point"
-            ),
-            "make_directories": Cpt(
-                Signal, value=False, doc="Make directories on the Xspress3 side"
-            ),
-            "rewindable": Cpt(
-                Signal,
-                value=False,
-                doc="Xspress3 cannot safely be rewound in bluesky",
-            ),
-            "__repr__": __repr__,
-            "get_channel_count": get_channel_count,
-            "get_channel": get_channel,
-            "iterate_channels": iterate_channels,
-            "get_external_file_ref": get_external_file_ref,
-        },
+        channel_numbers=tuple(sorted(channel_numbers)),
+        external_trig=Cpt(Signal, value=False, doc="Use external triggering"),
+        total_points=Cpt(
+            Signal,
+            value=-1,
+            doc="The total number of points to acquire overall",
+        ),
+        spectra_per_point=Cpt(Signal, value=1, doc="Number of spectra per point"),
+        make_directories=Cpt(
+            Signal, value=False, doc="Make directories on the Xspress3 side"
+        ),
+        rewindable=Cpt(
+            Signal,
+            value=False,
+            doc="Xspress3 cannot safely be rewound in bluesky",
+        ),
+        __repr__=__repr__,
+        get_channel_count=get_channel_count,
+        get_channel=get_channel,
+        iterate_channels=iterate_channels,
+        get_external_file_ref=get_external_file_ref,
         **extra_class_members,
     )
 

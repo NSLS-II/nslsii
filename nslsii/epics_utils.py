@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import socket
 from socket import gaierror, herror
@@ -29,8 +31,17 @@ def get_ioc_hostname(pvname):
 def main():
     # Used by the `sync-experiment` command
 
-    parser = argparse.ArgumentParser(description="Get the IOC hostname based on the provided PV")
-    parser.add_argument("-p", "--pv", dest="pvname", type=str, help="PV to query information about", required=True)
+    parser = argparse.ArgumentParser(
+        description="Get the IOC hostname based on the provided PV"
+    )
+    parser.add_argument(
+        "-p",
+        "--pv",
+        dest="pvname",
+        type=str,
+        help="PV to query information about",
+        required=True,
+    )
 
     args = parser.parse_args()
     hostname = get_ioc_hostname(args.pvname)

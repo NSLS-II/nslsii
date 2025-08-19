@@ -1,5 +1,6 @@
-import logging
+from __future__ import annotations
 
+import logging
 from collections import namedtuple
 from pathlib import Path
 
@@ -222,7 +223,6 @@ def _subscribe_kafka_queue_thread_publisher(
         un-subscribe the function from the RunEngine, in case someone ever wants to do that.
 
     """
-    from bluesky_kafka import BlueskyKafkaException
     from bluesky_kafka.tools.queue_thread import build_kafka_publisher_queue_and_thread
 
     nslsii_logger = logging.getLogger("nslsii")

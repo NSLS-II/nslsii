@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import re
 from collections import ChainMap, UserDict
@@ -6,7 +8,6 @@ from uuid import uuid4
 import msgpack
 import msgpack_numpy
 import redis
-
 
 msgpack_numpy.patch()
 
@@ -181,9 +182,8 @@ class RunEngineRedisDict(UserDict):
     def __delitem__(self, key):
         if key in self._global_keys:
             raise KeyError(f"deleting key {key} is not allowed")
-        else:
-            del self._local_md[key]
-            self._set_local_metadata_on_server()
+        del self._local_md[key]
+        self._set_local_metadata_on_server()
 
         # tell everyone a (local) key-value has been changed
         self._publish_metadata_update_message(key)

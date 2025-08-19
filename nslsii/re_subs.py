@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
 
-class BlueskyDocJSONWriter:
 
-    def __init__(self, write_directory: Path | None = None, flush_on_each_doc: bool = True):
+class BlueskyDocJSONWriter:
+    def __init__(
+        self, write_directory: Path | None = None, flush_on_each_doc: bool = True
+    ):
         self._write_json_file: bool = False
         self._flush_on_each_doc = flush_on_each_doc
-        self._output_file_name: str | None  = None
+        self._output_file_name: str | None = None
         self._document_cache = []
         self._write_directory: Path = Path("/tmp")
         if write_directory is not None:
@@ -19,13 +23,9 @@ class BlueskyDocJSONWriter:
         """
 
         if not os.path.exists(write_directory):
-            raise FileNotFoundError(
-                f"Directory does not exist: {write_directory}"
-            )
-        elif not os.access(write_directory, os.W_OK):
-            raise PermissionError(
-                f"Cannot write to directory: {write_directory}"
-            )
+            raise FileNotFoundError(f"Directory does not exist: {write_directory}")
+        if not os.access(write_directory, os.W_OK):
+            raise PermissionError(f"Cannot write to directory: {write_directory}")
 
         self._write_directory = write_directory
 
@@ -49,7 +49,9 @@ class BlueskyDocJSONWriter:
     def __call__(self, name: str, doc: dict):
         if self._write_json_file:
             if name == "start":
-                self._output_file_name = os.path.join(self._write_directory, f"{doc['uid']}.json")
+                self._output_file_name = os.path.join(
+                    self._write_directory, f"{doc['uid']}.json"
+                )
 
             if self._output_file_name is not None:
                 self._document_cache.append({name: doc})

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import logging
 import uuid
@@ -61,7 +63,6 @@ def test_build_and_subscribe_kafka_queue_thread_publisher(
     with temporary_topics(topics=[f"{beamline_name}.bluesky.runengine.documents"]) as (
         beamline_topic,
     ):
-
         subscribe_kafka_queue_thread_publisher_details = (
             nslsii.kafka_utils._subscribe_kafka_queue_thread_publisher(
                 RE=RE,
@@ -169,17 +170,19 @@ def test_publisher_with_no_broker(RE, hw):
     Test the case of no Kafka broker.
     """
     beamline_name = str(uuid.uuid4())[:8]
-    subscribe_kafka_queue_thread_publisher_details = nslsii.kafka_utils._subscribe_kafka_queue_thread_publisher(
-        RE=RE,
-        beamline_name=beamline_name,
-        # specify a bootstrap server that does not exist
-        bootstrap_servers="100.100.100.100:9092",
-        producer_config={
-            "acks": "all",
-            "enable.idempotence": False,
-            "request.timeout.ms": 1000,
-        },
-        publisher_queue_timeout=1,
+    subscribe_kafka_queue_thread_publisher_details = (
+        nslsii.kafka_utils._subscribe_kafka_queue_thread_publisher(
+            RE=RE,
+            beamline_name=beamline_name,
+            # specify a bootstrap server that does not exist
+            bootstrap_servers="100.100.100.100:9092",
+            producer_config={
+                "acks": "all",
+                "enable.idempotence": False,
+                "request.timeout.ms": 1000,
+            },
+            publisher_queue_timeout=1,
+        )
     )
 
     assert subscribe_kafka_queue_thread_publisher_details.re_subscribe_token is None
@@ -201,7 +204,7 @@ def test_publisher_with_no_broker(RE, hw):
 
     # timeout is set at 1s but it takes longer than 5s to run count
     # so running count should take less than 10s
-    print(f"time for count: {t1-t0:.3f}")
+    print(f"time for count: {t1 - t0:.3f}")
     assert (t1 - t0) < 10.0
 
     # the RunEngine should have published 4 documents

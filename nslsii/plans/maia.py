@@ -1,8 +1,9 @@
-import numpy as np
+from __future__ import annotations
 
-import bluesky.plans as bp
 import bluesky.plan_stubs as bps
+import bluesky.plans as bp
 import bluesky.preprocessors as bpp
+import numpy as np
 
 sample_md = {"sample": {"name": "Ni mesh", "owner": "stolen"}}
 
@@ -92,13 +93,13 @@ def fly_maia(
     sample_md = md.get("sample", {})
     for k in ["info", "name", "owner", "serial", "type"]:
         v = sample_md.get(k, "")
-        sig = getattr(maia, "meta_val_sample_{}_sp.value".format(k))
+        sig = getattr(maia, f"meta_val_sample_{k}_sp.value")
         yield from bp.mv(sig, str(v))
 
     scan_md = md.get("scan", {})
     for k in ["region", "info", "seq_num", "seq_total"]:
         v = scan_md.get(k, "")
-        sig = getattr(maia, "meta_val_scan_{}_sp.value".format(k))
+        sig = getattr(maia, f"meta_val_scan_{k}_sp.value")
         yield from bp.mv(sig, str(v))
 
     if group is not None:
@@ -114,7 +115,7 @@ def fly_maia(
     x_pitch = abs(xstop - xstart) / (xnum - 1)
     y_pitch = abs(ystop - ystart) / (ynum - 1)
 
-    # TODO compute this based on someting
+    # TODO compute this based on something
     spd_x = x_pitch / dwell
 
     yield from bp.mv(hf_stage.x, xstart, hf_stage.y, ystart)
@@ -147,13 +148,10 @@ def fly_maia(
 
     eng_kev = yield from bps.rd(energy.energy.readback)
     if eng_kev is not None:
-        yield from bp.mv(
-            maia.meta_val_beam_energy_sp.value, "{:.2f}".format(eng_kev * 1000)
-        )
+        yield from bp.mv(maia.meta_val_beam_energy_sp.value, f"{eng_kev * 1000:.2f}")
 
     @bpp.reset_positions_decorator([hf_stage.x.velocity])
     def _raster_plan():
-
         # set the motors to the right speed
         yield from bp.mv(hf_stage.x.velocity, spd_x)
 
@@ -191,11 +189,11 @@ def fly_maia(
         yield from bp.close_run()
         yield from bp.mv(maia.meta_val_scan_crossref_sp.value, "")
         for k in ["info", "name", "owner", "serial", "type"]:
-            sig = getattr(maia, "meta_val_sample_{}_sp.value".format(k))
+            sig = getattr(maia, f"meta_val_sample_{k}_sp.value")
             yield from bp.mv(sig, "")
 
         for k in ["region", "info", "seq_num", "seq_total"]:
-            sig = getattr(maia, "meta_val_scan_{}_sp.value".format(k))
+            sig = getattr(maia, f"meta_val_scan_{k}_sp.value")
             yield from bp.mv(sig, "")
         yield from bp.mv(maia.meta_val_beam_energy_sp.value, "")
         yield from bp.mv(maia.meta_val_scan_dwell.value, "")
@@ -253,14 +251,13 @@ def fly_maia_finger_sync(
     # Pitch must match what raster driver uses for pitch ...
     x_pitch = abs(xstop - xstart) / (xnum - 1)
 
-    # TODO compute this based on someting
+    # TODO compute this based on something
     spd_x = x_pitch / dwell
 
     yield from bp.mv(hf_stage.x, xstart, hf_stage.y, ystart)
 
     @bpp.reset_positions_decorator([hf_stage.x.velocity])
     def _raster_plan():
-
         # set the motors to the right speed
         yield from bp.mv(hf_stage.x.velocity, spd_x)
 

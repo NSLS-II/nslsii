@@ -61,6 +61,7 @@ repos:
     rev: "v2.4.1"
     hooks:
       - id: codespell
+        args: [--ignore-words-list=inpt, INPU, NOE, NOO]
         additional_dependencies:
           - tomli; python_version<'3.11'
 

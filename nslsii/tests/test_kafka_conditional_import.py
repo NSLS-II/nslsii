@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import subprocess
 import sys
@@ -44,15 +46,16 @@ nslsii.configure_base(
 if "bluesky_kafka" in sys.modules:
     sys.exit(1)
 else:
-    sys.exit(0)    
+    sys.exit(0)
 """
     proc = subprocess.run(
         [sys.executable, "-c", the_test],
+        check=False,
     )
 
     if proc.returncode:
         pytest.fail(
-            "The subprocess returned with non-zero exit status " f"{proc.returncode}."
+            f"The subprocess returned with non-zero exit status {proc.returncode}."
         )
 
 
@@ -84,10 +87,10 @@ def test_conditional_import_positive_case(tmp_path):
 
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
-    with open(test_config_file_path, "wt") as f:
+    with open(test_config_file_path, "w") as f:
         f.write(test_bluesky_kafka_config)
 
-    the_test = f"""
+    the_test = """
 import sys
 from unittest.mock import Mock
 
@@ -117,10 +120,11 @@ nslsii.configure_base(
 if "bluesky_kafka" in sys.modules:
     sys.exit(0)
 else:
-    sys.exit(1)    
+    sys.exit(1)
 """
     proc = subprocess.run(
         [sys.executable, "-c", the_test],
+        check=False,
         env={
             **os.environ,
             "BLUESKY_KAFKA_CONFIG_PATH": str(test_config_file_path),
@@ -129,5 +133,5 @@ else:
 
     if proc.returncode:
         pytest.fail(
-            "The subprocess returned with non-zero exit status " f"{proc.returncode}."
+            f"The subprocess returned with non-zero exit status {proc.returncode}."
         )

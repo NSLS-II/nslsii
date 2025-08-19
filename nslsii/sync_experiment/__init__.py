@@ -1,1 +1,8 @@
-from .sync_experiment import main, sync_experiment, validate_proposal, switch_redis_proposal
+from __future__ import annotations
+
+from .sync_experiment import (
+    main,
+    switch_redis_proposal,
+    sync_experiment,
+    validate_proposal,
+)

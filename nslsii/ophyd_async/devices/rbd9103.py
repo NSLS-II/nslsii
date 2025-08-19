@@ -1,13 +1,16 @@
+from __future__ import annotations
+
+from typing import Annotated as A
+
 from ophyd_async.core import (
-    StandardReadable,
+    AsyncStatus,
     SignalR,
     SignalRW,
+    StandardReadable,
     StrictEnum,
-    AsyncStatus,
 )
 from ophyd_async.core import StandardReadableFormat as Format
-from ophyd_async.epics.signal import PvSuffix, EpicsDevice
-from typing import Annotated as A
+from ophyd_async.epics.signal import EpicsDevice, PvSuffix
 
 
 class RBD9103Range(StrictEnum):

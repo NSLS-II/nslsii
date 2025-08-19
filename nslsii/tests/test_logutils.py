@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import datetime
 import io
-import os
 import logging
+import os
+import shutil
+import stat
 import subprocess
 from logging.handlers import SysLogHandler
 from pathlib import Path
-import shutil
-import stat
 from unittest.mock import MagicMock
 
 import appdirs
@@ -224,14 +226,25 @@ def test_configure_bluesky_logging_syslog_logging(tmpdir):
     # remember the time so we can ask journalctl for only the most recent log messages
     time_before_logging = datetime.datetime.now().time().isoformat(timespec="seconds")
     for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
-        logging.getLogger(logger_name).info(f"{logger_name} log message %s", time_before_logging)
+        logging.getLogger(logger_name).info(
+            f"{logger_name} log message %s", time_before_logging
+        )
 
     for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
         journalctl_output = subprocess.run(
-            ["journalctl", f"SYSLOG_IDENTIFIER={logger_name}", f"--since={time_before_logging}", "--no-pager"],
+            [
+                "journalctl",
+                f"SYSLOG_IDENTIFIER={logger_name}",
+                f"--since={time_before_logging}",
+                "--no-pager",
+            ],
+            check=False,
             capture_output=True,
         )
-        assert f"{logger_name} log message {time_before_logging}" in journalctl_output.stdout.decode()
+        assert (
+            f"{logger_name} log message {time_before_logging}"
+            in journalctl_output.stdout.decode()
+        )
 
 
 def test_ipython_log_exception():

@@ -1,3 +1,4 @@
+area_detector_handlers
 # These are required for developing the package (running the tests, building
 # the documentation) but not necessarily required for _using_ it.
 attrs>=17.4.0
@@ -7,9 +8,8 @@ flake8
 ipython
 matplotlib
 numpydoc
+pre-commit
 pytest
+ruff
 sphinx
 sphinx_rtd_theme
-area_detector_handlers
-pre-commit
-ruff
