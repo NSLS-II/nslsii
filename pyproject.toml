@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nslsii"
 authors = [
-  { name = "Jennefer Maldonado", email = "jmaldonad@bnl.gov" },
+  { name = "NSLS2", email = "dssi@bnl.gov" },
 ]
 description = "A great package."
 readme = "README.md"

@@ -4,8 +4,8 @@ import importlib.metadata
 from typing import Any
 
 project = "nslsii"
-copyright = "2025, Jennefer Maldonado"
-author = "Jennefer Maldonado"
+copyright = "2025, NSLS2"
+author = "NSLS2"
 version = release = importlib.metadata.version("nslsii")
 
 extensions = [
