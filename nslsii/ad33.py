@@ -79,7 +79,7 @@ class SingleTriggerV33(TriggerBase):
             self._status._finished()
 
         self._acquisition_signal.put(1, use_complete=True, callback=_acq_done)
-        self.dispatch(self._image_name, ttime.time())
+        self.generate_datum(self._image_name, ttime.time(), {})
         return self._status
 
 
