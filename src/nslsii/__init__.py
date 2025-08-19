@@ -1,5 +1,5 @@
 """
-Copyright (c) 2025 Jennefer Maldonado. All rights reserved.
+Copyright (c) 2025. All rights reserved.
 
 nslsii: NSLS-II related devices
 """
