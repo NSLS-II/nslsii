@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-from caproto.server import pvproperty, PVGroup, ioc_arg_parser, run
-import numpy as np
+from __future__ import annotations
+
 import time
 from textwrap import dedent
+
+import numpy as np
+from caproto.server import PVGroup, ioc_arg_parser, pvproperty, run
 
 
 class Thermo(PVGroup):
@@ -32,28 +35,31 @@ class Thermo(PVGroup):
         super().__init__(*args, **kwargs)
         self._T0 = time.monotonic()
 
-    readback = pvproperty(value=0, dtype=float, read_only=True,
-                          name='T-RB',
-                          mock_record='ai')
+    readback = pvproperty(
+        value=0, dtype=float, read_only=True, name="T-RB", mock_record="ai"
+    )
 
-    setpoint = pvproperty(value=100, dtype=float, name='T-SP')
+    setpoint = pvproperty(value=100, dtype=float, name="T-SP")
     K = pvproperty(value=10, dtype=float)
     omega = pvproperty(value=np.pi, dtype=float)
     Tvar = pvproperty(value=10, dtype=float)
 
-    @readback.scan(period=.1, use_scan_field=True)
+    @readback.scan(period=0.1, use_scan_field=True)
     async def readback(self, instance, async_lib):
-
-        def t_rbv(T0, setpoint, K, omega, Tvar,):
+        def t_rbv(
+            T0,
+            setpoint,
+            K,
+            omega,
+            Tvar,
+        ):
             t = time.monotonic()
-            return ((Tvar *
-                     np.exp(-(t - self._T0) / K) *
-                     np.sin(omega * t)) +
-                    setpoint)
+            return (Tvar * np.exp(-(t - self._T0) / K) * np.sin(omega * t)) + setpoint
 
-        T = t_rbv(T0=self._T0,
-                  **{k: getattr(self, k).value
-                     for k in ['setpoint', 'K', 'omega', 'Tvar']})
+        T = t_rbv(
+            T0=self._T0,
+            **{k: getattr(self, k).value for k in ["setpoint", "K", "omega", "Tvar"]},
+        )
 
         await instance.write(value=T)
 
@@ -63,9 +69,9 @@ class Thermo(PVGroup):
         return value
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ioc_options, run_options = ioc_arg_parser(
-        default_prefix='thermo:',
-        desc=dedent(Thermo.__doc__))
+        default_prefix="thermo:", desc=dedent(Thermo.__doc__)
+    )
     ioc = Thermo(**ioc_options)
     run(ioc.pvdb, **run_options)

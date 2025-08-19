@@ -1,14 +1,17 @@
+from __future__ import annotations
+
+import os
 from datetime import date
 from enum import Enum
 from pathlib import Path
 from typing import Optional
+
+import shortuuid
 from ophyd_async.core import (
     FilenameProvider,
-    PathProvider,
     PathInfo,
+    PathProvider,
 )
-import os
-import shortuuid
 
 
 class YMDGranularity(int, Enum):
@@ -136,8 +139,7 @@ class ShortUUIDFilenameProvider(FilenameProvider):
         sid = shortuuid.uuid()
         if device_name is not None:
             return f"{device_name}{self._separator}{sid}"
-        else:
-            return sid
+        return sid
 
 
 class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
@@ -156,8 +158,7 @@ class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
             raise RuntimeError(
                 f"{new_mode} is not a valid option for {self._mode_type}!"
             )
-        else:
-            self._mode = new_mode
+        self._mode = new_mode
 
     def __call__(self, **kwargs):
         return super().__call__(device_name=self._mode.value)

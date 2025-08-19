@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import re
 
 import pytest
-
 from ophyd import ADBase, Component, EpicsSignal, Kind, Signal
 
 from nslsii.areadetector.xspress3 import (
     Mca,
-    McaSum,
     McaRoi,
+    McaSum,
     Sca,
     Xspress3Detector,
     build_channel_class,
@@ -370,10 +371,7 @@ def test_extra_class_members():
         channel_numbers=(3, 5),
         mcaroi_numbers=(4, 6),
         image_data_key="image",
-        extra_class_members={
-            "ten": 10,
-            "a_signal": Component(EpicsSignal, "Signal")
-        },
+        extra_class_members={"ten": 10, "a_signal": Component(EpicsSignal, "Signal")},
     )
 
     assert detector_class.ten == 10

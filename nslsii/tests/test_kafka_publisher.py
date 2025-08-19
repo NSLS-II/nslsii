@@ -1,15 +1,15 @@
-import uuid
+from __future__ import annotations
 
+import uuid
 from unittest.mock import Mock
 
 import pytest
-
-import nslsii
-import nslsii.kafka_utils
-
 from bluesky.plans import count
 from bluesky_kafka import BlueskyKafkaException
 from event_model import sanitize_doc
+
+import nslsii
+import nslsii.kafka_utils
 
 
 def test__subscribe_kafka_publisher(
@@ -64,7 +64,6 @@ def test__subscribe_kafka_publisher(
     with temporary_topics(topics=[f"{beamline_name}.bluesky.runengine.documents"]) as (
         beamline_topic,
     ):
-
         subscribe_kafka_publisher_details = (
             nslsii.kafka_utils._subscribe_kafka_publisher(
                 RE=RE,
@@ -150,7 +149,6 @@ def test_no_broker(
     with temporary_topics(topics=[f"{beamline_name}.bluesky.runengine.documents"]) as (
         beamline_topic,
     ):
-
         subscribe_kafka_publisher_details = (
             nslsii.kafka_utils._subscribe_kafka_publisher(
                 RE=RE,
@@ -218,17 +216,19 @@ def test_exception_on_publisher_call(
             #   but only __call__ will be invoked
             return Mock(side_effect=BlueskyKafkaException)
 
-        subscribe_kafka_publisher_details = nslsii.kafka_utils._subscribe_kafka_publisher(
-            RE=RE,
-            beamline_name=beamline_name,
-            bootstrap_servers=kafka_bootstrap_servers,
-            producer_config={
-                "acks": "all",
-                "enable.idempotence": False,
-                "request.timeout.ms": 1000,
-            },
-            # use a mock-ed publisher
-            _publisher_factory=mock_publisher_factory,
+        subscribe_kafka_publisher_details = (
+            nslsii.kafka_utils._subscribe_kafka_publisher(
+                RE=RE,
+                beamline_name=beamline_name,
+                bootstrap_servers=kafka_bootstrap_servers,
+                producer_config={
+                    "acks": "all",
+                    "enable.idempotence": False,
+                    "request.timeout.ms": 1000,
+                },
+                # use a mock-ed publisher
+                _publisher_factory=mock_publisher_factory,
+            )
         )
 
         assert subscribe_kafka_publisher_details.beamline_topic == beamline_topic

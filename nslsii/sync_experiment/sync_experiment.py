@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -5,7 +7,7 @@ import re
 import warnings
 from datetime import datetime
 from getpass import getpass
-from typing import Any, Dict, Union, Optional
+from typing import Any, Dict, Optional, Union
 
 import httpx
 import redis
@@ -21,7 +23,7 @@ nslsii_api_client = httpx.Client(base_url="https://api.nsls2.bnl.gov")
 
 def get_current_cycle() -> str:
     cycle_response = nslsii_api_client.get(
-        f"/v1/facility/nsls2/cycles/current"
+        "/v1/facility/nsls2/cycles/current"
     ).raise_for_status()
     return cycle_response.json()["cycle"]
 
@@ -61,18 +63,14 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
                 f"an error was returned by {proposal_response.url}: "
                 f"{proposal_data}"
             )
-        else:
-            if (
-                not proposal_commissioning
-                and current_cycle not in proposal_data["cycles"]
-            ):
-                raise ValueError(
-                    f"Proposal {data_session_value} is not valid in the current NSLS2 cycle ({current_cycle})."
-                )
-            if beamline.upper() not in proposal_data["instruments"]:
-                raise ValueError(
-                    f"Wrong beamline ({beamline.upper()}) for proposal {data_session_value} ({', '.join(proposal_data['instruments'])})."
-                )
+        if not proposal_commissioning and current_cycle not in proposal_data["cycles"]:
+            raise ValueError(
+                f"Proposal {data_session_value} is not valid in the current NSLS2 cycle ({current_cycle})."
+            )
+        if beamline.upper() not in proposal_data["instruments"]:
+            raise ValueError(
+                f"Wrong beamline ({beamline.upper()}) for proposal {data_session_value} ({', '.join(proposal_data['instruments'])})."
+            )
             # data_session is valid!
 
     except httpx.RequestError as rerr:
@@ -100,7 +98,7 @@ def authenticate(
         try:
             with open(fn) as f:
                 config = yaml.safe_load(f)
-        except IOError:
+        except OSError:
             pass
         else:
             break
@@ -111,7 +109,7 @@ def authenticate(
     server = config.get("common", {}).get("server")
 
     if server is None:
-        raise RuntimeError(f"Server name not found!")
+        raise RuntimeError("Server name not found!")
 
     auth_server = Server(server, use_ssl=True)
 
@@ -135,13 +133,11 @@ def authenticate(
 def should_they_be_here(username, new_data_session, beamline):
     user_access_json = nslsii_api_client.get(f"/v1/data-session/{username}").json()
 
-    if "nsls2" in user_access_json["facility_all_access"]:
-        return True
-
-    elif beamline.lower() in user_access_json["beamline_all_access"]:
-        return True
-
-    elif new_data_session in user_access_json["data_sessions"]:
+    if (
+        "nsls2" in user_access_json["facility_all_access"]
+        or beamline.lower() in user_access_json["beamline_all_access"]
+        or new_data_session in user_access_json["data_sessions"]
+    ):
         return True
 
     return False
@@ -195,7 +191,6 @@ def switch_redis_proposal(
         )
 
     else:
-
         if not should_they_be_here(username, new_data_session, beamline):
             raise AuthorizationError(
                 f"User '{username}' is not allowed to take data on proposal {new_data_session}"
@@ -207,7 +202,7 @@ def switch_redis_proposal(
         for user in users:
             if user.get("is_pi"):
                 pi_name = (
-                    f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
+                    f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
                 )
         md["data_session"] = new_data_session  # e.g. "pass-123456"
         md["username"] = username
@@ -233,7 +228,6 @@ def switch_redis_proposal(
 
 
 def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
-
     # Authenticate the user
     username = input("Username : ")
     authenticate(username)

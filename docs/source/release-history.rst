@@ -68,7 +68,7 @@ v0.10.4 (2024-09-18)
 ====================
 * Add SRX MAIA code
 * Remove distutils
-* Fix sync_experiment for SST 
+* Fix sync_experiment for SST
 * Fix docker compose usage
 
 v0.10.3 (2024-06-28)
@@ -98,7 +98,7 @@ v0.9.1 (2023-06-08)
 
 v0.9.0 (2023-01-20)
 ===================
-* fix incorrect usage of ``prefix=`` keyword argument in tests 
+* fix incorrect usage of ``prefix=`` keyword argument in tests
 * add ``nslsii.areadetector.xspress3.Xspress3ExternalFileReference.dtype_str``
 
 v0.8.0 (2022-12-19)
