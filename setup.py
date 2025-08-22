@@ -2,19 +2,19 @@ from __future__ import annotations
 
 # To use a consistent encoding
 from codecs import open
-from os import path
+from pathlib import Path
 
 import setuptools
 
 import versioneer
 
-here = path.abspath(path.dirname(__file__))
+here = Path.abspath(Path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, "README.md"), encoding="utf-8") as f:
+with open(Path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-with open(path.join(here, "requirements.txt")) as f:
+with open(Path.join(here, "requirements.txt")) as f:
     requirements = f.read().splitlines()
 
 setuptools.setup(
