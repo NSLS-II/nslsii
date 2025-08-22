@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import datetime
-import os
 import re
 import time
+from pathlib import Path
 
 import pytest
 from area_detector_handlers.handlers import Xspress3HDF5Handler
@@ -87,7 +87,7 @@ def test_trigger(xs3_pv_prefix, xs3_root_path, xs3_path_template):
             --xs3-root-path "/nsls2/lob1/lab3/" \
             --xs3-path-template "/nsls2/lob1/lab3/xspress3/ophyd_testing/"
     """
-    if xs3_root_path is None or not os.path.exists(xs3_root_path):
+    if xs3_root_path is None or not Path.exists(xs3_root_path):
         pytest.skip("xspress3 root path was not specified")
     if xs3_pv_prefix is None:
         pytest.skip("xspress3 PV prefix was not specified")
@@ -176,7 +176,7 @@ def test_document_stream(
             --xs3-channel-numbers 1,2,3 \
             --xs3-mcaroi-numbers 1,2,3
     """
-    if xs3_root_path is None or not os.path.exists(xs3_root_path):
+    if xs3_root_path is None or not Path.exists(xs3_root_path):
         pytest.skip("xspress3 root path was not specified")
     if xs3_pv_prefix is None:
         pytest.skip("xspress3 PV prefix was not specified")
@@ -225,9 +225,9 @@ def test_document_stream(
         "stop",
     )
 
-    actual_document_names = list()
+    actual_document_names = []
 
-    filled_documents = list()
+    filled_documents = []
 
     with Filler(
         {Xspress3HDF5Handler.HANDLER_NAME: Xspress3HDF5Handler}, inplace=True
