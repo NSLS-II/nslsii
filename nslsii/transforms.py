@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-import os
+from pathlib import Path
 
 
 def csx_fix_scaler_shape(d):
@@ -27,7 +27,7 @@ def srx_transform_resource(doc):
     needed because root_map is not sufficient in this case.
     """
     doc = dict(doc)
-    full_path = os.path.join(doc["root"], doc["resource_path"])
+    full_path = Path.join(doc["root"], doc["resource_path"])
     new_path = full_path.replace(
         "/nsls2/xf05id1/XF05ID1", "/nsls2/data/srx/legacy/xf05id1/XF05ID1"
     )
