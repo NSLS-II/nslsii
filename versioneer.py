@@ -283,11 +283,11 @@ except ImportError:
     import ConfigParser as configparser
 import errno
 import json
-import os
 import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 
 class VersioneerConfig:
@@ -300,15 +300,15 @@ def get_root():
     We require that all commands are run from the project root, i.e. the
     directory that contains setup.py, setup.cfg, and versioneer.py .
     """
-    root = os.path.realpath(os.path.abspath(os.getcwd()))
-    setup_py = os.path.join(root, "setup.py")
-    versioneer_py = os.path.join(root, "versioneer.py")
-    if not (os.path.exists(setup_py) or os.path.exists(versioneer_py)):
+    root = Path.realpath(Path.abspath(Path.getcwd()))
+    setup_py = Path.join(root, "setup.py")
+    versioneer_py = Path.join(root, "versioneer.py")
+    if not (Path.exists(setup_py) or Path.exists(versioneer_py)):
         # allow 'python path/to/setup.py COMMAND'
-        root = os.path.dirname(os.path.realpath(os.path.abspath(sys.argv[0])))
-        setup_py = os.path.join(root, "setup.py")
-        versioneer_py = os.path.join(root, "versioneer.py")
-    if not (os.path.exists(setup_py) or os.path.exists(versioneer_py)):
+        root = Path.dirname(Path.realpath(Path.abspath(sys.argv[0])))
+        setup_py = Path.join(root, "setup.py")
+        versioneer_py = Path.join(root, "versioneer.py")
+    if not (Path.exists(setup_py) or Path.exists(versioneer_py)):
         err = (
             "Versioneer was unable to run the project root directory. "
             "Versioneer requires setup.py to be executed from "
@@ -322,15 +322,14 @@ def get_root():
         # tree) execute all dependencies in a single python process, so
         # "versioneer" may be imported multiple times, and python's shared
         # module-import table will cache the first one. So we can't use
-        # os.path.dirname(__file__), as that will find whichever
+        # Path.dirname(__file__), as that will find whichever
         # versioneer.py was first imported, even in later projects.
-        me = os.path.realpath(os.path.abspath(__file__))
-        me_dir = os.path.normcase(os.path.splitext(me)[0])
-        vsr_dir = os.path.normcase(os.path.splitext(versioneer_py)[0])
+        me = Path.realpath(Path.abspath(__file__))
+        me_dir = Path.normcase(Path.splitext(me)[0])
+        vsr_dir = Path.normcase(Path.splitext(versioneer_py)[0])
         if me_dir != vsr_dir:
-            print(
-                "Warning: build in %s is using versioneer.py from %s"
-                % (os.path.dirname(me), versioneer_py)
+            print( # noqa: T201
+                f"Warning: build in {Path.dirname(me)} is using versioneer.py from {versioneer_py}"
             )
     except NameError:
         pass
@@ -343,7 +342,7 @@ def get_config_from_root(root):
     # configparser.NoSectionError (if it lacks a [versioneer] section), or
     # configparser.NoOptionError (if it lacks "VCS="). See the docstring at
     # the top of versioneer.py for instructions on writing your setup.cfg .
-    setup_cfg = os.path.join(root, "setup.cfg")
+    setup_cfg = Path.join(root, "setup.cfg")
     parser = configparser.ConfigParser()
     parser.read(setup_cfg)
     VCS = parser.get("versioneer", "VCS")  # mandatory
@@ -394,10 +393,10 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
     p = None
     for c in commands:
         try:
-            dispcmd = str([c] + args)
+            dispcmd = str([c, *args])
             # remember shell=False, so use git.cmd on windows, not just git
             p = subprocess.Popen(
-                [c] + args,
+                [c, *args],
                 cwd=cwd,
                 env=env,
                 stdout=subprocess.PIPE,
@@ -409,20 +408,20 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
             if e.errno == errno.ENOENT:
                 continue
             if verbose:
-                print("unable to run %s" % dispcmd)
-                print(e)
+                print(f"unable to run {dispcmd}")  # noqa: T201
+                print(f"{e}")  # noqa: T201
             return None, None
     else:
         if verbose:
-            print("unable to find command, tried %s" % (commands,))
+            print(f"unable to find command, tried {commands}")  # noqa: T201
         return None, None
     stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3:
+    if sys.version_info[0] >= 3: # noqa: UP036
         stdout = stdout.decode()
     if p.returncode != 0:
         if verbose:
-            print("unable to run %s (error)" % dispcmd)
-            print("stdout was %s" % stdout)
+            print(f"unable to run {dispcmd} (error)")  # noqa: T201
+            print(f"stdout was {stdout}")  # noqa: T201
         return None, p.returncode
     return stdout, p.returncode
 
@@ -959,7 +958,7 @@ def git_get_keywords(versionfile_abs):
     # _version.py.
     keywords = {}
     try:
-        f = open(versionfile_abs)
+        f = Path.open(versionfile_abs)
         for line in f.readlines():
             if line.strip().startswith("git_refnames ="):
                 mo = re.search(r'=\s*"(.*)"', line)
@@ -983,7 +982,8 @@ def git_get_keywords(versionfile_abs):
 def git_versions_from_keywords(keywords, tag_prefix, verbose):
     """Get version information from git keywords."""
     if not keywords:
-        raise NotThisMethod("no keywords at all, weird")
+        msg = "no keywords at all, weird"
+        raise NotThisMethod(msg)
     date = keywords.get("date")
     if date is not None:
         # git-2.2.0 added "%cI", which expands to an ISO-8601 -compliant
@@ -996,13 +996,14 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
     refnames = keywords["refnames"].strip()
     if refnames.startswith("$Format"):
         if verbose:
-            print("keywords are unexpanded, not using")
-        raise NotThisMethod("unexpanded keywords, not a git-archive tarball")
-    refs = set([r.strip() for r in refnames.strip("()").split(",")])
+            print("keywords are unexpanded, not using")  # noqa: T201
+        msg = "unexpanded keywords, not a git-archive tarball"
+        raise NotThisMethod(msg)
+    refs = {r.strip() for r in refnames.strip("()").split(",")}
     # starting in git-1.8.3, tags are listed as "tag: foo-1.0" instead of
     # just "foo-1.0". If we see a "tag: " prefix, prefer those.
     TAG = "tag: "
-    tags = set([r[len(TAG) :] for r in refs if r.startswith(TAG)])
+    tags = {r[len(TAG):] for r in refs if r.startswith(TAG)}
     if not tags:
         # Either we're using git < 1.8.3, or there really are no tags. We use
         # a heuristic: assume all version tags have a digit. The old git %d
@@ -1011,17 +1012,17 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         # between branches and tags. By ignoring refnames without digits, we
         # filter out many common branch names like "release" and
         # "stabilization", as well as "HEAD" and "master".
-        tags = set([r for r in refs if re.search(r"\d", r)])
+        tags = {r for r in refs if re.search(r"\d", r)}
         if verbose:
-            print("discarding '%s', no digits" % ",".join(refs - tags))
+            print(f"discarding '{','.join(refs - tags)}', no digits")  # noqa: T201
     if verbose:
-        print("likely tags: %s" % ",".join(sorted(tags)))
+        print(f"likely tags: {','.join(sorted(tags))}")  # noqa: T201
     for ref in sorted(tags):
         # sorting will prefer e.g. "2.0" over "2.0rc1"
         if ref.startswith(tag_prefix):
             r = ref[len(tag_prefix) :]
             if verbose:
-                print("picking %s" % r)
+                print(f"picking {r}")  # noqa: T201
             return {
                 "version": r,
                 "full-revisionid": keywords["full"].strip(),
@@ -1031,7 +1032,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
             }
     # no suitable tags, so version is "0+unknown", but full hex is still there
     if verbose:
-        print("no suitable tags, using unknown + full revision id")
+        print("no suitable tags, using unknown + full revision id")  # noqa: T201
     return {
         "version": "0+unknown",
         "full-revisionid": keywords["full"].strip(),
@@ -1056,8 +1057,9 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
     out, rc = run_command(GITS, ["rev-parse", "--git-dir"], cwd=root, hide_stderr=True)
     if rc != 0:
         if verbose:
-            print("Directory %s not under git control" % root)
-        raise NotThisMethod("'git rev-parse --git-dir' returned error")
+            print(f"Directory {root} not under git control")  # noqa: T201
+        msg = "'git rev-parse --git-dir' returned error"
+        raise NotThisMethod(msg)
 
     # if there is a tag matching tag_prefix, this yields TAG-NUM-gHEX[-dirty]
     # if there isn't one, this yields HEX[-dirty] (no NUM)
@@ -1070,17 +1072,19 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
             "--always",
             "--long",
             "--match",
-            "%s*" % tag_prefix,
+            f"{tag_prefix}*",
         ],
         cwd=root,
     )
     # --long was added in git-1.5.5
     if describe_out is None:
-        raise NotThisMethod("'git describe' failed")
+        msg = "'git describe' failed"
+        raise NotThisMethod(msg)
     describe_out = describe_out.strip()
     full_out, rc = run_command(GITS, ["rev-parse", "HEAD"], cwd=root)
     if full_out is None:
-        raise NotThisMethod("'git rev-parse' failed")
+        msg = "'git rev-parse' failed"
+        raise NotThisMethod(msg)
     full_out = full_out.strip()
 
     pieces = {}
@@ -1105,19 +1109,16 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         mo = re.search(r"^(.+)-(\d+)-g([0-9a-f]+)$", git_describe)
         if not mo:
             # unparsable. Maybe git-describe is misbehaving?
-            pieces["error"] = "unable to parse git-describe output: '%s'" % describe_out
+            pieces["error"] = f"unable to parse git-describe output: '{describe_out}'"
             return pieces
 
         # tag
         full_tag = mo.group(1)
         if not full_tag.startswith(tag_prefix):
             if verbose:
-                fmt = "tag '%s' doesn't start with prefix '%s'"
-                print(fmt % (full_tag, tag_prefix))
-            pieces["error"] = "tag '%s' doesn't start with prefix '%s'" % (
-                full_tag,
-                tag_prefix,
-            )
+                fmt = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
+                print(fmt)  # noqa: T201
+            pieces["error"] = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix) :]
 
@@ -1156,28 +1157,27 @@ def do_vcs_install(manifest_in, versionfile_source, ipy):
         files.append(ipy)
     try:
         me = __file__
-        if me.endswith(".pyc") or me.endswith(".pyo"):
-            me = os.path.splitext(me)[0] + ".py"
-        versioneer_file = os.path.relpath(me)
+        if me.endswith((".pyc", ".pyo")):
+            me = Path.splitext(me)[0] + ".py"
+        versioneer_file = Path.relpath(me)
     except NameError:
         versioneer_file = "versioneer.py"
     files.append(versioneer_file)
     present = False
     try:
-        f = open(".gitattributes")
+        f = Path.open(".gitattributes")
         for line in f.readlines():
-            if line.strip().startswith(versionfile_source):
-                if "export-subst" in line.strip().split()[1:]:
+            if line.strip().startswith(versionfile_source) and "export-subst" in line.strip().split()[1:]:
                     present = True
         f.close()
     except OSError:
         pass
     if not present:
-        f = open(".gitattributes", "a+")
-        f.write("%s export-subst\n" % versionfile_source)
+        f = Path.open(".gitattributes", "a+")
+        f.write(f"{versionfile_source} export-subst\n")
         f.close()
         files.append(".gitattributes")
-    run_command(GITS, ["add", "--"] + files)
+    run_command(GITS, ["add", "--", *files])
 
 
 def versions_from_parentdir(parentdir_prefix, root, verbose):
@@ -1189,8 +1189,8 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
     """
     rootdirs = []
 
-    for i in range(3):
-        dirname = os.path.basename(root)
+    for _i in range(3):
+        dirname = Path.basename(root)
         if dirname.startswith(parentdir_prefix):
             return {
                 "version": dirname[len(parentdir_prefix) :],
@@ -1200,14 +1200,14 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
                 "date": None,
             }
         rootdirs.append(root)
-        root = os.path.dirname(root)  # up a level
+        root = Path.dirname(root)  # up a level
 
     if verbose:
-        print(
-            "Tried directories %s but none started with prefix %s"
-            % (str(rootdirs), parentdir_prefix)
+        print( # noqa: T201
+            f"Tried directories {rootdirs!s} but none started with prefix {parentdir_prefix}"
         )
-    raise NotThisMethod("rootdir doesn't start with parentdir_prefix")
+    msg = "rootdir doesn't start with parentdir_prefix"
+    raise NotThisMethod(msg)
 
 
 SHORT_VERSION_PY = """
@@ -1231,10 +1231,11 @@ def get_versions():
 def versions_from_file(filename):
     """Try to determine the version from _version.py if present."""
     try:
-        with open(filename) as f:
+        with Path.open(filename) as f:
             contents = f.read()
-    except OSError:
-        raise NotThisMethod("unable to read _version.py")
+    except OSError as err:
+        msg = "unable to read _version.py"
+        raise NotThisMethod(msg) from err
     mo = re.search(
         r"version_json = '''\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S
     )
@@ -1243,18 +1244,19 @@ def versions_from_file(filename):
             r"version_json = '''\r\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S
         )
     if not mo:
-        raise NotThisMethod("no version_json in _version.py")
+        msg = "no version_json in _version.py"
+        raise NotThisMethod(msg)
     return json.loads(mo.group(1))
 
 
 def write_to_version_file(filename, versions):
     """Write the given version number to the given _version.py file."""
-    os.unlink(filename)
+    Path.unlink(filename)
     contents = json.dumps(versions, sort_keys=True, indent=1, separators=(",", ": "))
-    with open(filename, "w") as f:
+    with Path.open(filename, "w") as f:
         f.write(SHORT_VERSION_PY % contents)
 
-    print("set %s to '%s'" % (filename, versions["version"]))
+    print(f"set {filename} to '{versions['version']}'")  # noqa: T201
 
 
 def plus_or_dot(pieces):
@@ -1277,12 +1279,12 @@ def render_pep440(pieces):
         rendered = pieces["closest-tag"]
         if pieces["distance"] or pieces["dirty"]:
             rendered += plus_or_dot(pieces)
-            rendered += "%d.g%s" % (pieces["distance"], pieces["short"])
+            rendered += f"{pieces['distance']}.g{pieces['short']}"
             if pieces["dirty"]:
                 rendered += ".dirty"
     else:
         # exception #1
-        rendered = "0+untagged.%d.g%s" % (pieces["distance"], pieces["short"])
+        rendered = f"0+untagged.{pieces['distance']}.g{pieces['short']}"
         if pieces["dirty"]:
             rendered += ".dirty"
     return rendered
@@ -1297,10 +1299,10 @@ def render_pep440_pre(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"]:
-            rendered += ".post.dev%d" % pieces["distance"]
+            rendered += f".post.dev{pieces['distance']}"
     else:
         # exception #1
-        rendered = "0.post.dev%d" % pieces["distance"]
+        rendered = f"0.post.dev{pieces['distance']}"
     return rendered
 
 
@@ -1317,17 +1319,17 @@ def render_pep440_post(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"] or pieces["dirty"]:
-            rendered += ".post%d" % pieces["distance"]
+            rendered += f".post{pieces['distance']}"
             if pieces["dirty"]:
                 rendered += ".dev0"
             rendered += plus_or_dot(pieces)
-            rendered += "g%s" % pieces["short"]
+            rendered += f"+g{pieces['short']}"
     else:
         # exception #1
-        rendered = "0.post%d" % pieces["distance"]
+        rendered = f"0.post{pieces['distance']}"
         if pieces["dirty"]:
             rendered += ".dev0"
-        rendered += "+g%s" % pieces["short"]
+        rendered += f"+g{pieces['short']}"
     return rendered
 
 
@@ -1342,12 +1344,12 @@ def render_pep440_old(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"] or pieces["dirty"]:
-            rendered += ".post%d" % pieces["distance"]
+            rendered = f"0.post{pieces['distance']}"
             if pieces["dirty"]:
                 rendered += ".dev0"
     else:
         # exception #1
-        rendered = "0.post%d" % pieces["distance"]
+        rendered = f"0.post{pieces['distance']}"
         if pieces["dirty"]:
             rendered += ".dev0"
     return rendered
@@ -1364,7 +1366,7 @@ def render_git_describe(pieces):
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
         if pieces["distance"]:
-            rendered += "-%d-g%s" % (pieces["distance"], pieces["short"])
+            rendered += f"-{pieces['distance']}-g{pieces['short']}"
     else:
         # exception #1
         rendered = pieces["short"]
@@ -1384,7 +1386,7 @@ def render_git_describe_long(pieces):
     """
     if pieces["closest-tag"]:
         rendered = pieces["closest-tag"]
-        rendered += "-%d-g%s" % (pieces["distance"], pieces["short"])
+        rendered += f"-{pieces['distance']}-g{pieces['short']}"
     else:
         # exception #1
         rendered = pieces["short"]
@@ -1420,7 +1422,8 @@ def render(pieces, style):
     elif style == "git-describe-long":
         rendered = render_git_describe_long(pieces)
     else:
-        raise ValueError("unknown style '%s'" % style)
+        msg = f"unknown style '{style}'"
+        raise ValueError(msg)
 
     return {
         "version": rendered,
@@ -1449,14 +1452,14 @@ def get_versions(verbose=False):
 
     assert cfg.VCS is not None, "please set [versioneer]VCS= in setup.cfg"
     handlers = HANDLERS.get(cfg.VCS)
-    assert handlers, "unrecognized VCS '%s'" % cfg.VCS
+    assert handlers, f"unrecognized VCS '{cfg.VCS}'"
     verbose = verbose or cfg.verbose
     assert cfg.versionfile_source is not None, (
         "please set versioneer.versionfile_source"
     )
     assert cfg.tag_prefix is not None, "please set versioneer.tag_prefix"
 
-    versionfile_abs = os.path.join(root, cfg.versionfile_source)
+    versionfile_abs = Path.join(root, cfg.versionfile_source)
 
     # extract version from first of: _version.py, VCS command (e.g. 'git
     # describe'), parentdir. This is meant to work for developers using a
@@ -1471,7 +1474,7 @@ def get_versions(verbose=False):
             keywords = get_keywords_f(versionfile_abs)
             ver = from_keywords_f(keywords, cfg.tag_prefix, verbose)
             if verbose:
-                print("got version from expanded keyword %s" % ver)
+                print(f"got version from expanded keyword {ver}")  # noqa: T201
             return ver
         except NotThisMethod:
             pass
@@ -1479,7 +1482,7 @@ def get_versions(verbose=False):
     try:
         ver = versions_from_file(versionfile_abs)
         if verbose:
-            print("got version from file %s %s" % (versionfile_abs, ver))
+            print(f"got version from file {versionfile_abs} {ver}")  # noqa: T201
         return ver
     except NotThisMethod:
         pass
@@ -1490,7 +1493,7 @@ def get_versions(verbose=False):
             pieces = from_vcs_f(cfg.tag_prefix, root, verbose)
             ver = render(pieces, cfg.style)
             if verbose:
-                print("got version from VCS %s" % ver)
+                print(f"got version from VCS {ver}")  # noqa: T201
             return ver
         except NotThisMethod:
             pass
@@ -1499,13 +1502,13 @@ def get_versions(verbose=False):
         if cfg.parentdir_prefix:
             ver = versions_from_parentdir(cfg.parentdir_prefix, root, verbose)
             if verbose:
-                print("got version from parentdir %s" % ver)
+                print(f"got version from parentdir {ver}")  # noqa: T201
             return ver
     except NotThisMethod:
         pass
 
     if verbose:
-        print("unable to compute version")
+        print("unable to compute version")  # noqa: T201
 
     return {
         "version": "0+unknown",
@@ -1541,12 +1544,12 @@ def get_cmdclass():
     cmds = {}
 
     # we add "version" to both distutils and setuptools
-    from distutils.core import Command
+    from distutils.core import Command  # noqa: PLC0415
 
     class cmd_version(Command):
         description = "report generated version string"
-        user_options = []
-        boolean_options = []
+        user_options: ClassVar[list] = []
+        boolean_options: ClassVar[list] = []
 
         def initialize_options(self):
             pass
@@ -1556,12 +1559,12 @@ def get_cmdclass():
 
         def run(self):
             vers = get_versions(verbose=True)
-            print("Version: %s" % vers["version"])
-            print(" full-revisionid: %s" % vers.get("full-revisionid"))
-            print(" dirty: %s" % vers.get("dirty"))
-            print(" date: %s" % vers.get("date"))
+            print(f"Version: {vers['version']}")  # noqa: T201
+            print(f" full-revisionid: {vers.get('full-revisionid')}")  # noqa: T201
+            print(f" dirty: {vers.get('dirty')}")  # noqa: T201
+            print(f" date: {vers.get('date')}")  # noqa: T201
             if vers["error"]:
-                print(" error: %s" % vers["error"])
+                print(f" error: {vers['error']}")  # noqa: T201
 
     cmds["version"] = cmd_version
 
@@ -1582,9 +1585,9 @@ def get_cmdclass():
 
     # we override different "build_py" commands for both environments
     if "setuptools" in sys.modules:
-        from setuptools.command.build_py import build_py as _build_py
+        from setuptools.command.build_py import build_py as _build_py  # noqa: PLC0415, I001
     else:
-        from distutils.command.build_py import build_py as _build_py
+        from distutils.command.build_py import build_py as _build_py  # noqa: PLC0415, I001
 
     class cmd_build_py(_build_py):
         def run(self):
@@ -1595,14 +1598,14 @@ def get_cmdclass():
             # now locate _version.py in the new build/ directory and replace
             # it with an updated value
             if cfg.versionfile_build:
-                target_versionfile = os.path.join(self.build_lib, cfg.versionfile_build)
-                print("UPDATING %s" % target_versionfile)
+                target_versionfile = Path.join(self.build_lib, cfg.versionfile_build)
+                print(f"UPDATING {target_versionfile}")  # noqa: T201
                 write_to_version_file(target_versionfile, versions)
 
     cmds["build_py"] = cmd_build_py
 
     if "cx_Freeze" in sys.modules:  # cx_freeze enabled?
-        from cx_Freeze.dist import build_exe as _build_exe
+        from cx_Freeze.dist import build_exe as _build_exe  # noqa: PLC0415
         # nczeczulin reports that py2exe won't like the pep440-style string
         # as FILEVERSION, but it can be used for PRODUCTVERSION, e.g.
         # setup(console=[{
@@ -1616,12 +1619,12 @@ def get_cmdclass():
                 cfg = get_config_from_root(root)
                 versions = get_versions()
                 target_versionfile = cfg.versionfile_source
-                print("UPDATING %s" % target_versionfile)
+                print(f"UPDATING {target_versionfile}")  # noqa: T201
                 write_to_version_file(target_versionfile, versions)
 
                 _build_exe.run(self)
-                os.unlink(target_versionfile)
-                with open(cfg.versionfile_source, "w") as f:
+                Path.unlink(target_versionfile)
+                with Path.open(cfg.versionfile_source, "w") as f:
                     LONG = LONG_VERSION_PY[cfg.VCS]
                     f.write(
                         LONG
@@ -1639,9 +1642,9 @@ def get_cmdclass():
 
     if "py2exe" in sys.modules:  # py2exe enabled?
         try:
-            from py2exe.distutils_buildexe import py2exe as _py2exe  # py3
+            from py2exe.distutils_buildexe import py2exe as _py2exe  # noqa: PLC0415, I001
         except ImportError:
-            from py2exe.build_exe import py2exe as _py2exe  # py2
+            from py2exe.build_exe import py2exe as _py2exe  # noqa: PLC0415
 
         class cmd_py2exe(_py2exe):
             def run(self):
@@ -1649,12 +1652,12 @@ def get_cmdclass():
                 cfg = get_config_from_root(root)
                 versions = get_versions()
                 target_versionfile = cfg.versionfile_source
-                print("UPDATING %s" % target_versionfile)
+                print(f"UPDATING {target_versionfile}")  # noqa: T201
                 write_to_version_file(target_versionfile, versions)
 
                 _py2exe.run(self)
-                os.unlink(target_versionfile)
-                with open(cfg.versionfile_source, "w") as f:
+                Path.unlink(target_versionfile)
+                with Path.open(cfg.versionfile_source, "w") as f:
                     LONG = LONG_VERSION_PY[cfg.VCS]
                     f.write(
                         LONG
@@ -1671,9 +1674,9 @@ def get_cmdclass():
 
     # we override different "sdist" commands for both environments
     if "setuptools" in sys.modules:
-        from setuptools.command.sdist import sdist as _sdist # noqa: PLC0415
+        from setuptools.command.sdist import sdist as _sdist  # noqa: PLC0415
     else:
-        from distutils.command.sdist import sdist as _sdist # noqa: PLC0415
+        from distutils.command.sdist import sdist as _sdist  # noqa: PLC0415
 
     class cmd_sdist(_sdist):
         def run(self):
@@ -1692,7 +1695,7 @@ def get_cmdclass():
             # (remembering that it may be a hardlink) and replace it with an
             # updated value
             target_versionfile = Path.join(base_dir, cfg.versionfile_source)
-            print(f"UPDATING {target_versionfile}") # noqa: T201
+            print(f"UPDATING {target_versionfile}")  # noqa: T201
             write_to_version_file(
                 target_versionfile, self._versioneer_generated_versions
             )
@@ -1753,13 +1756,13 @@ def do_setup():
         cfg = get_config_from_root(root)
     except (OSError, configparser.NoSectionError, configparser.NoOptionError) as e:
         if isinstance(e, (EnvironmentError, configparser.NoSectionError)):
-            print("Adding sample versioneer config to setup.cfg", file=sys.stderr) # noqa: T201
+            print("Adding sample versioneer config to setup.cfg", file=sys.stderr)  # noqa: T201
             with Path.open(Path.join(root, "setup.cfg"), "a") as f:
                 f.write(SAMPLE_CONFIG)
-        print(CONFIG_ERROR, file=sys.stderr) # noqa: T201
+        print(CONFIG_ERROR, file=sys.stderr)  # noqa: T201
         return 1
 
-    print(f" creating {cfg.versionfile_source}") # noqa: T201
+    print(f" creating {cfg.versionfile_source}")  # noqa: T201
     with Path.open(cfg.versionfile_source, "w") as f:
         LONG = LONG_VERSION_PY[cfg.VCS]
         f.write(
@@ -1781,13 +1784,13 @@ def do_setup():
         except OSError:
             old = ""
         if INIT_PY_SNIPPET not in old:
-            print(f" appending to {ipy}") # noqa: T201
+            print(f" appending to {ipy}")  # noqa: T201
             with Path.open(ipy, "a") as f:
                 f.write(INIT_PY_SNIPPET)
         else:
-            print(f" {ipy} unmodified") # noqa: T201
+            print(f" {ipy} unmodified")  # noqa: T201
     else:
-        print(f" {ipy} doesn't exist, ok") # noqa: T201
+        print(f" {ipy} doesn't exist, ok")  # noqa: T201
         ipy = None
 
     # Make sure both the top-level "versioneer.py" and versionfile_source
@@ -1809,17 +1812,19 @@ def do_setup():
     # it might give some false negatives. Appending redundant 'include'
     # lines is safe, though.
     if "versioneer.py" not in simple_includes:
-        print(" appending 'versioneer.py' to MANIFEST.in") # noqa: T201
+        print(" appending 'versioneer.py' to MANIFEST.in")  # noqa: T201
         with Path.open(manifest_in, "a") as f:
             f.write("include versioneer.py\n")
     else:
-        print(" 'versioneer.py' already in MANIFEST.in") # noqa: T201
+        print(" 'versioneer.py' already in MANIFEST.in")  # noqa: T201
     if cfg.versionfile_source not in simple_includes:
-        print(f" appending versionfile_source ('{cfg.versionfile_source}') to MANIFEST.in") # noqa: T201
+        print( # noqa: T201
+            f" appending versionfile_source ('{cfg.versionfile_source}') to MANIFEST.in"
+        )
         with Path.open(manifest_in, "a") as f:
             f.write(f"include {cfg.versionfile_source}\n")
     else:
-        print(" versionfile_source already in MANIFEST.in") # noqa: T201
+        print(" versionfile_source already in MANIFEST.in")  # noqa: T201
 
     # Make VCS-specific changes. For git, this means creating/changing
     # .gitattributes to mark _version.py for export-subst keyword
@@ -1846,21 +1851,21 @@ def scan_setup_py():
             if "versioneer.versionfile_source" in line:
                 setters = True
     if len(found) != 3:
-        print("") # noqa: T201
-        print("Your setup.py appears to be missing some important items") # noqa: T201
-        print("(but I might be wrong). Please make sure it has something") # noqa: T201
-        print("roughly like the following:") # noqa: T201
-        print("") # noqa: T201
-        print(" import versioneer") # noqa: T201
-        print(" setup( version=versioneer.get_version(),") # noqa: T201
-        print("        cmdclass=versioneer.get_cmdclass(),  ...)") # noqa: T201
-        print("") # noqa: T201
+        print("")  # noqa: T201
+        print("Your setup.py appears to be missing some important items")  # noqa: T201
+        print("(but I might be wrong). Please make sure it has something")  # noqa: T201
+        print("roughly like the following:")  # noqa: T201
+        print("")  # noqa: T201
+        print(" import versioneer")  # noqa: T201
+        print(" setup( version=versioneer.get_version(),")  # noqa: T201
+        print("        cmdclass=versioneer.get_cmdclass(),  ...)")  # noqa: T201
+        print("")  # noqa: T201
         errors += 1
     if setters:
-        print("You should remove lines like 'versioneer.VCS = ' and") # noqa: T201
-        print("'versioneer.versionfile_source = ' . This configuration") # noqa: T201
-        print("now lives in setup.cfg, and should be removed from setup.py") # noqa: T201
-        print("") # noqa: T201
+        print("You should remove lines like 'versioneer.VCS = ' and")  # noqa: T201
+        print("'versioneer.versionfile_source = ' . This configuration")  # noqa: T201
+        print("now lives in setup.cfg, and should be removed from setup.py")  # noqa: T201
+        print("")  # noqa: T201
         errors += 1
     return errors
 
