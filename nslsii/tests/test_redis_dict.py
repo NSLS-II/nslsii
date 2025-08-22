@@ -38,7 +38,7 @@ def _get_waiting_messages(redis_subscriber):
         message_list.append(message)
         message = redis_subscriber.get_message()
 
-    print(f"_get_waiting_messages() returning\n{message_list}")
+    print(f"_get_waiting_messages() returning\n{message_list}") # noqa: T201
     return message_list
 
 
@@ -76,7 +76,7 @@ def test__parse_message_data():
     assert uuid == "uuid"
 
     message = {"data": b"abcuuid"}
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError): # noqa: PT011
         RunEngineRedisDict._parse_message_data(message)
 
 
@@ -94,7 +94,7 @@ def test_local_float_value(redis_dict_factory):
     Test that a float is stored and retrieved.
     """
     redis_dict = redis_dict_factory(re_md_channel_name="test_local_float_value")
-    import math
+    import math  # noqa: PLC0415
 
     redis_dict["local_float"] = math.pi
     assert redis_dict["local_float"] == math.pi
@@ -139,7 +139,7 @@ def test_global_int_value(redis_dict_factory):
 
     # expect an exception because "scan_id" is
     # constrained to be an integer
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError): # noqa: PT011
         redis_dict_1["scan_id"] = "one"
 
     assert redis_dict_1["scan_id"] == 0
@@ -190,7 +190,7 @@ def test_items(redis_dict_factory):
     redis_dict = redis_dict_factory(re_md_channel_name="test_items")
 
     # no global metadata exists yet
-    actual_global_items = {gk: gv for gk, gv in redis_dict.items()}
+    actual_global_items = dict(redis_dict.items())
     assert actual_global_items == {}
 
     # set a value for each global key
@@ -198,7 +198,7 @@ def test_items(redis_dict_factory):
     global_md_updates["scan_id"] = 1
     redis_dict.update(global_md_updates)
 
-    actual_global_items = {gk: gv for gk, gv in redis_dict.items()}
+    actual_global_items = dict(redis_dict.items())
     # _local_md should still be empty
     # since only global metadata was updated
     assert len(redis_dict._local_md) == 0
@@ -208,16 +208,16 @@ def test_items(redis_dict_factory):
     local_md_updates = {"one": 1, "two": "2"}
     redis_dict.update(local_md_updates)
     assert redis_dict._local_md == local_md_updates
-    expected_items = dict()
+    expected_items = {}
     expected_items.update(global_md_updates)
     expected_items.update(local_md_updates)
-    actual_items = {k: v for k, v in redis_dict.items()}
+    actual_items = dict(redis_dict.items())
     assert actual_items == expected_items
 
 
 def test_one_message(redis_dict_factory):
     redis_dict = redis_dict_factory(re_md_channel_name="test_one_message")
-    print(redis_dict._local_md)
+    print(redis_dict._local_md) # noqa: T201
     assert len(redis_dict._local_md) == 0
 
     redis_subscriber = _build_redis_subscriber(redis_dict)
@@ -229,7 +229,7 @@ def test_one_message(redis_dict_factory):
     redis_dict["generate_one_message"] = 1
     # expect one message
     messages = _get_waiting_messages(redis_subscriber)
-    print(f"messages:\n {pformat(messages)}")
+    print(f"messages:\n {pformat(messages)}") # noqa: T201
     assert len(messages) == 1
     updated_key, publisher_uuid = redis_dict._parse_message_data(messages[0])
     assert updated_key == "generate_one_message"
@@ -238,7 +238,7 @@ def test_one_message(redis_dict_factory):
 
 def test_two_messages(redis_dict_factory):
     redis_dict = redis_dict_factory(re_md_channel_name="test_two_messages")
-    print(redis_dict._local_md)
+    print(redis_dict._local_md) # noqa: T201
     assert len(redis_dict._local_md) == 0
 
     redis_subscriber = _build_redis_subscriber(redis_dict)
