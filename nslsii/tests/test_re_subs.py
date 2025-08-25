@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -98,7 +99,7 @@ TEST_DOCS = [
 
 
 @pytest.mark.parametrize(
-    "printing_enabled, expected_output",
+    ("printing_enabled", "expected_output"),
     [
         (
             True,
@@ -131,7 +132,12 @@ def test_bs_doc_stream_printer(
 
 
 @pytest.mark.parametrize(
-    "writing_enabled, flush_each_doc_enabled, expected_file_exists, expected_file_contents",
+    (
+        "writing_enabled",
+        "flush_each_doc_enabled",
+        "expected_file_exists",
+        "expected_file_contents",
+    ),
     [
         (
             True,
@@ -176,7 +182,7 @@ def test_json_bluesky_doc_writer(
 
         assert (tmp_path / expected_filename).exists() == expected_file_exists[i]
         if expected_file_contents[i] is not None:
-            with open(tmp_path / expected_filename) as fp:
+            with Path.open(tmp_path / expected_filename) as fp:
                 data = json.load(fp)
                 assert data == expected_file_contents[i]
 

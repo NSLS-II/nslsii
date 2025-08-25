@@ -196,7 +196,7 @@ def test_publisher_with_no_broker(RE, hw):
 
     RE.subscribe(store_published_document)
 
-    import time
+    import time  # noqa: PLC0415
 
     t0 = time.time()
     RE(count([hw.det1]))
@@ -204,7 +204,7 @@ def test_publisher_with_no_broker(RE, hw):
 
     # timeout is set at 1s but it takes longer than 5s to run count
     # so running count should take less than 10s
-    print(f"time for count: {t1 - t0:.3f}")
+    print(f"time for count: {t1 - t0:.3f}") # noqa: T201
     assert (t1 - t0) < 10.0
 
     # the RunEngine should have published 4 documents
