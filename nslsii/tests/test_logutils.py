@@ -217,17 +217,15 @@ def test_configure_bluesky_logging_syslog_logging(tmpdir):
     configure_bluesky_logging(ipython=ip)
     for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
         assert any(
-            [
-                isinstance(handler, SysLogHandler)
-                for handler in logging.getLogger(logger_name).handlers
-            ]
+            isinstance(handler, SysLogHandler)
+            for handler in logging.getLogger(logger_name).handlers
         )
 
     # remember the time so we can ask journalctl for only the most recent log messages
     time_before_logging = datetime.datetime.now().time().isoformat(timespec="seconds")
     for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
         logging.getLogger(logger_name).info(
-            f"{logger_name} log message %s", time_before_logging
+            "%s log message %s", logger_name, time_before_logging
         )
 
     for logger_name in ("bluesky", "caproto", "nslsii", "ophyd", ip.log.name):
@@ -352,7 +350,7 @@ def test_configure_ipython_exc_logging_with_unwriteable_dir(tmpdir):
 def test_configure_ipython_exc_logging_file_exists(tmpdir):
     log_file_path = Path(tmpdir) / Path("bluesky_ipython.log")
 
-    with open(log_file_path, "w") as f:
+    with Path.open(log_file_path, "w") as f:
         f.write("log log log")
 
     ip = IPython.core.interactiveshell.InteractiveShell()
@@ -368,7 +366,7 @@ def test_configure_ipython_exc_logging_file_exists(tmpdir):
 def test_configure_ipython_exc_logging_rotate(tmpdir):
     log_file_path = Path(tmpdir) / Path("bluesky_ipython.log")
 
-    with open(log_file_path, "w") as f:
+    with Path.open(log_file_path, "w") as f:
         f.write("log log log")
 
     ip = IPython.core.interactiveshell.InteractiveShell()
