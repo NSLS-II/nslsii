@@ -74,7 +74,7 @@ class ProposalNumYMDPathProvider(PathProvider):
                 current_date,
             )
 
-        directory_path = (
+        return (
             self._beamline_proposals_dir
             / self._metadata_dict["cycle"]
             / self._metadata_dict["data_session"]
@@ -82,9 +82,7 @@ class ProposalNumYMDPathProvider(PathProvider):
             / ymd_dir_path
         )
 
-        return directory_path
-
-    def __call__(self, device_name: str = None) -> PathInfo:
+    def __call__(self, device_name: str | None = None) -> PathInfo:
         directory_path = self.generate_directory_path(device_name=device_name)
 
         return PathInfo(
@@ -113,7 +111,7 @@ class ProposalNumScanNumPathProvider(ProposalNumYMDPathProvider):
             **kwargs,
         )
 
-    def __call__(self, device_name: Optional[str] = None) -> PathInfo:
+    def __call__(self, device_name: str | None = None) -> PathInfo:
         directory_path = self.generate_directory_path(device_name=device_name)
 
         final_dir_path = (
@@ -135,7 +133,7 @@ class ShortUUIDFilenameProvider(FilenameProvider):
         self._separator = separator
         super().__init__(**kwargs)
 
-    def __call__(self, device_name: Optional[str] = None) -> str:
+    def __call__(self, device_name: str | None = None) -> str:
         sid = shortuuid.uuid()
         if device_name is not None:
             return f"{device_name}{self._separator}{sid}"
@@ -147,7 +145,8 @@ class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
         if not isinstance(initial_mode, Enum) or not isinstance(
             initial_mode.value, str
         ):
-            raise TypeError("Initial acquisition mode type must be a string enum!")
+            msg = "Initial acquisition mode type must be a string enum!"
+            raise TypeError(msg)
 
         self._mode = initial_mode
         self._mode_type = type(initial_mode)
@@ -155,23 +154,21 @@ class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
 
     def switch_mode(self, new_mode):
         if not isinstance(new_mode, self._mode_type):
-            raise RuntimeError(
-                f"{new_mode} is not a valid option for {self._mode_type}!"
-            )
+            msg = f"{new_mode} is not a valid option for {self._mode_type}!"
+            raise RuntimeError(msg)
         self._mode = new_mode
 
-    def __call__(self, **kwargs):
+    def __call__(self, **kwargs): # noqa : ARG002
         return super().__call__(device_name=self._mode.value)
 
 
 class DeviceNameFilenameProvider(FilenameProvider):
     """Filename provider that uses device name as filename"""
 
-    def __call__(self, device_name: Optional[str] = None) -> str:
+    def __call__(self, device_name: str | None = None) -> str:
         if device_name is None:
-            raise RuntimeError(
-                f"Device name must be passed in when calling {type(self).__name__}!"
-            )
+            msg = f"Device name must be passed in when calling {type(self).__name__}!"
+            raise RuntimeError(msg)
         return device_name
 
 
