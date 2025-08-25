@@ -22,10 +22,12 @@ class BlueskyDocJSONWriter:
         Set the directory to write JSON files to.
         """
 
-        if not os.path.exists(write_directory):
-            raise FileNotFoundError(f"Directory does not exist: {write_directory}")
+        if not Path.exists(write_directory):
+            msg = f"Directory does not exist: {write_directory}"
+            raise FileNotFoundError(msg)
         if not os.access(write_directory, os.W_OK):
-            raise PermissionError(f"Cannot write to directory: {write_directory}")
+            msg = f"Cannot write to directory: {write_directory}"
+            raise PermissionError(msg)
 
         self._write_directory = write_directory
 
@@ -49,7 +51,7 @@ class BlueskyDocJSONWriter:
     def __call__(self, name: str, doc: dict):
         if self._write_json_file:
             if name == "start":
-                self._output_file_name = os.path.join(
+                self._output_file_name = Path.join(
                     self._write_directory, f"{doc['uid']}.json"
                 )
 
@@ -57,7 +59,7 @@ class BlueskyDocJSONWriter:
                 self._document_cache.append({name: doc})
 
                 if self._flush_on_each_doc or name == "stop":
-                    with open(self._output_file_name, "w") as fp:
+                    with Path.open(self._output_file_name, "w") as fp:
                         json.dump(
                             self._document_cache,
                             fp,
@@ -93,7 +95,7 @@ class BlueskyDocStreamPrinter:
 
     def __call__(self, name: str, doc: dict):
         if self._print_docs_to_stdout:
-            print("========= Emitting Doc =============")
-            print(f"{name = }")
-            print(f"{json.dumps(doc, indent=4)}")
-            print("============ Done ==================")
+            print("========= Emitting Doc =============") # noqa: T201
+            print(f"{name = }") # noqa: T201
+            print(f"{json.dumps(doc, indent=4)}") # noqa: T201
+            print("============ Done ==================") # noqa: T201

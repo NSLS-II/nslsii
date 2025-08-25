@@ -43,12 +43,12 @@ def test_Eurotherm(RE):
         env=os.environ,
     )
 
-    print("caproto.ioc_examples.thermo_sim is now running")
+    print("caproto.ioc_examples.thermo_sim is now running") # noqa : T201
 
     # Wrap the rest in a try-except to ensure the ioc is killed before exiting
     try:
         euro = Eurotherm("thermo:", name="euro")
-        print("euro object is defined")
+        print("euro object is defined") # noqa : T201
 
         # move the Eurotherm.
         RE(mv(euro, 100))
@@ -66,8 +66,8 @@ def test_Eurotherm(RE):
         euro.timeout.set(500)  # reset to default for the following tests.
 
         # test that the lock prevents setting while set in progress
-        with pytest.raises(SetInProgress):
-            for i in range(2):  # The previous set may or may not be complete
+        with pytest.raises(SetInProgress): # noqa : PT012
+            for _i in range(2):  # The previous set may or may not be complete
                 euro.set(100)
 
     finally:

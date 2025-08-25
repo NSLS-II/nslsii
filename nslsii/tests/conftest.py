@@ -1,17 +1,7 @@
-from contextlib import contextmanager  # noqa
-
-import redis
+from __future__ import annotations
 
 import pytest
-
-from bluesky.tests.conftest import RE  # noqa
-from bluesky_kafka import BlueskyConsumer  # noqa
-from bluesky_kafka.tests.conftest import (  # noqa
-    kafka_bootstrap_servers,
-    consume_documents_from_kafka_until_first_stop_document,
-    temporary_topics,
-)
-from ophyd.tests.conftest import hw  # noqa
+import redis
 
 from nslsii.md_dict import RunEngineRedisDict
 
@@ -80,8 +70,7 @@ def xs3_channel_numbers(request):
     comma_separated_numbers = request.config.getoption("--xs3-channel-numbers")
     if comma_separated_numbers is None:
         return None
-    number_list = [int(n) for n in comma_separated_numbers.split(",")]
-    return number_list
+    return [int(n) for n in comma_separated_numbers.split(",")]
 
 
 @pytest.fixture
@@ -89,8 +78,7 @@ def xs3_mcaroi_numbers(request):
     comma_separated_numbers = request.config.getoption("--xs3-mcaroi-numbers")
     if comma_separated_numbers is None:
         return None
-    number_list = [int(n) for n in comma_separated_numbers.split(",")]
-    return number_list
+    return [int(n) for n in comma_separated_numbers.split(",")]
 
 
 @pytest.fixture
@@ -119,8 +107,9 @@ def redis_dict_factory():
             kwargs.keys()
         )
         if len(disallowed_kwargs_preset) > 0:
+            msg = f"{disallowed_kwargs_preset} given, but 'host', 'port', and 'db' may not be specified"
             raise KeyError(
-                f"{disallowed_kwargs_preset} given, but 'host', 'port', and 'db' may not be specified"
+                msg
             )
         kwargs.update(redis_server_kwargs)
 
