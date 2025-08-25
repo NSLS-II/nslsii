@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -70,13 +71,13 @@ def test_bluesky_kafka_config_path_env_var(tmp_path, RE, temporary_topics):
     ):
         # write a temporary file for this test
         test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
-        with open(test_config_file_path, "w") as f:
+        with Path.open(test_config_file_path, "w") as f:
             f.write(test_bluesky_kafka_config_false)
             # add an extra item to test for later
             f.write(f"  config_file_path: {test_config_file_path}")
 
         os.environ["BLUESKY_KAFKA_CONFIG_PATH"] = str(test_config_file_path)
-        bluesky_kafka_configuration, publisher_details = configure_kafka_publisher(
+        bluesky_kafka_configuration, _ = configure_kafka_publisher(
             RE, "abc"
         )
 
@@ -91,10 +92,10 @@ def test_bluesky_kafka_config_path_env_var_negative(tmp_path, RE):
     test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
     os.environ["BLUESKY_KAFKA_CONFIG_PATH"] = str(test_config_file_path)
     with pytest.raises(FileNotFoundError, match=str(test_config_file_path)):
-        bluesky_kafka_configuration = configure_kafka_publisher(RE, "abc")
+        _ = configure_kafka_publisher(RE, "abc")
 
 
-def test_bluesky_kafka_config_path_default_negative(tmp_path, RE):
+def test_bluesky_kafka_config_path_default_negative(tmp_path, RE): # noqa: ARG001
     """Test the default configuration file path.
 
     It is not possible to install a test file to the default location.
@@ -105,13 +106,13 @@ def test_bluesky_kafka_config_path_default_negative(tmp_path, RE):
     if "BLUESKY_KAFKA_CONFIG_PATH" in os.environ:
         del os.environ["BLUESKY_KAFKA_CONFIG_PATH"]
     with pytest.raises(FileNotFoundError, match="/etc/bluesky/kafka.yml"):
-        bluesky_kafka_configuration = configure_kafka_publisher(RE, "abc")
+        _ = configure_kafka_publisher(RE, "abc")
 
 
 def test__read_bluesky_kafka_config_file(tmp_path):
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
-    with open(test_config_file_path, "w") as f:
+    with Path.open(test_config_file_path, "w") as f:
         f.write(test_bluesky_kafka_config_false)
 
     bluesky_kafka_config = _read_bluesky_kafka_config_file(str(test_config_file_path))
@@ -132,7 +133,7 @@ def test__read_bluesky_kafka_config_file(tmp_path):
 def test__read_bluesky_kafka_config_file_producer_consumer_security(tmp_path):
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
-    with open(test_config_file_path, "w") as f:
+    with Path.open(test_config_file_path, "w") as f:
         f.write(test_bluesky_kafka_config_security_section)
 
     bluesky_kafka_config = _read_bluesky_kafka_config_file(str(test_config_file_path))
@@ -168,7 +169,7 @@ def test__read_bluesky_kafka_config_file_producer_consumer_security(tmp_path):
 def test__read_bluesky_kafka_config_file_runengine_topics(tmp_path):
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
-    with open(test_config_file_path, "w") as f:
+    with Path.open(test_config_file_path, "w") as f:
         f.write(test_bluesky_kafka_config_security_section)
 
     bluesky_kafka_config = _read_bluesky_kafka_config_file(str(test_config_file_path))
@@ -200,7 +201,7 @@ def test__read_bluesky_kafka_config_file_missing_sections(tmp_path):
     """
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
-    with open(test_config_file_path, "w") as f:
+    with Path.open(test_config_file_path, "w") as f:
         # write a configuration file with none of the required sections
         f.write("---\n  a\n  b\n")
 
@@ -217,7 +218,7 @@ def test_configure_kafka_publisher_abort_run_true(tmp_path, RE):
     """
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config.yml"
-    with open(test_config_file_path, "w") as f:
+    with Path.open(test_config_file_path, "w") as f:
         f.write(test_bluesky_kafka_config_true)
 
     bluesky_kafka_configuration, publisher_details = configure_kafka_publisher(
@@ -238,7 +239,7 @@ def test_configure_kafka_publisher_abort_run_false(tmp_path, RE):
     """
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config.yml"
-    with open(test_config_file_path, "w") as f:
+    with Path.open(test_config_file_path, "w") as f:
         f.write(test_bluesky_kafka_config_false)
 
     bluesky_kafka_configuration, publisher_details = configure_kafka_publisher(

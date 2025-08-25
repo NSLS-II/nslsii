@@ -174,7 +174,7 @@ def test_no_broker(
 
         RE.subscribe(store_published_document)
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception): # noqa: B017, PT011
             RE(count([hw.det]))
 
         # only a stop document is expected ???
@@ -211,7 +211,7 @@ def test_exception_on_publisher_call(
         beamline_topic,
     ):
 
-        def mock_publisher_factory(*args, **kwargs):
+        def mock_publisher_factory():
             # the mock publisher will raise BlueskyKafkaException on every method call
             #   but only __call__ will be invoked
             return Mock(side_effect=BlueskyKafkaException)

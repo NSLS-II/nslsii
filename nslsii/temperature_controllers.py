@@ -62,7 +62,7 @@ class Eurotherm(Device):
         # setup a cleanup function for the timer, this matches including
         # timeout in `status` but also ensures that the callback is removed.
         def timer_cleanup():
-            print(f"Set of {self.name} timed out after {self.timeout.get()} s")
+            print(f"Set of {self.name} timed out after {self.timeout.get()} s") # noqa : T201
             self._set_lock.release()
             self.readback.clear_sub(status_indicator)
             status._finished(success=False)
@@ -70,7 +70,7 @@ class Eurotherm(Device):
         self._cb_timer = threading.Timer(self.timeout.get(), timer_cleanup)
 
         # set up the done moving indicator logic
-        def status_indicator(value, timestamp, **kwargs):
+        def status_indicator(value, timestamp, **kwargs): # noqa : ARG001
             # add a Timer to ensure that timeout occurs.
             if not self._cb_timer.is_alive():
                 self._cb_timer.start()
@@ -97,7 +97,7 @@ class Eurotherm(Device):
         # hand the status object back to the RE
         return status
 
-    def stop(self, success=False):
+    def stop(self, success=False): # noqa : ARG002
         # override the lock, cancel the timer and remove the subscription on any
         # in progress sets
         self._set_lock.release()

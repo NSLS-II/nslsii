@@ -30,12 +30,11 @@ def fp():
 
 @pytest.fixture
 def dummy_re_md_dict():
-    md = {
+    return {
         "data_session": "pass-000000",
         "cycle": "2024-3",
         "scan_id": 0,
     }
-    return md
 
 
 @pytest.mark.parametrize(

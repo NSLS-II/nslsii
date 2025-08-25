@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -87,7 +88,7 @@ def test_conditional_import_positive_case(tmp_path):
 
     # write a temporary file for this test
     test_config_file_path = tmp_path / "bluesky_kafka_config_content.yml"
-    with open(test_config_file_path, "w") as f:
+    with Path.open(test_config_file_path, "w") as f:
         f.write(test_bluesky_kafka_config)
 
     the_test = """

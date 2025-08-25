@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import warnings
 from datetime import datetime
 from getpass import getpass
-from typing import Any, Dict, Optional, Union
+from pathlib import Path
+from typing import Any
 
 import httpx
 import redis
@@ -39,15 +39,14 @@ def is_commissioning_proposal(proposal_number, beamline) -> bool:
     return proposal_number in commissioning_proposals
 
 
-def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
+def validate_proposal(data_session_value, beamline) -> dict[str, Any]:
     proposal_data = {}
     data_session_match = data_session_re.match(data_session_value)
 
     if data_session_match is None:
-        raise ValueError(
-            f"RE.md['data_session']='{data_session_value}' "
-            f"is not matched by regular expression '{data_session_re.pattern}'"
-        )
+        msg = f"RE.md['data_session']='{data_session_value}' "
+        msg += f"is not matched by regular expression '{data_session_re.pattern}'"
+        raise ValueError(msg)
 
     try:
         current_cycle = get_current_cycle()
@@ -58,19 +57,16 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
         ).raise_for_status()
         proposal_data = proposal_response.json()["proposal"]
         if "error_message" in proposal_data:
-            raise ValueError(
-                f"while verifying data_session '{data_session_value}' "
-                f"an error was returned by {proposal_response.url}: "
-                f"{proposal_data}"
-            )
+            msg = f"while verifying data_session '{data_session_value}' "
+            msg += f"an error was returned by {proposal_response.url}: "
+            msg += f"{proposal_data}"
+            raise ValueError(msg)
         if not proposal_commissioning and current_cycle not in proposal_data["cycles"]:
-            raise ValueError(
-                f"Proposal {data_session_value} is not valid in the current NSLS2 cycle ({current_cycle})."
-            )
+            msg = f"Proposal {data_session_value} is not valid in the current NSLS2 cycle ({current_cycle})."
+            raise ValueError(msg)
         if beamline.upper() not in proposal_data["instruments"]:
-            raise ValueError(
-                f"Wrong beamline ({beamline.upper()}) for proposal {data_session_value} ({', '.join(proposal_data['instruments'])})."
-            )
+            msg = f"Wrong beamline ({beamline.upper()}) for proposal {data_session_value} ({', '.join(proposal_data['instruments'])})."
+            raise ValueError(msg)
             # data_session is valid!
 
     except httpx.RequestError as rerr:
@@ -78,14 +74,14 @@ def validate_proposal(data_session_value, beamline) -> Dict[str, Any]:
         warnings.warn(
             f"while verifying data_session '{data_session_value}' "
             f"the request {rerr.request.url!r} failed with "
-            f"'{rerr}'"
+            f"'{rerr}'", stacklevel=2
         )
 
     return proposal_data
 
 
 config_files = [
-    os.path.expanduser("~/.config/n2sn_tools.yml"),
+    Path.expanduser("~/.config/n2sn_tools.yml"),
     "/etc/n2sn_tools.yml",
 ]
 
@@ -96,7 +92,7 @@ def authenticate(
     config = None
     for fn in config_files:
         try:
-            with open(fn) as f:
+            with Path.open(fn) as f:
                 config = yaml.safe_load(f)
         except OSError:
             pass
@@ -104,12 +100,14 @@ def authenticate(
             break
 
     if config is None:
-        raise RuntimeError("Unable to open a config file")
+        msg = "Unable to open a config file"
+        raise RuntimeError(msg)
 
     server = config.get("common", {}).get("server")
 
     if server is None:
-        raise RuntimeError("Server name not found!")
+        msg = "Server name not found!"
+        raise RuntimeError(msg)
 
     auth_server = Server(server, use_ssl=True)
 
@@ -122,34 +120,32 @@ def authenticate(
             auto_bind=True,
             raise_exceptions=True,
         )
-        print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}")
+        print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}") # noqa : T201
 
     except LDAPInvalidCredentialsResult:
-        raise RuntimeError(f"Invalid credentials for user '{username}'.") from None
+        msg = f"Invalid credentials for user '{username}'."
+        raise RuntimeError(msg) from None
     except LDAPSocketOpenError:
-        print(f"{server} server connection failed...")
+        print(f"{server} server connection failed...") # noqa : T201
 
 
 def should_they_be_here(username, new_data_session, beamline):
     user_access_json = nslsii_api_client.get(f"/v1/data-session/{username}").json()
 
-    if (
+    return (
         "nsls2" in user_access_json["facility_all_access"]
         or beamline.lower() in user_access_json["beamline_all_access"]
         or new_data_session in user_access_json["data_sessions"]
-    ):
-        return True
-
-    return False
+    )
 
 
 class AuthorizationError(Exception): ...
 
 
 def switch_redis_proposal(
-    proposal_number: Union[int, str],
+    proposal_number: int | str,
     beamline: str,
-    username: Optional[str] = None,
+    username: str | None = None,
     prefix: str = "",
 ) -> RedisJSONDict:
     """Update information in RedisJSONDict for a specific beamline
@@ -187,13 +183,14 @@ def switch_redis_proposal(
             else get_current_cycle()
         )
         warnings.warn(
-            f"Experiment {new_data_session} was already started by the same user."
+            f"Experiment {new_data_session} was already started by the same user.", stacklevel=2
         )
 
     else:
         if not should_they_be_here(username, new_data_session, beamline):
+            msg = f"User '{username}' is not allowed to take data on proposal {new_data_session}"
             raise AuthorizationError(
-                f"User '{username}' is not allowed to take data on proposal {new_data_session}"
+                msg
             )
 
         proposal_data = validate_proposal(new_data_session, beamline)
@@ -222,7 +219,7 @@ def switch_redis_proposal(
             "pi_name": pi_name,
         }
 
-        print(f"Started experiment {md['data_session']} by {md['username']}.")
+        print(f"Started experiment {md['data_session']} by {md['username']}.") # noqa : T201
 
     return md
 
@@ -243,7 +240,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     )
 
     if verbose:
-        print(json.dumps(md, indent=2))
+        print(json.dumps(md, indent=2)) # noqa : T201
 
     return md
 
