@@ -97,14 +97,14 @@ class RunEngineRedisDict(UserDict):
         )
         if packed_local_md is None:
             redis_dict_log.info("no local metadata found in Redis")
-            self._local_md = dict()
+            self._local_md = {}
             self._set_local_metadata_on_server()
         else:
             redis_dict_log.info("unpacking local metadata from Redis")
             self._local_md = self._get_local_metadata_from_server()
             redis_dict_log.debug("unpacked local metadata:\n%s", self._local_md)
 
-        self._global_md = dict()
+        self._global_md = {}
         for global_key in self._global_keys:
             global_value = self._redis_global_client.get(global_key)
             if global_value is None:
@@ -155,10 +155,11 @@ class RunEngineRedisDict(UserDict):
                 # everything is good
                 pass
             else:
-                raise ValueError(
+                msg = (
                     f"expected value for key '{key}' to have type '{expected_value_type}'"
-                    f"but '{value}' has type '{type(value)}'"
+                    f" but '{value}' has type '{type(value)}'"
                 )
+                raise ValueError(msg)
             # update the global key-value pair explicitly in self._global_md
             # because it can not be updated through the self.data ChainMap
             # since self._global_md is not the first dictionary in that ChainMap
@@ -181,7 +182,8 @@ class RunEngineRedisDict(UserDict):
 
     def __delitem__(self, key):
         if key in self._global_keys:
-            raise KeyError(f"deleting key {key} is not allowed")
+            msg = f"deleting key {key} is not allowed"
+            raise KeyError(msg)
         del self._local_md[key]
         self._set_local_metadata_on_server()
 
@@ -227,9 +229,8 @@ class RunEngineRedisDict(UserDict):
         message_data_match = klass._message_data_pattern.match(decoded_message_data)
 
         if message_data_match is None:
-            raise ValueError(
-                f"message[data]=`{decoded_message_data}` could not be parsed"
-            )
+            msg = f"message[data]=`{decoded_message_data}` could not be parsed"
+            raise ValueError(msg)
         return message_data_match.group("key"), message_data_match.group("uuid")
 
     def _handle_update_message(self, message):

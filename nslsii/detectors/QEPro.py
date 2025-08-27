@@ -17,9 +17,9 @@ class QEProTEC(Device):
         super().__init__(*args, **kwargs)
 
     def set(self, value):
-        def check_setpoint(value, old_value, **kwargs):
+        def check_setpoint(value, old_value, **kwargs): # noqa : ARG001
             if abs(value - self.tec_temp.get()) < self.tolerance:
-                print(f"Reached setpoint {self.tec_temp.get()}.")
+                print(f"Reached setpoint {self.tec_temp.get()}.") # noqa : T201
                 return True
             return False
 
@@ -142,7 +142,7 @@ class QEPro(Device):
         self,
         integration_time,
         num_spectra_to_average,
-        correction_type="reference",
+        correction_type="reference", # noqa : ARG002
         electric_dark_correction=True,
     ):
         self.integration_time.put(integration_time)

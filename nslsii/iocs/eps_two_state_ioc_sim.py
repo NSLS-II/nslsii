@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 # noqa : EXE001
 from __future__ import annotations
 
 import contextvars
@@ -77,7 +77,7 @@ class EPSTwoStateIOC(PVGroup):
 
     # Pos-Sts two-state PV
 
-    _pos_states = ["Open", "Not Open"]  # two position states
+    _pos_states: ClassVar[list[str]] = ["Open", "Not Open"]  # two position states
 
     pos_sts = pvproperty(
         value="Open",
@@ -89,7 +89,7 @@ class EPSTwoStateIOC(PVGroup):
 
     # Opn-Cmd and Cls-Cmd PVs used by client for changing state
 
-    _cmd_states = ["None", "Done"]  # two command states
+    _cmd_states: ClassVar[list[str]] = ["None", "Done"]  # two command states
 
     state1_cmd = pvproperty(
         value=_cmd_states[0],
@@ -104,7 +104,7 @@ class EPSTwoStateIOC(PVGroup):
         name="Cmd:Cls-Cmd",
     )
 
-    _fail_states = ["False", "True"]
+    _fail_states: ClassVar[list[str]] = ["False", "True"]
 
     fail_to_state1 = pvproperty(
         value=_fail_states[0],
@@ -123,7 +123,7 @@ class EPSTwoStateIOC(PVGroup):
 
     # Enbl-Sts PV that enables/disables the state change
 
-    _enbl_states = ["False", "True"]
+    _enbl_states: ClassVar[list[str]] = ["False", "True"]
 
     enbl_sts = pvproperty(
         value="", enum_strings=_enbl_states, dtype=ChannelType.ENUM, name="Enbl-Sts"
@@ -131,7 +131,7 @@ class EPSTwoStateIOC(PVGroup):
 
     # Hardware error status
 
-    _hw_error_states = ["False", "True"]
+    _hw_error_states: ClassVar[list[str]] = ["False", "True"]
 
     hw_error_sts = pvproperty(
         value="",
@@ -142,7 +142,9 @@ class EPSTwoStateIOC(PVGroup):
 
     # Pos-Sts error status
 
-    _sts_error_states = ["False", "True"]
+    from typing import ClassVar  # noqa : PLC0415
+
+    _sts_error_states: ClassVar[list[str]] = ["False", "True"]
 
     sts_error_sts = pvproperty(
         value="",
@@ -154,15 +156,15 @@ class EPSTwoStateIOC(PVGroup):
     # PV Startup/Putter Methods
 
     @enbl_sts.startup
-    async def enbl_sts(self, instance, async_lib):
+    async def enbl_sts(self, instance, async_lib): # noqa : ARG002
         await instance.write(value=self._enbl_sts_val)
 
     @hw_error_sts.startup
-    async def hw_error_sts(self, instance, async_lib):
+    async def hw_error_sts(self, instance, async_lib): # noqa : ARG002
         await instance.write(value=self._hw_error_val)
 
     @sts_error_sts.startup
-    async def sts_error_sts(self, instance, async_lib):
+    async def sts_error_sts(self, instance, async_lib): # noqa : ARG002
         await instance.write(value=self._sts_error_val)
 
     @state1_cmd.startup
@@ -192,23 +194,23 @@ class EPSTwoStateIOC(PVGroup):
         return "None"
 
     @enbl_sts.putter
-    async def enbl_sts(self, instance, value):
+    async def enbl_sts(self, instance, value): # noqa : ARG002
         self._enbl_sts_val = value
         return value
 
     @hw_error_sts.putter
-    async def hw_error_sts(self, instance, value):
+    async def hw_error_sts(self, instance, value): # noqa : ARG002
         self._hw_error_val = value
         return value
 
     @sts_error_sts.putter
-    async def sts_error_sts(self, instance, value):
+    async def sts_error_sts(self, instance, value): # noqa : ARG002
         self._sts_error_val = value
         return value
 
     # Internal Methods
 
-    async def _state_cmd_put(self, instance, value, state_val, fail_to_state):
+    async def _state_cmd_put(self, instance, value, state_val, fail_to_state): # noqa : ARG002
         if value == self._cmd_states[0]:  # if None -> do nothing
             return self._cmd_states[0]
         if self._pos_sts_val == state_val:  # if in state -> do nothing

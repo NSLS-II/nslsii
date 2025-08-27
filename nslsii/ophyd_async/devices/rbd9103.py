@@ -98,9 +98,8 @@ class RBD9103(StandardReadable, EpicsDevice):
             set_sampling_rate < self._min_sampling_rate
             or set_sampling_rate > self._max_sampling_rate
         ):
-            raise ValueError(
-                f"Sampling rate must be between {self._min_sampling_rate} and {self._max_sampling_rate} ms"
-            )
+            msg = f"Sampling rate must be between {self._min_sampling_rate} and {self._max_sampling_rate} ms"
+            raise ValueError(msg)
 
         sampling = await self.sample.get_value()
         if sampling:
