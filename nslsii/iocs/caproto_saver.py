@@ -120,7 +120,7 @@ class CaprotoSaveIOC(PVGroup):
     queue = pvproperty(value=0, doc="A PV to facilitate threading-based queue")
 
     @queue.startup
-    async def queue(self, instance, async_lib):
+    async def queue(self, instance, async_lib): # noqa : ARG002
         """The startup behavior of the count property to set up threading queues."""
         # pylint: disable=unused-argument
         self._request_queue = async_lib.ThreadsafeQueue(maxsize=1)
@@ -140,20 +140,15 @@ class CaprotoSaveIOC(PVGroup):
     async def _update_full_file_path(
         self, write_dir=None, file_name=None, use_frame_num=None, uid_type=None
     ):
-        if use_frame_num is None:
-            use_num = self.use_frame_num.value
-        else:
-            use_num = use_frame_num
+        use_num = self.use_frame_num.value if use_frame_num is None else use_frame_num
 
         frame_num_str = ""
         if use_num == OnOffStates.ENABLE.value:
             frame_num = self.frame_num.value
             frame_num_str = f"_{frame_num:06}"
 
-        if uid_type is None:
-            uid_to_use = self.uid_type.value
-        else:
-            uid_to_use = uid_type
+        uid_to_use = self.uid_type.value if uid_type is None else uid_type
+        
         uid_str = ""
         if uid_to_use == UIDOptions.SHORT.value:
             uid_str = f"_{str(uuid.uuid4())[:8]}"
@@ -165,13 +160,10 @@ class CaprotoSaveIOC(PVGroup):
         else:
             local_write_dir = Path(write_dir)
 
-        if file_name is None:
-            full_file_name = self.file_name.value
-        else:
-            full_file_name = file_name
+        full_file_name = self.file_name.value if file_name is None else file_name
 
         try:
-            filename_and_ext = os.path.splitext(full_file_name)
+            filename_and_ext = Path.splitext(full_file_name)
             base_filename = filename_and_ext[0]
             extension = filename_and_ext[1]
         except IndexError:
@@ -185,28 +177,28 @@ class CaprotoSaveIOC(PVGroup):
 
         full_file_path = self._sanitizer.sub("_", str(full_file_path))
 
-        print(f"{now()}: {full_file_path = }")
+        print(f"{now()}: {full_file_path = }") # noqa : T201
 
         await self.full_file_path.write(full_file_path)
 
-    async def _use_frame_num_callback(self, instance, value):
+    async def _use_frame_num_callback(self, instance, value): # noqa : ARG002
         await self._update_full_file_path(use_frame_num=value)
         return value
 
-    async def _uid_type_callback(self, instance, value):
+    async def _uid_type_callback(self, instance, value): # noqa : ARG002
         await self._update_full_file_path(uid_type=value)
         return value
 
-    async def _file_name_callback(self, instance, value):
+    async def _file_name_callback(self, instance, value): # noqa : ARG002
         await self._update_full_file_path(file_name=value)
         return value
 
-    async def _write_dir_callback(self, instance, value):
+    async def _write_dir_callback(self, instance, value): # noqa : ARG002
         """The stage method to perform preparation of a dataset to save the data."""
 
         local_write_dir = Path(value)
 
-        if os.path.exists(local_write_dir):
+        if Path.exists(local_write_dir):
             if os.access(local_write_dir, os.W_OK):
                 await self.directory_exists.write(DirExistsStatuses.EXISTS.value)
                 await self._update_full_file_path(write_dir=value)
@@ -219,7 +211,7 @@ class CaprotoSaveIOC(PVGroup):
 
         if self.directory_exists.value == DirExistsStatuses.EXISTS.value:
             return value
-        print(
+        print( # noqa : T201
             f"Directory access error for directory {value}! - {self.directory_exists.value}"
         )
         return ""
@@ -244,13 +236,13 @@ class CaprotoSaveIOC(PVGroup):
         """The file name callback method."""
         return await self._use_frame_num_callback(*args, **kwargs)
 
-    async def _get_current_dataset(self, frame):
+    async def _get_current_dataset(self, frame):  # noqa : ARG002
         """The method to return a desired dataset.
 
         See https://scikit-image.org/docs/stable/auto_examples/data/plot_3d.html
         for details about the dataset returned by the base class' method.
         """
-        return np.random.random((480, 640))
+        return np.random.default_rng().random((480, 640))
 
     @acquire.putter
     @no_reentry
@@ -266,13 +258,13 @@ class CaprotoSaveIOC(PVGroup):
             instance.value in [True, AcqStatuses.ACQUIRING.value]
             and value == AcqStatuses.ACQUIRING.value
         ):
-            print(
+            print( # noqa : T201
                 f"The device is already acquiring. Please wait until the '{AcqStatuses.IDLE.value}' status."
             )
             return True
 
         if self.directory_exists.value != DirExistsStatuses.EXISTS.value:
-            print("Target write directory does not exist or cannot be written to!")
+            print("Target write directory does not exist or cannot be written to!") # noqa : T201
             return False
 
         await self.acquire.write(AcqStatuses.ACQUIRING.value)
@@ -297,9 +289,9 @@ class CaprotoSaveIOC(PVGroup):
 
         return False
 
-    async def on_startup(self, async_lib):
+    async def on_startup(self, async_lib): # noqa : ARG002
         for key in self.pvdb:
-            print(key)
+            print(key) # noqa : T201
 
         await self._write_dir_callback(None, "/tmp")
 
@@ -313,7 +305,7 @@ class CaprotoSaveIOC(PVGroup):
             frame_number = received["frame_number"]
             try:
                 save_hdf5_nd(fname=filename, data=data, mode="x", group_path="enc1")
-                print(
+                print( # noqa : T201
                     f"{now()}: saved {frame_number=} {data.shape} data into:\n  {filename}"
                 )
 
@@ -322,7 +314,7 @@ class CaprotoSaveIOC(PVGroup):
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
-                print(
+                print( # noqa : T201
                     f"Cannot save file {filename!r} due to the following exception:\n{exc}"
                 )
 
@@ -346,7 +338,7 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
 
     def __init__(self, *args, camera_host=None, **kwargs):
         self._camera_host = camera_host
-        print(f"{camera_host = }")
+        print(f"{camera_host = }") # noqa : T201
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -365,13 +357,13 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
         ioc_opts["camera_host"] = parsed_args.camera_host
         return ioc_opts, run_opts
 
-    async def _get_current_dataset(self, *args, **kwargs):  # pylint: disable=unused-argument
+    async def _get_current_dataset(self, *args, **kwargs): # noqa : ARG002  # pylint: disable=unused-argument
         url = f"http://{self._camera_host}/axis-cgi/jpg/image.cgi"
         resp = requests.get(url, timeout=10)
         img = Image.open(BytesIO(resp.content))
 
         dataset = np.asarray(img).sum(axis=-1)
-        print(f"{now()}: {dataset.shape}")
+        print(f"{now()}: {dataset.shape}") # noqa : T201
 
         return dataset
 
@@ -386,14 +378,14 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
             try:
                 save_hdf5_nd(fname=filename, data=data, dtype="|u1", mode="a")
                 # TODO: Change all of these prints to use the caproto logger instead
-                print(f"{now()}: saved data into: {filename}")
+                print(f"{now()}: saved data into: {filename}") # noqa : T201
 
                 success = True
                 error_message = ""
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
-                print(
+                print( # noqa : T201
                     f"Cannot save file {filename!r} due to the following exception:\n{exc}"
                 )
 
@@ -409,10 +401,10 @@ class ExternalFileReference(Signal):
     def describe(self):
         resource_document_data = super().describe()
         resource_document_data[self.name].update(
-            dict(
-                external="FILESTORE:",
-                dtype="array",
-            )
+            {
+                "external": "FILESTORE:",
+                "dtype": "array",
+            }
         )
         return resource_document_data
 
@@ -464,8 +456,7 @@ class CaprotoSaverDevice(Device):
         # These three beamlines have a -new suffix in their
         if beamline in ["xpd", "fxi", "qas"]:
             beamline = f"{beamline}-new"
-        root_path = f"/nsls2/data/{beamline}/proposals/{self._md.get('cycle', '')}/{self._md.get('data_session', '')}/assets/{self.name}"
-        return root_path
+        return f"/nsls2/data/{beamline}/proposals/{self._md.get('cycle', '')}/{self._md.get('data_session', '')}/assets/{self.name}"
 
     @property
     def shape(self):
@@ -515,12 +506,10 @@ class CaprotoSaverDevice(Device):
         return res
 
     def trigger(self):
-        def done_callback(value, old_value, **kwargs):
+        def done_callback(value, old_value, **kwargs): # noqa : ARG001
             """The callback function used by ophyd's SubscriptionStatus."""
             # print(f"{old_value = } -> {value = }")
-            if old_value == "acquiring" and value == "idle":
-                return True
-            return False
+            return bool(old_value == "acquiring" and value == "idle")
 
         status = SubscriptionStatus(self.acquire, run=False, callback=done_callback)
 

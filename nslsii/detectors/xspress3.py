@@ -137,8 +137,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                     logger.warning("Still capturing data .... giving up.")
                     logger.warning(
                         "Check that the xspress3 is configured to take the right "
-                        "number of frames "
-                        f"(it is trying to take {self.parent.settings.num_images.get()})"
+                        "number of frames (it is trying to take %s)",
+                        self.parent.settings.num_images.get()
                     )
                     self.capture.put(0)
                     break
@@ -171,7 +171,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
 
         total_points = self.parent.total_points.get()
         if total_points < 1:
-            raise RuntimeError("You must set the total points")
+            msg = "You must set the total points"
+            raise RuntimeError(msg)
         spec_per_point = self.parent.spectra_per_point.get()
         total_capture = total_points * spec_per_point
 
@@ -223,9 +224,8 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
         )
 
         if not self.file_path_exists.get():
-            raise OSError(
-                f"Path {self.file_path.get()} does not exits on IOC!! Please Check"
-            )
+            msg = f"Path {self.file_path.get()} does not exits on IOC!! Please Check"
+            raise OSError(msg)
 
         logger.debug("Inserting the filestore resource: %s", self._fn)
         self._generate_resource({})
@@ -365,10 +365,7 @@ class Xspress3ROI(ADBase):
         **kwargs,
     ):
         if read_attrs is None:
-            if use_sum:
-                read_attrs = ["value_sum"]
-            else:
-                read_attrs = ["value", "value_sum"]
+            read_attrs = ["value_sum"] if use_sum else ["value", "value_sum"]
 
         if configuration_attrs is None:
             configuration_attrs = ["ev_low", "ev_high", "enable"]
@@ -464,18 +461,18 @@ def make_rois(rois):
     for roi in rois:
         attr = f"roi{roi:02d}"
         #             cls          prefix                kwargs
-        defn[attr] = (Xspress3ROI, f"ROI{roi}:", dict(roi_num=roi))
+        defn[attr] = (Xspress3ROI, f"ROI{roi}:", {"roi_num": roi})
         # e.g., device.rois.roi01 = Xspress3ROI('ROI1:', roi_num=1)
 
         # AreaDetector NDPluginAttribute information
         attr = f"ad_attr{roi:02d}"
-        defn[attr] = (Xspress3ROISettings, f"ROI{roi}:", dict(read_attrs=[]))
+        defn[attr] = (Xspress3ROISettings, f"ROI{roi}:", {"read_attrs": []})
         # e.g., device.rois.roi01 = Xspress3ROI('ROI1:', roi_num=1)
 
         # TODO: 'roi01' and 'ad_attr_01' have the same prefix and could
         # technically be combined. Is this desirable?
 
-    defn["num_rois"] = (Signal, None, dict(value=len(rois)))
+    defn["num_rois"] = (Signal, None, {"value": len(rois)})
     # e.g., device.rois.num_rois.get() => 16
     return defn
 
@@ -518,7 +515,8 @@ class Xspress3Channel(ADBase):
             roi = index
         else:
             if index <= 0:
-                raise ValueError("ROI index starts from 1")
+                msg = "ROI index starts from 1"
+                raise ValueError(msg)
             roi = list(self.all_rois)[index - 1]
 
         roi.configure(ev_low, ev_high)
@@ -563,11 +561,11 @@ class Xspress3Detector(DetectorBase):
         name=None,
         parent=None,
         # to remove?
-        file_path="",
-        ioc_file_path="",
-        default_channels=None,
-        channel_prefix=None,
-        roi_sums=False,
+        file_path="", # noqa : ARG002
+        ioc_file_path="", # noqa : ARG002
+        default_channels=None, # noqa : ARG002
+        channel_prefix=None, # noqa : ARG002
+        roi_sums=False, # noqa : ARG002
         # to remove?
         **kwargs,
     ):
@@ -607,8 +605,8 @@ class Xspress3Detector(DetectorBase):
 
     @property
     def all_rois(self):
-        for ch_num, channel in self._channels.items():
-            for roi in channel.all_rois:
+        for _, channel in self._channels.items():
+            for roi in channel.all_rois: # noqa : UP028
                 yield roi
 
     @property
@@ -617,7 +615,7 @@ class Xspress3Detector(DetectorBase):
             if roi.enable.get():
                 yield roi
 
-    def read_hdf5(self, fn, *, rois=None, max_retries=2):
+    def read_hdf5(self, fn, *, rois=None, max_retries=2): # noqa : ARG002
         """Read ROI data from an HDF5 file using the current ROI configuration
 
         Parameters
@@ -631,10 +629,7 @@ class Xspress3Detector(DetectorBase):
             rois = self.enabled_rois
 
         num_points = self.settings.num_images.get()
-        if isinstance(fn, h5py.File):
-            hdf = fn
-        else:
-            hdf = h5py.File(fn, "r")
+        hdf = fn if isinstance(fn, h5py.File) else h5py.File(fn, "r")
 
         RoiTuple = Xspress3ROI.get_device_tuple()
 
@@ -689,7 +684,7 @@ class XspressTrigger(BlueskyInterface):
         self._status = None
         return ret
 
-    def _acquire_changed(self, value=None, old_value=None, **kwargs):
+    def _acquire_changed(self, value=None, old_value=None, **kwargs): # noqa : ARG002
         "This is called when the 'acquire' signal changes."
         if self._status is None:
             return
@@ -699,7 +694,8 @@ class XspressTrigger(BlueskyInterface):
 
     def trigger(self):
         if self._staged != Staged.yes:
-            raise RuntimeError("not staged")
+            msg = "not staged"
+            raise RuntimeError(msg)
 
         self._status = DeviceStatus(self)
         self._acquisition_signal.put(1, wait=False)

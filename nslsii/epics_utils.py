@@ -45,4 +45,4 @@ def main():
 
     args = parser.parse_args()
     hostname = get_ioc_hostname(args.pvname)
-    print(f"IOC hostname for '{args.pvname}' is '{hostname}'.")
+    print(f"IOC hostname for '{args.pvname}' is '{hostname}'.") # noqa : T201

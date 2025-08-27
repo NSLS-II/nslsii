@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import IntEnum
+from typing import ClassVar
 
 from ophyd import Component as Cpt
 from ophyd import Device, DeviceStatus, EpicsSignal, EpicsSignalRO, Signal
@@ -114,7 +115,7 @@ class ZebraPulse(Device):
 
     input_edge = FC(EpicsSignal, "{self._zebra_prefix}POLARITY:{self._edge_addr}")
 
-    _edge_addrs = {
+    _edge_addrs: ClassVar[dict[int, str]] = {
         1: "BC",
         2: "BD",
         3: "BE",

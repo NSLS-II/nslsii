@@ -28,11 +28,11 @@ def _read_bluesky_kafka_config_file(config_file_path):
     -------
     dict of configuration details
     """
-    import yaml
+    import yaml  # noqa : PLC0415
 
     # read the Kafka Producer configuration details
     if Path(config_file_path).exists():
-        with open(config_file_path) as f:
+        with Path.open(config_file_path) as f:
             bluesky_kafka_config = yaml.safe_load(f)
     else:
         raise FileNotFoundError(config_file_path)
@@ -50,8 +50,9 @@ def _read_bluesky_kafka_config_file(config_file_path):
     ]
 
     if missing_required_sections:
+        msg = f"Bluesky Kafka configuration file '{config_file_path}' is missing required section(s) `{missing_required_sections}`"
         raise Exception(
-            f"Bluesky Kafka configuration file '{config_file_path}' is missing required section(s) `{missing_required_sections}`"
+            msg
         )
 
     return bluesky_kafka_config
@@ -98,16 +99,16 @@ def _subscribe_kafka_publisher(
         subscription token corresponding to the RunRouter subscribed to the RunEngine
         by this function
     """
-    from bluesky_kafka import Publisher
-    from bluesky_kafka.utils import list_topics
-    from event_model import RunRouter
+    from bluesky_kafka import Publisher  # noqa : PLC0415
+    from bluesky_kafka.utils import list_topics  # noqa : PLC0415
+    from event_model import RunRouter  # noqa : PLC0415
 
     topic = f"{beamline_name.lower()}.bluesky.runengine.documents"
 
     if _publisher_factory is None:
         _publisher_factory = Publisher
 
-    def kafka_publisher_factory(start_name, start_doc):
+    def kafka_publisher_factory(start_name, start_doc): # noqa: ARG001
         # create a Kafka Publisher for a single run
         #   in response to a start document
 
@@ -160,15 +161,12 @@ def _subscribe_kafka_publisher(
     logging.getLogger("nslsii").info(
         "RE will publish documents to Kafka topic '%s'", topic
     )
-
-    subscribe_kafka_publisher_details = _SubscribeKafkaPublisherDetails(
+    return _SubscribeKafkaPublisherDetails(
         beamline_topic=topic,
         bootstrap_servers=bootstrap_servers,
         producer_config=producer_config,
         re_subscribe_token=runrouter_token,
     )
-
-    return subscribe_kafka_publisher_details
 
 
 """
@@ -223,11 +221,13 @@ def _subscribe_kafka_queue_thread_publisher(
         un-subscribe the function from the RunEngine, in case someone ever wants to do that.
 
     """
-    from bluesky_kafka.tools.queue_thread import build_kafka_publisher_queue_and_thread
+    from bluesky_kafka.tools.queue_thread import (  # noqa : PLC0415
+        build_kafka_publisher_queue_and_thread,
+    )
 
     nslsii_logger = logging.getLogger("nslsii")
     beamline_runengine_topic = None
-    kafka_publisher_token = None
+    kafka_publisher_token = None # noqa : F841
     publisher_thread_stop_event = None
     kafka_publisher_re_token = None
     publisher_queue_thread_details = None
@@ -245,9 +245,9 @@ def _subscribe_kafka_queue_thread_publisher(
             publisher_queue_timeout=publisher_queue_timeout,
         )
 
-        publisher_thread_stop_event = (
+        publisher_thread_stop_event = ( # noqa : F841
             publisher_queue_thread_details.publisher_thread_stop_event
-        )
+        ) 
 
         kafka_publisher_re_token = RE.subscribe(
             publisher_queue_thread_details.put_on_publisher_queue
@@ -269,14 +269,10 @@ def _subscribe_kafka_queue_thread_publisher(
             beamline_runengine_topic,
         )
 
-    subscribe_kafka_queue_thread_publisher_details = (
-        _SubscribeKafkaQueueThreadPublisherDetails(
-            beamline_topic=beamline_runengine_topic,
-            bootstrap_servers=bootstrap_servers,
-            producer_config=producer_config,
-            publisher_queue_thread_details=publisher_queue_thread_details,
-            re_subscribe_token=kafka_publisher_re_token,
-        )
+    return _SubscribeKafkaQueueThreadPublisherDetails(
+        beamline_topic=beamline_runengine_topic,
+        bootstrap_servers=bootstrap_servers,
+        producer_config=producer_config,
+        publisher_queue_thread_details=publisher_queue_thread_details,
+        re_subscribe_token=kafka_publisher_re_token,
     )
-
-    return subscribe_kafka_queue_thread_publisher_details

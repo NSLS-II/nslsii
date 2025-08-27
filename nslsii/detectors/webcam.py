@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import itertools
 import logging
+import sys
 import time as ttime
 import warnings
 from collections import deque
@@ -36,7 +37,7 @@ class VideoStreamDet(Device):
         **kwargs,
     ):
         warnings.warn(
-            f"This class {self.__class__.__name__} will be removed in the future."
+            f"This class {self.__class__.__name__} will be removed in the future.", stacklevel=2
         )
 
         super().__init__(*args, **kwargs)
@@ -74,7 +75,7 @@ class VideoStreamDet(Device):
         self._resource_document.pop("run_start")
         self._asset_docs_cache.append(("resource", self._resource_document))
 
-        logger.debug(f"{self._data_file = }")
+        logger.debug("%r", self._data_file)
 
         self._h5file_desc = h5py.File(self._data_file, "x")
         group = self._h5file_desc.create_group("/entry")
@@ -98,29 +99,29 @@ class VideoStreamDet(Device):
         i = 0
         cap = cv2.VideoCapture(self._video_stream_url)
         while True:
-            logger.debug(f"Iteration: {i}")
+            logger.debug("Iteration: %r", i)
             i += 1
             ret, frame = cap.read()
             frames.append(frame)
             times.append(ttime.time())
 
             # cv2.imshow('Video', frame)
-            logger.debug(f"shape: {frame.shape}")
+            logger.debug("shape: %r", frame.shape)
 
             if ttime.monotonic() - start >= self.exposure_time.get():
                 break
 
             if cv2.waitKey(1) == 27:
-                exit(0)
+                sys.exit(0)
 
         frames = np.array(frames)
-        logger.debug(f"original shape: {frames.shape}")
+        logger.debug("original shape: %r", frames.shape)
         # Averaging over all frames and summing 3 RGB channels
         averaged = frames.mean(axis=0).sum(axis=-1)
 
         current_frame = next(self._counter)
         self._dataset.resize((current_frame + 1, *self._frame_shape))
-        logger.debug(f"{self._dataset = }\n{self._dataset.shape = }")
+        logger.debug("%r\nshape=%r", self._dataset, self._dataset.shape)
         self._dataset[current_frame, :, :] = averaged
 
         datum_document = self._datum_factory(datum_kwargs={"frame": current_frame})
@@ -133,7 +134,7 @@ class VideoStreamDet(Device):
 
     def describe(self):
         res = super().describe()
-        res[self.image.name].update(dict(shape=self._frame_shape))
+        res[self.image.name].update({"shape": self._frame_shape})
         return res
 
     def unstage(self):
@@ -146,5 +147,5 @@ class VideoStreamDet(Device):
     def collect_asset_docs(self):
         items = list(self._asset_docs_cache)
         self._asset_docs_cache.clear()
-        for item in items:
+        for item in items: # noqa : UP028
             yield item

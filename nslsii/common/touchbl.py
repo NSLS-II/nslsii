@@ -10,4 +10,5 @@ def if_touch_beamline(envvar="TOUCHBEAMLINE"):
         return False
     if value in ("y", "yes", "t", "true", "on", "1"):
         return True
-    raise ValueError(f"Unknown value: {value}")
+    msg = f"Unknown value: {value}"
+    raise ValueError(msg)

@@ -4,7 +4,6 @@ import os
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import shortuuid
 from ophyd_async.core import (
@@ -49,11 +48,10 @@ class ProposalNumYMDPathProvider(PathProvider):
         beamline_tla = os.getenv(
             "ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "")
         ).lower()
-        beamline_proposals_dir = Path(f"/nsls2/data/{beamline_tla}/proposals/")
+        
+        return Path(f"/nsls2/data/{beamline_tla}/proposals/")
 
-        return beamline_proposals_dir
-
-    def generate_directory_path(self, device_name: Optional[str] = None):
+    def generate_directory_path(self, device_name: str | None = None):
         """Helper function that generates ymd path structure"""
 
         current_date_template = ""
@@ -69,7 +67,7 @@ class ProposalNumYMDPathProvider(PathProvider):
         if device_name is None:
             ymd_dir_path = current_date
         else:
-            ymd_dir_path = os.path.join(
+            ymd_dir_path = Path.join(
                 device_name,
                 current_date,
             )

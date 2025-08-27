@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time as ttime
 from collections import OrderedDict
+from typing import ClassVar
 
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO
@@ -816,7 +817,7 @@ class Encoder(Device):
 
 
 class MAIA(Kandinskivars):
-    fly_keys = [
+    fly_keys: ClassVar[list[str]] = [
         "blog.info.blogd_data_path",
         "blog.info.blogd_working_directory",
         "blog.info.run_number",
@@ -833,7 +834,7 @@ class MAIA(Kandinskivars):
 
         st = DeviceStatus(self)
 
-        def _cb_discard(value, **kwargs):
+        def _cb_discard(value, **kwargs): # noqa : ARG001
             if value == 0:
                 st._finished()
                 self.blog_discard_mon.value.clear_sub(_cb_discard)
@@ -845,7 +846,7 @@ class MAIA(Kandinskivars):
     def complete(self):
         st = DeviceStatus(self)
 
-        def _cb_discard(value, **kwargs):
+        def _cb_discard(value, **kwargs): # noqa : ARG001
             if value == 1:
                 st._finished()
                 self.blog_discard_mon.value.clear_sub(_cb_discard)

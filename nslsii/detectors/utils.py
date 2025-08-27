@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-import os
+from pathlib import Path
 
 
 def makedirs(path, mode=0o777):
     """Recursively make directories and set permissions"""
     # Permissions not working with os.makedirs -
     # See: http://stackoverflow.com/questions/5231901
-    if not path or os.path.exists(path):
+    if not path or Path.exists(path):
         return []
 
-    head, tail = os.path.split(path)
+    head, _ = Path.split(path)
     ret = makedirs(head, mode)
     try:
-        os.mkdir(path)
+        Path.mkdir(path)
     except OSError as ex:
         if "File exists" not in str(ex):
             raise
 
-    os.chmod(path, mode)
+    Path.chmod(path, mode)
     ret.append(path)
     return ret
 
@@ -28,7 +28,7 @@ def ordered_dict_move_to_beginning(od, key):
         return
 
     value = od[key]
-    items = list((k, v) for k, v in od.items() if k != key)
+    items = [(k, v) for k, v in od.items() if k != key]
     od.clear()
     od[key] = value
     od.update(items)
@@ -55,8 +55,8 @@ def make_filename_add_subdirectory(
         Number of characters to use from the hash
     """
     hash_portion = fn[:hash_characters]
-    read_path = os.path.join(read_path, hash_portion, "")
-    write_path = os.path.join(write_path, hash_portion, "")
+    read_path = Path.join(read_path, hash_portion, "")
+    write_path = Path.join(write_path, hash_portion, "")
 
     if make_directories:
         makedirs(read_path)

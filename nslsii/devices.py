@@ -31,7 +31,8 @@ class TwoButtonShutter(Device):
 
     def set(self, val):
         if self._set_st is not None:
-            raise RuntimeError(f"trying to set {self.name} while a set is in progress")
+            msg = f"trying to set {self.name} while a set is in progress"
+            raise RuntimeError(msg)
 
         cmd_map = {self.open_str: self.open_cmd, self.close_str: self.close_cmd}
         target_map = {self.open_str: self.open_val, self.close_str: self.close_val}
@@ -45,16 +46,13 @@ class TwoButtonShutter(Device):
             return st
 
         self._set_st = st
-        print(self.name, val, id(st))
+        print(self.name, val, id(st)) # noqa : T201
         enums = self.status.enum_strs
 
-        def shutter_cb(value, timestamp, **kwargs):
-            try:
+        def shutter_cb(value, timestamp, **kwargs): # noqa : ARG001
+            import contextlib  # noqa : PLC0415
+            with contextlib.suppress(ValueError, TypeError):
                 value = enums[int(value)]
-            except (ValueError, TypeError):
-                # we are here because value is a str not int
-                # just move on
-                ...
             if value == target_val:
                 self._set_st = None
                 self.status.clear_sub(shutter_cb)
@@ -63,14 +61,11 @@ class TwoButtonShutter(Device):
         cmd_enums = cmd_sig.enum_strs
         count = 0
 
-        def cmd_retry_cb(value, timestamp, **kwargs):
+        def cmd_retry_cb(value, timestamp, **kwargs): # noqa : ARG001
             nonlocal count
-            try:
+            import contextlib  # noqa : PLC0415
+            with contextlib.suppress(ValueError, TypeError):
                 value = cmd_enums[int(value)]
-            except (ValueError, TypeError):
-                # we are here because value is a str not int
-                # just move on
-                ...
             count += 1
             if count > self.MAX_ATTEMPTS:
                 cmd_sig.clear_sub(cmd_retry_cb)
@@ -87,7 +82,7 @@ class TwoButtonShutter(Device):
                     )
                     if count > 2:
                         msg = "** ({}) Had to reactuate shutter while {}ing"
-                        print(msg.format(ts, val if val != "Close" else val[:-1]))
+                        print(msg.format(ts, val if val != "Close" else val[:-1])) # noqa : T201
                 else:
                     cmd_sig.clear_sub(cmd_retry_cb)
 
@@ -97,8 +92,8 @@ class TwoButtonShutter(Device):
 
         return st
 
-    def stop(self, *, success=False):
-        import time
+    def stop(self, *, success=False): # noqa : ARG002
+        import time  # noqa : PLC0415
 
         prev_st = self._set_st
         if prev_st is not None:
@@ -110,7 +105,7 @@ class TwoButtonShutter(Device):
             time.sleep(0.5)
 
     def resume(self):
-        import time
+        import time  # noqa : PLC0415
 
         prev_st = self._set_st
         if prev_st is not None:

@@ -4,10 +4,10 @@ from .providers import (
     AcqModeFilenameProvider,
     DeviceNameFilenameProvider,
     NSLS2PathProvider,
-    ProposalNumScanNumPathProvider,
+    ProposalNumScanNumPathProvider,  # noqa : F401
     ProposalNumYMDPathProvider,
     ShortUUIDFilenameProvider,
-    YMDGranularity,
+    YMDGranularity,  # noqa : F401
 )
 
 __all__ = [

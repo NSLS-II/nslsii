@@ -130,10 +130,11 @@ class ModalTrigger(ModalBase, TriggerBase):
 
     def trigger_internal(self):
         if self._staged != Staged.yes:
-            raise RuntimeError(
+            msg = (
                 "This detector is not ready to trigger."
                 "Call the stage() method before triggering."
             )
+            raise RuntimeError(msg)
 
         self._status = DeviceStatus(self)
         self._acquisition_signal.put(1, wait=False)
@@ -142,10 +143,11 @@ class ModalTrigger(ModalBase, TriggerBase):
 
     def trigger_external(self):
         if self._staged != Staged.yes:
-            raise RuntimeError(
+            msg = (
                 "This detector is not ready to trigger."
                 "Call the stage() method before triggering."
             )
+            raise RuntimeError(msg)
 
         self._status = DeviceStatus(self)
         self._status._finished()
@@ -159,7 +161,7 @@ class ModalTrigger(ModalBase, TriggerBase):
         mode_trigger = getattr(self, f"trigger_{self.mode}")
         return mode_trigger()
 
-    def _acquire_changed(self, value=None, old_value=None, **kwargs):
+    def _acquire_changed(self, value=None, old_value=None, **kwargs): # noqa : ARG002
         """This is called when the 'acquire' signal changes."""
         if self._status is None:
             return
