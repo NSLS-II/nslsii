@@ -51,9 +51,7 @@ def _read_bluesky_kafka_config_file(config_file_path):
 
     if missing_required_sections:
         msg = f"Bluesky Kafka configuration file '{config_file_path}' is missing required section(s) `{missing_required_sections}`"
-        raise Exception(
-            msg
-        )
+        raise Exception(msg)
 
     return bluesky_kafka_config
 
@@ -108,7 +106,7 @@ def _subscribe_kafka_publisher(
     if _publisher_factory is None:
         _publisher_factory = Publisher
 
-    def kafka_publisher_factory(start_name, start_doc): # noqa: ARG001
+    def kafka_publisher_factory(start_name, start_doc):  # noqa: ARG001
         # create a Kafka Publisher for a single run
         #   in response to a start document
 
@@ -227,7 +225,7 @@ def _subscribe_kafka_queue_thread_publisher(
 
     nslsii_logger = logging.getLogger("nslsii")
     beamline_runengine_topic = None
-    kafka_publisher_token = None # noqa : F841
+    kafka_publisher_token = None  # noqa : F841
     publisher_thread_stop_event = None
     kafka_publisher_re_token = None
     publisher_queue_thread_details = None
@@ -245,9 +243,9 @@ def _subscribe_kafka_queue_thread_publisher(
             publisher_queue_timeout=publisher_queue_timeout,
         )
 
-        publisher_thread_stop_event = ( # noqa : F841
+        publisher_thread_stop_event = (  # noqa : F841
             publisher_queue_thread_details.publisher_thread_stop_event
-        ) 
+        )
 
         kafka_publisher_re_token = RE.subscribe(
             publisher_queue_thread_details.put_on_publisher_queue

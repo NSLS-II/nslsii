@@ -50,7 +50,7 @@ class Xspress3Trigger(Device):
         self._acquire_status = None
         return super_unstage_result
 
-    def _acquire_changed(self, value=None, old_value=None, **kwargs): # noqa : ARG002
+    def _acquire_changed(self, value=None, old_value=None, **kwargs):  # noqa : ARG002
         """Respond to changes in the Xspress3Detector.cam.acquire PV.
 
         The important behavior of this method is to mark self._acquire_status
@@ -144,11 +144,11 @@ class Xspress3ExternalFileReference(Signal):
         res = super().describe()
         res[self.name].update(
             {
-            "external": "FILESTORE:",
-            "dtype": "array",
-            "dtype_str": self.dtype_str,
-            "shape": self.shape,
-            "dims": self.dims,
+                "external": "FILESTORE:",
+                "dtype": "array",
+                "dtype_str": self.dtype_str,
+                "shape": self.shape,
+                "dims": self.dims,
             }
         )
         return res
@@ -331,7 +331,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
 
         return super().unstage()
 
-    def generate_datum(self, key, timestamp, datum_kwargs): # noqa : ARG002
+    def generate_datum(self, key, timestamp, datum_kwargs):  # noqa : ARG002
         if key is not None:
             msg = f"'key' must be None but key='{key}'"
             raise ValueError(msg)
@@ -360,7 +360,7 @@ class Xspress3HDF5Plugin(HDF5Plugin):
     def collect_asset_docs(self):
         items = list(self._asset_docs_cache)
         self._asset_docs_cache.clear()
-        for item in items: # noqa : UP028
+        for item in items:  # noqa : UP028
             yield item
 
 
@@ -565,7 +565,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                     logger.warning(
                         "Check that the xspress3 is configured to take the right "
                         "number of frames (it is trying to take %s)",
-                        self.parent.cam.num_images.get()
+                        self.parent.cam.num_images.get(),
                     )
                     self.capture.put(0)
                     break
@@ -882,7 +882,7 @@ def build_channel_class(
     def __repr__(self):
         return f"{self.__class__.__name__}(channel_number={self.channel_number}, mcaroi_numbers={self.mcaroi_numbers})"
 
-    def get_mcaroi_count(self): # noqa : ARG001
+    def get_mcaroi_count(self):  # noqa : ARG001
         return len(mcaroi_numbers)
 
     def get_mcaroi(self, *, mcaroi_number):
@@ -890,8 +890,10 @@ def build_channel_class(
         try:
             return getattr(self, f"mcaroi{mcaroi_number:02d}")
         except AttributeError as ae:
-            msg = (f"no MCAROI on channel {self.channel_number} "
-                f"with prefix '{self.prefix}' has number {mcaroi_number}")
+            msg = (
+                f"no MCAROI on channel {self.channel_number} "
+                f"with prefix '{self.prefix}' has number {mcaroi_number}"
+            )
             raise ValueError(msg) from ae
 
     def iterate_mcaroi_attr_names(self):
@@ -985,10 +987,10 @@ def _validate_channel_number(channel_number):
         msg = f"channel number '{channel_number}' is not an integer"
         raise ValueError(msg)
     if not 1 <= channel_number <= 16:
-        msg = f"channel number '{channel_number}' is outside the allowed interval [1,16]"
-        raise ValueError(
-            msg
+        msg = (
+            f"channel number '{channel_number}' is outside the allowed interval [1,16]"
         )
+        raise ValueError(msg)
     # everything is great
 
 
@@ -999,9 +1001,7 @@ def build_detector_class(
     extra_class_members=None,
 ):
     msg = "build_detector_class() has been removed, use build_xspress3_class()"
-    raise NotImplementedError(
-        msg
-    )
+    raise NotImplementedError(msg)
 
 
 def build_xspress3_class(
@@ -1071,10 +1071,10 @@ def build_xspress3_class(
         extra_class_members = {}
 
     # in case channel_numbers can be iterated only once, create a tuple
-    channel_numbers = tuple([channel_number for channel_number in channel_numbers]) # noqa : C416
+    channel_numbers = tuple([channel_number for channel_number in channel_numbers])  # noqa : C416
 
     # in case mcaroi_numbers can be iterated only once, create a tuple
-    mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers]) # noqa : C416
+    mcaroi_numbers = tuple([mcaroi_number for mcaroi_number in mcaroi_numbers])  # noqa : C416
 
     channel_attr_name_re = re.compile(r"channel\d{2}")
 
@@ -1088,7 +1088,7 @@ def build_xspress3_class(
         """
         return f"{self.__class__.__name__}(channels=({','.join([str(channel) for channel in self.iterate_channels()])}))"
 
-    def get_channel_count(self): # noqa : ARG001
+    def get_channel_count(self):  # noqa : ARG001
         """Return the number of channels on this xspress3 class.
 
         Returns

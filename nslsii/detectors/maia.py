@@ -834,7 +834,7 @@ class MAIA(Kandinskivars):
 
         st = DeviceStatus(self)
 
-        def _cb_discard(value, **kwargs): # noqa : ARG001
+        def _cb_discard(value, **kwargs):  # noqa : ARG001
             if value == 0:
                 st._finished()
                 self.blog_discard_mon.value.clear_sub(_cb_discard)
@@ -846,7 +846,7 @@ class MAIA(Kandinskivars):
     def complete(self):
         st = DeviceStatus(self)
 
-        def _cb_discard(value, **kwargs): # noqa : ARG001
+        def _cb_discard(value, **kwargs):  # noqa : ARG001
             if value == 1:
                 st._finished()
                 self.blog_discard_mon.value.clear_sub(_cb_discard)

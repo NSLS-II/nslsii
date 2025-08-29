@@ -120,7 +120,7 @@ class CaprotoSaveIOC(PVGroup):
     queue = pvproperty(value=0, doc="A PV to facilitate threading-based queue")
 
     @queue.startup
-    async def queue(self, instance, async_lib): # noqa : ARG002
+    async def queue(self, instance, async_lib):  # noqa : ARG002
         """The startup behavior of the count property to set up threading queues."""
         # pylint: disable=unused-argument
         self._request_queue = async_lib.ThreadsafeQueue(maxsize=1)
@@ -148,7 +148,7 @@ class CaprotoSaveIOC(PVGroup):
             frame_num_str = f"_{frame_num:06}"
 
         uid_to_use = self.uid_type.value if uid_type is None else uid_type
-        
+
         uid_str = ""
         if uid_to_use == UIDOptions.SHORT.value:
             uid_str = f"_{str(uuid.uuid4())[:8]}"
@@ -177,23 +177,23 @@ class CaprotoSaveIOC(PVGroup):
 
         full_file_path = self._sanitizer.sub("_", str(full_file_path))
 
-        print(f"{now()}: {full_file_path = }") # noqa : T201
+        print(f"{now()}: {full_file_path = }")  # noqa : T201
 
         await self.full_file_path.write(full_file_path)
 
-    async def _use_frame_num_callback(self, instance, value): # noqa : ARG002
+    async def _use_frame_num_callback(self, instance, value):  # noqa : ARG002
         await self._update_full_file_path(use_frame_num=value)
         return value
 
-    async def _uid_type_callback(self, instance, value): # noqa : ARG002
+    async def _uid_type_callback(self, instance, value):  # noqa : ARG002
         await self._update_full_file_path(uid_type=value)
         return value
 
-    async def _file_name_callback(self, instance, value): # noqa : ARG002
+    async def _file_name_callback(self, instance, value):  # noqa : ARG002
         await self._update_full_file_path(file_name=value)
         return value
 
-    async def _write_dir_callback(self, instance, value): # noqa : ARG002
+    async def _write_dir_callback(self, instance, value):  # noqa : ARG002
         """The stage method to perform preparation of a dataset to save the data."""
 
         local_write_dir = Path(value)
@@ -211,7 +211,7 @@ class CaprotoSaveIOC(PVGroup):
 
         if self.directory_exists.value == DirExistsStatuses.EXISTS.value:
             return value
-        print( # noqa : T201
+        print(  # noqa : T201
             f"Directory access error for directory {value}! - {self.directory_exists.value}"
         )
         return ""
@@ -258,13 +258,13 @@ class CaprotoSaveIOC(PVGroup):
             instance.value in [True, AcqStatuses.ACQUIRING.value]
             and value == AcqStatuses.ACQUIRING.value
         ):
-            print( # noqa : T201
+            print(  # noqa : T201
                 f"The device is already acquiring. Please wait until the '{AcqStatuses.IDLE.value}' status."
             )
             return True
 
         if self.directory_exists.value != DirExistsStatuses.EXISTS.value:
-            print("Target write directory does not exist or cannot be written to!") # noqa : T201
+            print("Target write directory does not exist or cannot be written to!")  # noqa : T201
             return False
 
         await self.acquire.write(AcqStatuses.ACQUIRING.value)
@@ -289,9 +289,9 @@ class CaprotoSaveIOC(PVGroup):
 
         return False
 
-    async def on_startup(self, async_lib): # noqa : ARG002
+    async def on_startup(self, async_lib):  # noqa : ARG002
         for key in self.pvdb:
-            print(key) # noqa : T201
+            print(key)  # noqa : T201
 
         await self._write_dir_callback(None, "/tmp")
 
@@ -305,7 +305,7 @@ class CaprotoSaveIOC(PVGroup):
             frame_number = received["frame_number"]
             try:
                 save_hdf5_nd(fname=filename, data=data, mode="x", group_path="enc1")
-                print( # noqa : T201
+                print(  # noqa : T201
                     f"{now()}: saved {frame_number=} {data.shape} data into:\n  {filename}"
                 )
 
@@ -314,7 +314,7 @@ class CaprotoSaveIOC(PVGroup):
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
-                print( # noqa : T201
+                print(  # noqa : T201
                     f"Cannot save file {filename!r} due to the following exception:\n{exc}"
                 )
 
@@ -338,7 +338,7 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
 
     def __init__(self, *args, camera_host=None, **kwargs):
         self._camera_host = camera_host
-        print(f"{camera_host = }") # noqa : T201
+        print(f"{camera_host = }")  # noqa : T201
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -357,13 +357,13 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
         ioc_opts["camera_host"] = parsed_args.camera_host
         return ioc_opts, run_opts
 
-    async def _get_current_dataset(self, *args, **kwargs): # noqa : ARG002  # pylint: disable=unused-argument
+    async def _get_current_dataset(self, *args, **kwargs):  # noqa : ARG002  # pylint: disable=unused-argument
         url = f"http://{self._camera_host}/axis-cgi/jpg/image.cgi"
         resp = requests.get(url, timeout=10)
         img = Image.open(BytesIO(resp.content))
 
         dataset = np.asarray(img).sum(axis=-1)
-        print(f"{now()}: {dataset.shape}") # noqa : T201
+        print(f"{now()}: {dataset.shape}")  # noqa : T201
 
         return dataset
 
@@ -378,14 +378,14 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
             try:
                 save_hdf5_nd(fname=filename, data=data, dtype="|u1", mode="a")
                 # TODO: Change all of these prints to use the caproto logger instead
-                print(f"{now()}: saved data into: {filename}") # noqa : T201
+                print(f"{now()}: saved data into: {filename}")  # noqa : T201
 
                 success = True
                 error_message = ""
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
-                print( # noqa : T201
+                print(  # noqa : T201
                     f"Cannot save file {filename!r} due to the following exception:\n{exc}"
                 )
 
@@ -506,7 +506,7 @@ class CaprotoSaverDevice(Device):
         return res
 
     def trigger(self):
-        def done_callback(value, old_value, **kwargs): # noqa : ARG001
+        def done_callback(value, old_value, **kwargs):  # noqa : ARG001
             """The callback function used by ophyd's SubscriptionStatus."""
             # print(f"{old_value = } -> {value = }")
             return bool(old_value == "acquiring" and value == "idle")

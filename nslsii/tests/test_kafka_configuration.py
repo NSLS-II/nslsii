@@ -77,9 +77,7 @@ def test_bluesky_kafka_config_path_env_var(tmp_path, RE, temporary_topics):
             f.write(f"  config_file_path: {test_config_file_path}")
 
         os.environ["BLUESKY_KAFKA_CONFIG_PATH"] = str(test_config_file_path)
-        bluesky_kafka_configuration, _ = configure_kafka_publisher(
-            RE, "abc"
-        )
+        bluesky_kafka_configuration, _ = configure_kafka_publisher(RE, "abc")
 
         assert bluesky_kafka_configuration["config_file_path"] == str(
             test_config_file_path
@@ -95,7 +93,7 @@ def test_bluesky_kafka_config_path_env_var_negative(tmp_path, RE):
         _ = configure_kafka_publisher(RE, "abc")
 
 
-def test_bluesky_kafka_config_path_default_negative(tmp_path, RE): # noqa: ARG001
+def test_bluesky_kafka_config_path_default_negative(tmp_path, RE):  # noqa: ARG001
     """Test the default configuration file path.
 
     It is not possible to install a test file to the default location.

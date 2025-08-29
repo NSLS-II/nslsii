@@ -48,7 +48,7 @@ class ProposalNumYMDPathProvider(PathProvider):
         beamline_tla = os.getenv(
             "ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "")
         ).lower()
-        
+
         return Path(f"/nsls2/data/{beamline_tla}/proposals/")
 
     def generate_directory_path(self, device_name: str | None = None):
@@ -156,7 +156,7 @@ class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
             raise RuntimeError(msg)
         self._mode = new_mode
 
-    def __call__(self, **kwargs): # noqa : ARG002
+    def __call__(self, **kwargs):  # noqa : ARG002
         return super().__call__(device_name=self._mode.value)
 
 

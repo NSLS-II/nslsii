@@ -330,11 +330,11 @@ def configure_bluesky_logging(
         log file path
 
     """
-    global bluesky_log_file_path # noqa : PLW0603
+    global bluesky_log_file_path  # noqa : PLW0603
 
     if "BLUESKY_LOG_FILE" in os.environ:
         bluesky_log_file_path = Path(os.environ["BLUESKY_LOG_FILE"])
-        print( # noqa : T201
+        print(  # noqa : T201
             f"bluesky log file path configured from environment variable"
             f" BLUESKY_LOG_FILE: '{bluesky_log_file_path}'",
             file=sys.stderr,
@@ -344,7 +344,7 @@ def configure_bluesky_logging(
         if not bluesky_log_dir.exists():
             bluesky_log_dir.mkdir(parents=True, exist_ok=True)
         bluesky_log_file_path = bluesky_log_dir / Path("bluesky.log")
-        print( # noqa : T201
+        print(  # noqa : T201
             f"environment variable BLUESKY_LOG_FILE is not set,"
             f" using default log file path '{bluesky_log_file_path}'",
             file=sys.stderr,
@@ -436,7 +436,7 @@ def configure_ipython_logging(
 
     if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
         bluesky_ipython_log_file_path = Path(os.environ["BLUESKY_IPYTHON_LOG_FILE"])
-        print( # noqa : T201
+        print(  # noqa : T201
             "bluesky ipython log file configured from environment"
             f" variable BLUESKY_IPYTHON_LOG_FILE: '{bluesky_ipython_log_file_path}'",
             file=sys.stderr,
@@ -448,7 +448,7 @@ def configure_ipython_logging(
         bluesky_ipython_log_file_path = bluesky_ipython_log_dir / Path(
             "bluesky_ipython.log"
         )
-        print( # noqa : T201
+        print(  # noqa : T201
             "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
             f" using default file path '{bluesky_ipython_log_file_path}'",
             file=sys.stderr,
@@ -614,7 +614,8 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
                 except Exception as exc:
                     warn(
                         "This olog is giving errors. This will not be logged."
-                        "Error:" + str(exc), stacklevel=2
+                        "Error:" + str(exc),
+                        stacklevel=2,
                     )
 
         olog_queue = queue.Queue(maxsize=100)

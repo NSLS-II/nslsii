@@ -425,7 +425,7 @@ def test_get_channel():
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
     channel03 = detector.get_channel(channel_number=3)
-    print(channel03) # noqa: T201
+    print(channel03)  # noqa: T201
     assert channel03.mcaroi04.total_rbv.pvname == "Xsp3:MCA3ROI:4:Total_RBV"
 
     channel05 = detector.get_channel(channel_number=5)

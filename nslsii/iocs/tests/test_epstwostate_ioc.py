@@ -50,7 +50,7 @@ def test_epstwostate_ioc():
         env=os.environ,
     )
 
-    print("nslsii.iocs.epc_two_state_ioc_sim is now running") # noqa : T201
+    print("nslsii.iocs.epc_two_state_ioc_sim is now running")  # noqa : T201
 
     time.sleep(5)
 

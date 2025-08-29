@@ -55,9 +55,12 @@ def show_image_stack(
             f"Frame {i} Min = {vmin} Max = {vmax}", fontsize=fontsize, fontweight="bold"
         )
 
-        for item in (
-            [ax.xaxis.label, ax.yaxis.label, *ax.get_xticklabels(), *ax.get_yticklabels()]
-        ):
+        for item in [
+            ax.xaxis.label,
+            ax.yaxis.label,
+            *ax.get_xticklabels(),
+            *ax.get_yticklabels(),
+        ]:
             item.set_fontsize(fontsize)
             item.set_fontweight("bold")
 
@@ -101,9 +104,12 @@ def image_stack_to_movie(
         r"Intensity [ADU]",
         size=14,
     )
-    for item in (
-        [ax.xaxis.label, ax.yaxis.label, *ax.get_xticklabels(), *ax.get_yticklabels()]
-    ):
+    for item in [
+        ax.xaxis.label,
+        ax.yaxis.label,
+        *ax.get_xticklabels(),
+        *ax.get_yticklabels(),
+    ]:
         item.set_fontsize(14)
         item.set_fontweight("bold")
 
@@ -134,4 +140,3 @@ def _anim_to_html(anim, fps):
             video = Path.open(f.name, "rb").read()
         anim._encoded_video = base64.b64encode(video)
     return VIDEO_TAG.format(anim._encoded_video.decode("utf-8"))
- 

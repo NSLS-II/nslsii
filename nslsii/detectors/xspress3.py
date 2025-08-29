@@ -138,7 +138,7 @@ class Xspress3FileStore(FileStorePluginBase, HDF5Plugin):
                     logger.warning(
                         "Check that the xspress3 is configured to take the right "
                         "number of frames (it is trying to take %s)",
-                        self.parent.settings.num_images.get()
+                        self.parent.settings.num_images.get(),
                     )
                     self.capture.put(0)
                     break
@@ -561,11 +561,11 @@ class Xspress3Detector(DetectorBase):
         name=None,
         parent=None,
         # to remove?
-        file_path="", # noqa : ARG002
-        ioc_file_path="", # noqa : ARG002
-        default_channels=None, # noqa : ARG002
-        channel_prefix=None, # noqa : ARG002
-        roi_sums=False, # noqa : ARG002
+        file_path="",  # noqa : ARG002
+        ioc_file_path="",  # noqa : ARG002
+        default_channels=None,  # noqa : ARG002
+        channel_prefix=None,  # noqa : ARG002
+        roi_sums=False,  # noqa : ARG002
         # to remove?
         **kwargs,
     ):
@@ -606,7 +606,7 @@ class Xspress3Detector(DetectorBase):
     @property
     def all_rois(self):
         for _, channel in self._channels.items():
-            for roi in channel.all_rois: # noqa : UP028
+            for roi in channel.all_rois:  # noqa : UP028
                 yield roi
 
     @property
@@ -615,7 +615,7 @@ class Xspress3Detector(DetectorBase):
             if roi.enable.get():
                 yield roi
 
-    def read_hdf5(self, fn, *, rois=None, max_retries=2): # noqa : ARG002
+    def read_hdf5(self, fn, *, rois=None, max_retries=2):  # noqa : ARG002
         """Read ROI data from an HDF5 file using the current ROI configuration
 
         Parameters
@@ -684,7 +684,7 @@ class XspressTrigger(BlueskyInterface):
         self._status = None
         return ret
 
-    def _acquire_changed(self, value=None, old_value=None, **kwargs): # noqa : ARG002
+    def _acquire_changed(self, value=None, old_value=None, **kwargs):  # noqa : ARG002
         "This is called when the 'acquire' signal changes."
         if self._status is None:
             return
