@@ -45,9 +45,9 @@ class Thermo(PVGroup):
     Tvar = pvproperty(value=10, dtype=float)
 
     @readback.scan(period=0.1, use_scan_field=True)
-    async def readback(self, instance, async_lib): # noqa : ARG002
+    async def readback(self, instance, async_lib):  # noqa : ARG002
         def t_rbv(
-            T0, # noqa : ARG001
+            T0,  # noqa : ARG001
             setpoint,
             K,
             omega,
@@ -64,7 +64,7 @@ class Thermo(PVGroup):
         await instance.write(value=T)
 
     @setpoint.putter
-    async def setpoint(self, instance, value): # noqa : ARG002
+    async def setpoint(self, instance, value):  # noqa : ARG002
         self._T0 = time.monotonic()
         return value
 

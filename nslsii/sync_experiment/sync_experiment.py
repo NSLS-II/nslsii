@@ -74,7 +74,8 @@ def validate_proposal(data_session_value, beamline) -> dict[str, Any]:
         warnings.warn(
             f"while verifying data_session '{data_session_value}' "
             f"the request {rerr.request.url!r} failed with "
-            f"'{rerr}'", stacklevel=2
+            f"'{rerr}'",
+            stacklevel=2,
         )
 
     return proposal_data
@@ -120,13 +121,13 @@ def authenticate(
             auto_bind=True,
             raise_exceptions=True,
         )
-        print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}") # noqa : T201
+        print(f"\nAuthenticated as : {connection.extend.standard.who_am_i()}")  # noqa : T201
 
     except LDAPInvalidCredentialsResult:
         msg = f"Invalid credentials for user '{username}'."
         raise RuntimeError(msg) from None
     except LDAPSocketOpenError:
-        print(f"{server} server connection failed...") # noqa : T201
+        print(f"{server} server connection failed...")  # noqa : T201
 
 
 def should_they_be_here(username, new_data_session, beamline):
@@ -183,15 +184,14 @@ def switch_redis_proposal(
             else get_current_cycle()
         )
         warnings.warn(
-            f"Experiment {new_data_session} was already started by the same user.", stacklevel=2
+            f"Experiment {new_data_session} was already started by the same user.",
+            stacklevel=2,
         )
 
     else:
         if not should_they_be_here(username, new_data_session, beamline):
             msg = f"User '{username}' is not allowed to take data on proposal {new_data_session}"
-            raise AuthorizationError(
-                msg
-            )
+            raise AuthorizationError(msg)
 
         proposal_data = validate_proposal(new_data_session, beamline)
         users = proposal_data.pop("users")
@@ -219,7 +219,7 @@ def switch_redis_proposal(
             "pi_name": pi_name,
         }
 
-        print(f"Started experiment {md['data_session']} by {md['username']}.") # noqa : T201
+        print(f"Started experiment {md['data_session']} by {md['username']}.")  # noqa : T201
 
     return md
 
@@ -240,7 +240,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     )
 
     if verbose:
-        print(json.dumps(md, indent=2)) # noqa : T201
+        print(json.dumps(md, indent=2))  # noqa : T201
 
     return md
 

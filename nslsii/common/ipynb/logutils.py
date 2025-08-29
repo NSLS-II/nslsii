@@ -47,7 +47,7 @@ def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
 
     # display the exception in the console
     if ipyshell.InteractiveTB.mode == "Minimal":
-        print( # noqa : T201
+        print(  # noqa : T201
             "An exception has occurred, use '%tb verbose' to see the full traceback.",
             file=sys.stderr,
         )
@@ -55,6 +55,6 @@ def log_exception(ipyshell, etype, evalue, tb, tb_offset=None):
 
     # send the traceback to the nslsii.ipython logger
     logging.getLogger("nslsii.ipython").exception(evalue)
-    print(f"See {bluesky_log_file_path} for the full traceback.", file=sys.stderr) # noqa : T201
+    print(f"See {bluesky_log_file_path} for the full traceback.", file=sys.stderr)  # noqa : T201
 
     return tb_lines

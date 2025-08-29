@@ -95,7 +95,7 @@ class BlueskyDocStreamPrinter:
 
     def __call__(self, name: str, doc: dict):
         if self._print_docs_to_stdout:
-            print("========= Emitting Doc =============") # noqa: T201
-            print(f"{name = }") # noqa: T201
-            print(f"{json.dumps(doc, indent=4)}") # noqa: T201
-            print("============ Done ==================") # noqa: T201
+            print("========= Emitting Doc =============")  # noqa: T201
+            print(f"{name = }")  # noqa: T201
+            print(f"{json.dumps(doc, indent=4)}")  # noqa: T201
+            print("============ Done ==================")  # noqa: T201

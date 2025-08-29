@@ -161,7 +161,7 @@ class ModalTrigger(ModalBase, TriggerBase):
         mode_trigger = getattr(self, f"trigger_{self.mode}")
         return mode_trigger()
 
-    def _acquire_changed(self, value=None, old_value=None, **kwargs): # noqa : ARG002
+    def _acquire_changed(self, value=None, old_value=None, **kwargs):  # noqa : ARG002
         """This is called when the 'acquire' signal changes."""
         if self._status is None:
             return

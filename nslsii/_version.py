@@ -99,12 +99,12 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
             print(f"unable to find command, tried {commands}")  # noqa: T201
         return None, None
     stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3: # noqa: UP036
+    if sys.version_info[0] >= 3:  # noqa: UP036
         stdout = stdout.decode()
     if p.returncode != 0:
         if verbose:
-            print(f"unable to run {dispcmd} (error)") # noqa: T201
-            print(f"stdout was {stdout}") # noqa: T201
+            print(f"unable to run {dispcmd} (error)")  # noqa: T201
+            print(f"stdout was {stdout}")  # noqa: T201
         return None, p.returncode
     return stdout, p.returncode
 
@@ -132,7 +132,7 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
         root = Path.dirname(root)  # up a level
 
     if verbose:
-        print( # noqa: T201
+        print(  # noqa: T201
             f"Tried directories {rootdirs} but none started with prefix {parentdir_prefix}"
         )
     msg = "rootdir doesn't start with parentdir_prefix"
@@ -186,7 +186,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
     refnames = keywords["refnames"].strip()
     if refnames.startswith("$Format"):
         if verbose:
-            print("keywords are unexpanded, not using") # noqa: T201
+            print("keywords are unexpanded, not using")  # noqa: T201
         msg = "unexpanded keywords, not a git-archive tarball"
         raise NotThisMethod(msg)
     refs = {r.strip() for r in refnames.strip("()").split(",")}
@@ -204,15 +204,15 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         # "stabilization", as well as "HEAD" and "master".
         tags = {r for r in refs if re.search(r"\d", r)}
         if verbose:
-            print(f"discarding '{','.join(refs - tags)}', no digits") # noqa: T201
+            print(f"discarding '{','.join(refs - tags)}', no digits")  # noqa: T201
     if verbose:
-        print(f"likely tags: {','.join(sorted(tags))}") # noqa: T201
+        print(f"likely tags: {','.join(sorted(tags))}")  # noqa: T201
     for ref in sorted(tags):
         # sorting will prefer e.g. "2.0" over "2.0rc1"
         if ref.startswith(tag_prefix):
             r = ref[len(tag_prefix) :]
             if verbose:
-                print(f"picking {r}") # noqa: T201
+                print(f"picking {r}")  # noqa: T201
             return {
                 "version": r,
                 "full-revisionid": keywords["full"].strip(),
@@ -222,7 +222,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
             }
     # no suitable tags, so version is "0+unknown", but full hex is still there
     if verbose:
-        print("no suitable tags, using unknown + full revision id") # noqa: T201
+        print("no suitable tags, using unknown + full revision id")  # noqa: T201
     return {
         "version": "0+unknown",
         "full-revisionid": keywords["full"].strip(),
@@ -306,8 +306,10 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         full_tag = mo.group(1)
         if not full_tag.startswith(tag_prefix):
             if verbose:
-                print(f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'") # noqa: T201
-            pieces["error"] = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
+                print(f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'")  # noqa: T201
+            pieces["error"] = (
+                f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
+            )
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix) :]
 

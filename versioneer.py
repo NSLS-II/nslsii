@@ -328,7 +328,7 @@ def get_root():
         me_dir = Path.normcase(Path.splitext(me)[0])
         vsr_dir = Path.normcase(Path.splitext(versioneer_py)[0])
         if me_dir != vsr_dir:
-            print( # noqa: T201
+            print(  # noqa: T201
                 f"Warning: build in {Path.dirname(me)} is using versioneer.py from {versioneer_py}"
             )
     except NameError:
@@ -416,7 +416,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
             print(f"unable to find command, tried {commands}")  # noqa: T201
         return None, None
     stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3: # noqa: UP036
+    if sys.version_info[0] >= 3:  # noqa: UP036
         stdout = stdout.decode()
     if p.returncode != 0:
         if verbose:
@@ -1003,7 +1003,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
     # starting in git-1.8.3, tags are listed as "tag: foo-1.0" instead of
     # just "foo-1.0". If we see a "tag: " prefix, prefer those.
     TAG = "tag: "
-    tags = {r[len(TAG):] for r in refs if r.startswith(TAG)}
+    tags = {r[len(TAG) :] for r in refs if r.startswith(TAG)}
     if not tags:
         # Either we're using git < 1.8.3, or there really are no tags. We use
         # a heuristic: assume all version tags have a digit. The old git %d
@@ -1118,7 +1118,9 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
             if verbose:
                 fmt = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
                 print(fmt)  # noqa: T201
-            pieces["error"] = f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
+            pieces["error"] = (
+                f"tag '{full_tag}' doesn't start with prefix '{tag_prefix}'"
+            )
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix) :]
 
@@ -1167,8 +1169,11 @@ def do_vcs_install(manifest_in, versionfile_source, ipy):
     try:
         f = Path.open(".gitattributes")
         for line in f.readlines():
-            if line.strip().startswith(versionfile_source) and "export-subst" in line.strip().split()[1:]:
-                    present = True
+            if (
+                line.strip().startswith(versionfile_source)
+                and "export-subst" in line.strip().split()[1:]
+            ):
+                present = True
         f.close()
     except OSError:
         pass
@@ -1203,7 +1208,7 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
         root = Path.dirname(root)  # up a level
 
     if verbose:
-        print( # noqa: T201
+        print(  # noqa: T201
             f"Tried directories {rootdirs!s} but none started with prefix {parentdir_prefix}"
         )
     msg = "rootdir doesn't start with parentdir_prefix"
@@ -1818,7 +1823,7 @@ def do_setup():
     else:
         print(" 'versioneer.py' already in MANIFEST.in")  # noqa: T201
     if cfg.versionfile_source not in simple_includes:
-        print( # noqa: T201
+        print(  # noqa: T201
             f" appending versionfile_source ('{cfg.versionfile_source}') to MANIFEST.in"
         )
         with Path.open(manifest_in, "a") as f:

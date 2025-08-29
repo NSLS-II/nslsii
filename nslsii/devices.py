@@ -46,11 +46,12 @@ class TwoButtonShutter(Device):
             return st
 
         self._set_st = st
-        print(self.name, val, id(st)) # noqa : T201
+        print(self.name, val, id(st))  # noqa : T201
         enums = self.status.enum_strs
 
-        def shutter_cb(value, timestamp, **kwargs): # noqa : ARG001
+        def shutter_cb(value, timestamp, **kwargs):  # noqa : ARG001
             import contextlib  # noqa : PLC0415
+
             with contextlib.suppress(ValueError, TypeError):
                 value = enums[int(value)]
             if value == target_val:
@@ -61,9 +62,10 @@ class TwoButtonShutter(Device):
         cmd_enums = cmd_sig.enum_strs
         count = 0
 
-        def cmd_retry_cb(value, timestamp, **kwargs): # noqa : ARG001
+        def cmd_retry_cb(value, timestamp, **kwargs):  # noqa : ARG001
             nonlocal count
             import contextlib  # noqa : PLC0415
+
             with contextlib.suppress(ValueError, TypeError):
                 value = cmd_enums[int(value)]
             count += 1
@@ -82,7 +84,7 @@ class TwoButtonShutter(Device):
                     )
                     if count > 2:
                         msg = "** ({}) Had to reactuate shutter while {}ing"
-                        print(msg.format(ts, val if val != "Close" else val[:-1])) # noqa : T201
+                        print(msg.format(ts, val if val != "Close" else val[:-1]))  # noqa : T201
                 else:
                     cmd_sig.clear_sub(cmd_retry_cb)
 
@@ -92,7 +94,7 @@ class TwoButtonShutter(Device):
 
         return st
 
-    def stop(self, *, success=False): # noqa : ARG002
+    def stop(self, *, success=False):  # noqa : ARG002
         import time  # noqa : PLC0415
 
         prev_st = self._set_st

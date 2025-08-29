@@ -37,7 +37,8 @@ class VideoStreamDet(Device):
         **kwargs,
     ):
         warnings.warn(
-            f"This class {self.__class__.__name__} will be removed in the future.", stacklevel=2
+            f"This class {self.__class__.__name__} will be removed in the future.",
+            stacklevel=2,
         )
 
         super().__init__(*args, **kwargs)
@@ -147,5 +148,5 @@ class VideoStreamDet(Device):
     def collect_asset_docs(self):
         items = list(self._asset_docs_cache)
         self._asset_docs_cache.clear()
-        for item in items: # noqa : UP028
+        for item in items:  # noqa : UP028
             yield item

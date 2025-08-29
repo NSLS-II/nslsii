@@ -174,7 +174,7 @@ def test_no_broker(
 
         RE.subscribe(store_published_document)
 
-        with pytest.raises(Exception): # noqa: B017, PT011
+        with pytest.raises(Exception):  # noqa: B017, PT011
             RE(count([hw.det]))
 
         # only a stop document is expected ???

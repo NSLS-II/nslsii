@@ -76,7 +76,7 @@ class SingleTriggerV33(TriggerBase):
 
         self._status = self._status_type(self)
 
-        def _acq_done(*args, **kwargs): # noqa : ARG001
+        def _acq_done(*args, **kwargs):  # noqa : ARG001
             # TODO sort out if anything useful in here
             self._status._finished()
 

@@ -156,15 +156,15 @@ class EPSTwoStateIOC(PVGroup):
     # PV Startup/Putter Methods
 
     @enbl_sts.startup
-    async def enbl_sts(self, instance, async_lib): # noqa : ARG002
+    async def enbl_sts(self, instance, async_lib):  # noqa : ARG002
         await instance.write(value=self._enbl_sts_val)
 
     @hw_error_sts.startup
-    async def hw_error_sts(self, instance, async_lib): # noqa : ARG002
+    async def hw_error_sts(self, instance, async_lib):  # noqa : ARG002
         await instance.write(value=self._hw_error_val)
 
     @sts_error_sts.startup
-    async def sts_error_sts(self, instance, async_lib): # noqa : ARG002
+    async def sts_error_sts(self, instance, async_lib):  # noqa : ARG002
         await instance.write(value=self._sts_error_val)
 
     @state1_cmd.startup
@@ -194,23 +194,23 @@ class EPSTwoStateIOC(PVGroup):
         return "None"
 
     @enbl_sts.putter
-    async def enbl_sts(self, instance, value): # noqa : ARG002
+    async def enbl_sts(self, instance, value):  # noqa : ARG002
         self._enbl_sts_val = value
         return value
 
     @hw_error_sts.putter
-    async def hw_error_sts(self, instance, value): # noqa : ARG002
+    async def hw_error_sts(self, instance, value):  # noqa : ARG002
         self._hw_error_val = value
         return value
 
     @sts_error_sts.putter
-    async def sts_error_sts(self, instance, value): # noqa : ARG002
+    async def sts_error_sts(self, instance, value):  # noqa : ARG002
         self._sts_error_val = value
         return value
 
     # Internal Methods
 
-    async def _state_cmd_put(self, instance, value, state_val, fail_to_state): # noqa : ARG002
+    async def _state_cmd_put(self, instance, value, state_val, fail_to_state):  # noqa : ARG002
         if value == self._cmd_states[0]:  # if None -> do nothing
             return self._cmd_states[0]
         if self._pos_sts_val == state_val:  # if in state -> do nothing

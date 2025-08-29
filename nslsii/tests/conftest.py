@@ -108,9 +108,7 @@ def redis_dict_factory():
         )
         if len(disallowed_kwargs_preset) > 0:
             msg = f"{disallowed_kwargs_preset} given, but 'host', 'port', and 'db' may not be specified"
-            raise KeyError(
-                msg
-            )
+            raise KeyError(msg)
         kwargs.update(redis_server_kwargs)
 
         return RunEngineRedisDict(**kwargs)
