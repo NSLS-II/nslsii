@@ -68,14 +68,15 @@ class SingleTriggerV33(TriggerBase):
     def trigger(self):
         "Trigger one acquisition."
         if self._staged != Staged.yes:
-            raise RuntimeError(
+            msg = (
                 "This detector is not ready to trigger."
                 "Call the stage() method before triggering."
             )
+            raise RuntimeError(msg)
 
         self._status = self._status_type(self)
 
-        def _acq_done(*args, **kwargs):
+        def _acq_done(*args, **kwargs): # noqa : ARG001
             # TODO sort out if anything useful in here
             self._status._finished()
 
@@ -92,10 +93,13 @@ class StatsPluginV33(PluginBase):
 
     _default_suffix = "Stats1:"
     _suffix_re = r"Stats\d:"
-    _html_docs = ["NDPluginStats.html"]
+    from typing import ClassVar  # noqa : PLC0415
+
+    _html_docs: ClassVar[list[str]] = ["NDPluginStats.html"]
     _plugin_type = "NDPluginStats"
 
-    _default_configuration_attrs = PluginBase._default_configuration_attrs + (
+    _default_configuration_attrs = (
+        *PluginBase._default_configuration_attrs,
         "centroid_threshold",
         "compute_centroid",
         "compute_histogram",
