@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from IPython.display import HTML
@@ -55,9 +56,7 @@ def show_image_stack(
         )
 
         for item in (
-            [ax.xaxis.label, ax.yaxis.label]
-            + ax.get_xticklabels()
-            + ax.get_yticklabels()
+            [ax.xaxis.label, ax.yaxis.label, *ax.get_xticklabels(), *ax.get_yticklabels()]
         ):
             item.set_fontsize(fontsize)
             item.set_fontweight("bold")
@@ -103,7 +102,7 @@ def image_stack_to_movie(
         size=14,
     )
     for item in (
-        [ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()
+        [ax.xaxis.label, ax.yaxis.label, *ax.get_xticklabels(), *ax.get_yticklabels()]
     ):
         item.set_fontsize(14)
         item.set_fontweight("bold")
@@ -132,6 +131,7 @@ def _anim_to_html(anim, fps):
                 fps=fps,
                 extra_args=["-vcodec", "libx264", "-pix_fmt", "yuv420p"],
             )
-            video = open(f.name, "rb").read()
+            video = Path.open(f.name, "rb").read()
         anim._encoded_video = base64.b64encode(video)
     return VIDEO_TAG.format(anim._encoded_video.decode("utf-8"))
+ 

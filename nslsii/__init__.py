@@ -117,7 +117,7 @@ def configure_base(
 
     >>>> configure_base(get_ipython().user_ns, 'chx');
     """
-    from packaging.version import parse
+    from packaging.version import parse  # noqa : PLC0415
 
     ipython = get_ipython()
 
@@ -125,17 +125,18 @@ def configure_base(
     # Protect against double-subscription.
     SENTINEL = "__nslsii_configure_base_has_been_run"
     if user_ns.get(SENTINEL):
-        raise RuntimeError("configure_base should only be called once per process.")
+        msg = "configure_base should only be called once per process."
+        raise RuntimeError(msg)
     ns[SENTINEL] = True
     # Set up a RunEngine and use metadata backed by files on disk.
-    from bluesky import RunEngine
-    from bluesky import __version__ as bluesky_version
+    from bluesky import RunEngine  # noqa : PLC0415
+    from bluesky import __version__ as bluesky_version  # noqa : PLC0415
 
     if redis_url is None:
         md = {}
     else:
-        from redis import Redis
-        from redis_json_dict import RedisJSONDict
+        from redis import Redis  # noqa : PLC0415
+        from redis_json_dict import RedisJSONDict  # noqa : PLC0415
 
         md = RedisJSONDict(Redis(redis_url), prefix=redis_prefix)
 
@@ -150,7 +151,7 @@ def configure_base(
     # Set up SupplementalData.
     # (This is a no-op until devices are added to it,
     # so there is no need to provide a 'skip_sd' switch.)
-    from bluesky import SupplementalData
+    from bluesky import SupplementalData  # noqa : PLC0415
 
     sd = SupplementalData()
     RE.preprocessors.append(sd)
@@ -158,7 +159,7 @@ def configure_base(
 
     if isinstance(broker_name, str):
         # Set up a Broker.
-        from databroker import Broker
+        from databroker import Broker  # noqa : PLC0415
 
         db = Broker.named(broker_name)
         ns["db"] = db
@@ -174,7 +175,7 @@ def configure_base(
 
     if pbar:
         # Add a progress bar.
-        from bluesky.utils import ProgressBarManager
+        from bluesky.utils import ProgressBarManager  # noqa : PLC0415
 
         pbar_manager = ProgressBarManager()
         RE.waiting_hook = pbar_manager
@@ -182,14 +183,14 @@ def configure_base(
 
     if magics:
         # Register bluesky IPython magics.
-        from bluesky.magics import BlueskyMagics
+        from bluesky.magics import BlueskyMagics  # noqa : PLC0415
 
         if ipython:
             ipython.register_magics(BlueskyMagics)
 
     if bec:
         # Set up the BestEffortCallback.
-        from bluesky.callbacks.best_effort import BestEffortCallback
+        from bluesky.callbacks.best_effort import BestEffortCallback  # noqa : PLC0415
 
         _bec_kwargs = {}
         if bec_derivative:
@@ -202,20 +203,20 @@ def configure_base(
 
     if mpl:
         # Import matplotlib and put it in interactive mode.
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa : PLC0415
 
         ns["plt"] = plt
         plt.ion()
 
         # Make plots update live while scans run.
         if parse(bluesky_version) < parse("1.6.0"):
-            from bluesky.utils import install_kicker
+            from bluesky.utils import install_kicker  # noqa : PLC0415
 
             install_kicker()
 
     if epics_context:
         # Create a context in the underlying EPICS client.
-        from ophyd import setup_ophyd
+        from ophyd import setup_ophyd  # noqa : PLC0415
 
         setup_ophyd()
 
@@ -223,7 +224,7 @@ def configure_base(
         configure_bluesky_logging(ipython=ipython)
 
     if ipython_logging and ipython:
-        from nslsii.common.ipynb.logutils import log_exception
+        from nslsii.common.ipynb.logutils import log_exception  # noqa : PLC0415
 
         # IPython logging will be enabled with logstart(...)
         configure_ipython_logging(exception_logger=log_exception, ipython=ipython)
@@ -236,10 +237,11 @@ def configure_base(
         elif isinstance(broker_name, str):
             configure_kafka_publisher(RE, beamline_name=broker_name)
         else:
-            raise ValueError(
+            msg = (
                 "If broker_name is not a string and lacks a name attribute, "
                 "publish_documents_with_kafka must be a string"
             )
+            raise ValueError(msg)
 
     if tb_minimize and ipython:
         # configure %xmode minimal
@@ -250,21 +252,21 @@ def configure_base(
     # some of the * imports are for 'back-compatibility' of a sort -- we have
     # taught BL staff to expect LiveTable and LivePlot etc. to be in their
     # namespace
-    import numpy as np
+    import numpy as np  # noqa : PLC0415
 
     ns["np"] = np
 
-    import bluesky.callbacks
+    import bluesky.callbacks  # noqa : PLC0415
 
     ns["bc"] = bluesky.callbacks
     import_star(bluesky.callbacks, ns)
 
-    import bluesky.plans
+    import bluesky.plans  # noqa : PLC0415
 
     ns["bp"] = bluesky.plans
     import_star(bluesky.plans, ns)
 
-    import bluesky.plan_stubs
+    import bluesky.plan_stubs  # noqa : PLC0415
 
     ns["bps"] = bluesky.plan_stubs
     import_star(bluesky.plan_stubs, ns)
@@ -274,15 +276,15 @@ def configure_base(
     ns["mov"] = bluesky.plan_stubs.mov
     ns["movr"] = bluesky.plan_stubs.movr
 
-    import bluesky.preprocessors
+    import bluesky.preprocessors  # noqa : PLC0415
 
     ns["bpp"] = bluesky.preprocessors
 
-    import bluesky.callbacks.broker
+    import bluesky.callbacks.broker  # noqa : PLC0415
 
     import_star(bluesky.callbacks.broker, ns)
 
-    import bluesky.simulators
+    import bluesky.simulators  # noqa : PLC0415
 
     import_star(bluesky.simulators, ns)
 
@@ -328,11 +330,11 @@ def configure_bluesky_logging(
         log file path
 
     """
-    global bluesky_log_file_path
+    global bluesky_log_file_path # noqa : PLW0603
 
     if "BLUESKY_LOG_FILE" in os.environ:
         bluesky_log_file_path = Path(os.environ["BLUESKY_LOG_FILE"])
-        print(
+        print( # noqa : T201
             f"bluesky log file path configured from environment variable"
             f" BLUESKY_LOG_FILE: '{bluesky_log_file_path}'",
             file=sys.stderr,
@@ -342,7 +344,7 @@ def configure_bluesky_logging(
         if not bluesky_log_dir.exists():
             bluesky_log_dir.mkdir(parents=True, exist_ok=True)
         bluesky_log_file_path = bluesky_log_dir / Path("bluesky.log")
-        print(
+        print( # noqa : T201
             f"environment variable BLUESKY_LOG_FILE is not set,"
             f" using default log file path '{bluesky_log_file_path}'",
             file=sys.stderr,
@@ -434,7 +436,7 @@ def configure_ipython_logging(
 
     if "BLUESKY_IPYTHON_LOG_FILE" in os.environ:
         bluesky_ipython_log_file_path = Path(os.environ["BLUESKY_IPYTHON_LOG_FILE"])
-        print(
+        print( # noqa : T201
             "bluesky ipython log file configured from environment"
             f" variable BLUESKY_IPYTHON_LOG_FILE: '{bluesky_ipython_log_file_path}'",
             file=sys.stderr,
@@ -446,7 +448,7 @@ def configure_ipython_logging(
         bluesky_ipython_log_file_path = bluesky_ipython_log_dir / Path(
             "bluesky_ipython.log"
         )
-        print(
+        print( # noqa : T201
             "environment variable BLUESKY_IPYTHON_LOG_FILE is not set,"
             f" using default file path '{bluesky_ipython_log_file_path}'",
             file=sys.stderr,
@@ -456,7 +458,7 @@ def configure_ipython_logging(
     # if a previous copy exists just overwrite it
     if (
         bluesky_ipython_log_file_path.exists()
-        and os.path.getsize(bluesky_ipython_log_file_path) >= rotate_file_size
+        and Path.getsize(bluesky_ipython_log_file_path) >= rotate_file_size
     ):
         bluesky_ipython_log_file_path.rename(
             str(bluesky_ipython_log_file_path) + ".old"
@@ -485,7 +487,7 @@ def configure_kafka_publisher(RE, beamline_name, override_config_path=None):
 
     See `tests/test_kafka_configuration.py` for an example configuration file.
     """
-    from nslsii.kafka_utils import (
+    from nslsii.kafka_utils import (  # noqa : PLC0415
         _read_bluesky_kafka_config_file,
         _subscribe_kafka_publisher,
         _subscribe_kafka_queue_thread_publisher,
@@ -580,13 +582,13 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     ns = {}  # We will update user_ns with this at the end.
 
-    import queue
-    import threading
-    from functools import partial
-    from warnings import warn
+    import queue  # noqa : PLC0415
+    import threading  # noqa : PLC0415
+    from functools import partial  # noqa : PLC0415
+    from warnings import warn  # noqa : PLC0415
 
-    from bluesky.callbacks.olog import logbook_cb_factory
-    from pyOlog import SimpleOlogClient
+    from bluesky.callbacks.olog import logbook_cb_factory  # noqa : PLC0415
+    from pyOlog import SimpleOlogClient  # noqa : PLC0415
 
     # This is for pyOlog.ophyd_tools.get_logbook, which simply looks for
     # a variable called 'logbook' in the global IPython namespace.
@@ -612,7 +614,7 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
                 except Exception as exc:
                     warn(
                         "This olog is giving errors. This will not be logged."
-                        "Error:" + str(exc)
+                        "Error:" + str(exc), stacklevel=2
                     )
 
         olog_queue = queue.Queue(maxsize=100)
@@ -626,12 +628,12 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
             try:
                 olog_queue.put((name, doc), block=False)
             except queue.Full:
-                warn("The olog queue is full. This will not be logged.")
+                warn("The olog queue is full. This will not be logged.", stacklevel=2)
 
         RE = user_ns["RE"]
         RE.subscribe(send_to_olog_queue, "start")
 
-    import pyOlog.ophyd_tools
+    import pyOlog.ophyd_tools  # noqa : PLC0415
 
     import_star(pyOlog.ophyd_tools, ns)
 
