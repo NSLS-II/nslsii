@@ -32,9 +32,9 @@ v0.10.7 (2024-10-30)
 ====================
 What's Changed
 ..............
-* CI: only use the `published` event for PyPI releases by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/203
+* CI: only use the ``published`` event for PyPI releases by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/203
 * Remove 'finally' that is eating exceptions by `@nmaytan <https://github.com/nmaytan>`_ in https://github.com/NSLS-II/nslsii/pull/200
-* Use a configuration file from `n2sn_user_tools` for `sync-experiment` by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/202
+* Use a configuration file from ``n2sn_user_tools`` for ``sync-experiment`` by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/202
 * Deprecate the webcam class by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/204
 
 
