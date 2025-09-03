@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def makedirs(path, mode=0o777):
+def makedirs(path: Path, mode: int = 0o777) -> list[str]:
     """Recursively make directories and set permissions"""
     # Permissions not working with os.makedirs -
     # See: http://stackoverflow.com/questions/5231901
-    if not path or Path.exists(path):
+    if path is None or str(path) == "" or path.exists():
         return []
 
     head, _ = Path.split(path)

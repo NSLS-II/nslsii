@@ -198,7 +198,7 @@ class GensubRecord(RecordBase):
     input_link_r = FldCpt(EpicsSignalRO, ".INPR$", string=True)
     input_link_s = FldCpt(EpicsSignalRO, ".INPS$", string=True)
     input_link_t = FldCpt(EpicsSignalRO, ".INPT$", string=True)
-    input_link_u = FldCpt(EpicsSignalRO, ".INPU$", string=True)
+    input_link_u = FldCpt(EpicsSignalRO, ".INPU$", string=True)  # codespell:ignore
     subroutine_input_link = FldCpt(EpicsSignalRO, ".SUBL$", string=True)
 
     # - output
@@ -279,7 +279,7 @@ class GensubRecord(RecordBase):
     no_in_b = FldCpt(EpicsSignalRO, ".NOB")
     no_in_c = FldCpt(EpicsSignalRO, ".NOC")
     no_in_d = FldCpt(EpicsSignalRO, ".NOD")
-    no_in_e = FldCpt(EpicsSignalRO, ".NOE")
+    no_in_e = FldCpt(EpicsSignalRO, ".NOE")  # codespell:ignore
     no_in_f = FldCpt(EpicsSignalRO, ".NOF")
     no_in_g = FldCpt(EpicsSignalRO, ".NOG")
     no_in_h = FldCpt(EpicsSignalRO, ".NOH")
@@ -289,7 +289,7 @@ class GensubRecord(RecordBase):
     no_in_l = FldCpt(EpicsSignalRO, ".NOL")
     no_in_m = FldCpt(EpicsSignalRO, ".NOM")
     no_in_n = FldCpt(EpicsSignalRO, ".NON")
-    no_in_o = FldCpt(EpicsSignalRO, ".NOO")
+    no_in_o = FldCpt(EpicsSignalRO, ".NOO")  # codespell:ignore
     no_in_p = FldCpt(EpicsSignalRO, ".NOP")
     no_in_q = FldCpt(EpicsSignalRO, ".NOQ")
     no_in_r = FldCpt(EpicsSignalRO, ".NOR")
