@@ -8,7 +8,7 @@ import setuptools
 
 import versioneer
 
-here = Path.abspath(Path.dirname(__file__))
+here = Path(__file__).resolve().parent
 
 # Get the long description from the README file
 with open(Path.join(here, "README.md"), encoding="utf-8") as f:
