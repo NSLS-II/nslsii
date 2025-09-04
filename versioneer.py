@@ -283,6 +283,7 @@ except ImportError:
     import ConfigParser as configparser
 import errno
 import json
+import os
 import re
 import subprocess
 import sys
@@ -305,7 +306,9 @@ def get_root():
     versioneer_py = Path.join(root, "versioneer.py")
     if not (Path.exists(setup_py) or Path.exists(versioneer_py)):
         # allow 'python path/to/setup.py COMMAND'
-        root = Path.dirname(Path.realpath(Path.abspath(sys.argv[0])))
+
+        root = os.path.realpath(Path.resolve(sys.argv[0]))
+        root = Path(root).parent
         setup_py = Path.join(root, "setup.py")
         versioneer_py = Path.join(root, "versioneer.py")
     if not (Path.exists(setup_py) or Path.exists(versioneer_py)):
@@ -1205,7 +1208,7 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
                 "date": None,
             }
         rootdirs.append(root)
-        root = Path.dirname(root)  # up a level
+        root = Path(root).parent  # up a level
 
     if verbose:
         print(  # noqa: T201
