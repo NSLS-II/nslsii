@@ -67,10 +67,7 @@ class ProposalNumYMDPathProvider(PathProvider):
         if device_name is None:
             ymd_dir_path = current_date
         else:
-            ymd_dir_path = Path.join(
-                device_name,
-                current_date,
-            )
+            ymd_dir_path = Path(device_name) / current_date
 
         return (
             self._beamline_proposals_dir

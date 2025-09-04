@@ -301,16 +301,16 @@ def get_root():
     We require that all commands are run from the project root, i.e. the
     directory that contains setup.py, setup.cfg, and versioneer.py .
     """
-    root = Path.realpath(Path.abspath(Path.getcwd()))
-    setup_py = Path.join(root, "setup.py")
-    versioneer_py = Path.join(root, "versioneer.py")
+    root = os.path.realpath(Path.resolve(Path.cwd()))
+    setup_py = Path(root) / "setup.py"
+    versioneer_py = Path(root) / "versioneer.py"
     if not (Path.exists(setup_py) or Path.exists(versioneer_py)):
         # allow 'python path/to/setup.py COMMAND'
 
         root = os.path.realpath(Path.resolve(sys.argv[0]))
         root = Path(root).parent
-        setup_py = Path.join(root, "setup.py")
-        versioneer_py = Path.join(root, "versioneer.py")
+        setup_py = Path(root) / "setup.py"
+        versioneer_py = Path(root) / "versioneer.py"
     if not (Path.exists(setup_py) or Path.exists(versioneer_py)):
         err = (
             "Versioneer was unable to run the project root directory. "
@@ -345,7 +345,7 @@ def get_config_from_root(root):
     # configparser.NoSectionError (if it lacks a [versioneer] section), or
     # configparser.NoOptionError (if it lacks "VCS="). See the docstring at
     # the top of versioneer.py for instructions on writing your setup.cfg .
-    setup_cfg = Path.join(root, "setup.cfg")
+    setup_cfg = Path(root) / "setup.cfg"
     parser = configparser.ConfigParser()
     parser.read(setup_cfg)
     VCS = parser.get("versioneer", "VCS")  # mandatory
@@ -1467,7 +1467,7 @@ def get_versions(verbose=False):
     )
     assert cfg.tag_prefix is not None, "please set versioneer.tag_prefix"
 
-    versionfile_abs = Path.join(root, cfg.versionfile_source)
+    versionfile_abs = Path(root) / cfg.versionfile_source
 
     # extract version from first of: _version.py, VCS command (e.g. 'git
     # describe'), parentdir. This is meant to work for developers using a
@@ -1606,7 +1606,7 @@ def get_cmdclass():
             # now locate _version.py in the new build/ directory and replace
             # it with an updated value
             if cfg.versionfile_build:
-                target_versionfile = Path.join(self.build_lib, cfg.versionfile_build)
+                target_versionfile = Path(self.build_lib) / cfg.versionfile_build
                 print(f"UPDATING {target_versionfile}")  # noqa: T201
                 write_to_version_file(target_versionfile, versions)
 
@@ -1702,7 +1702,7 @@ def get_cmdclass():
             # now locate _version.py in the new base_dir directory
             # (remembering that it may be a hardlink) and replace it with an
             # updated value
-            target_versionfile = Path.join(base_dir, cfg.versionfile_source)
+            target_versionfile = Path(base_dir) / cfg.versionfile_source
             print(f"UPDATING {target_versionfile}")  # noqa: T201
             write_to_version_file(
                 target_versionfile, self._versioneer_generated_versions
@@ -1765,7 +1765,7 @@ def do_setup():
     except (OSError, configparser.NoSectionError, configparser.NoOptionError) as e:
         if isinstance(e, (EnvironmentError, configparser.NoSectionError)):
             print("Adding sample versioneer config to setup.cfg", file=sys.stderr)  # noqa: T201
-            with Path.open(Path.join(root, "setup.cfg"), "a") as f:
+            with Path.open(Path(root) / "setup.cfg", "a") as f:
                 f.write(SAMPLE_CONFIG)
         print(CONFIG_ERROR, file=sys.stderr)  # noqa: T201
         return 1
@@ -1805,7 +1805,7 @@ def do_setup():
     # (PKG/_version.py, used by runtime code) are in MANIFEST.in, so
     # they'll be copied into source distributions. Pip won't be able to
     # install the package without this.
-    manifest_in = Path.join(root, "MANIFEST.in")
+    manifest_in = Path(root) / "MANIFEST.in"
     simple_includes = set()
     try:
         with Path.open(manifest_in) as f:
