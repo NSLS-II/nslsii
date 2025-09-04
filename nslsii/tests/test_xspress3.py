@@ -1,13 +1,14 @@
+from __future__ import annotations
+
 import re
 
 import pytest
-
 from ophyd import ADBase, Component, EpicsSignal, Kind, Signal
 
 from nslsii.areadetector.xspress3 import (
     Mca,
-    McaSum,
     McaRoi,
+    McaSum,
     Sca,
     Xspress3Detector,
     build_channel_class,
@@ -370,10 +371,7 @@ def test_extra_class_members():
         channel_numbers=(3, 5),
         mcaroi_numbers=(4, 6),
         image_data_key="image",
-        extra_class_members={
-            "ten": 10,
-            "a_signal": Component(EpicsSignal, "Signal")
-        },
+        extra_class_members={"ten": 10, "a_signal": Component(EpicsSignal, "Signal")},
     )
 
     assert detector_class.ten == 10
@@ -392,7 +390,7 @@ def test_extra_class_members_failure():
     name as one of the detector class members.
     """
     with pytest.raises(TypeError):
-        detector_class = build_xspress3_class(
+        _ = build_xspress3_class(
             channel_numbers=(3, 5),
             mcaroi_numbers=(4, 6),
             image_data_key="image",
@@ -427,7 +425,7 @@ def test_get_channel():
     detector = detector_class(prefix="Xsp3:", name="xs3")
 
     channel03 = detector.get_channel(channel_number=3)
-    print(channel03)
+    print(channel03)  # noqa: T201
     assert channel03.mcaroi04.total_rbv.pvname == "Xsp3:MCA3ROI:4:Total_RBV"
 
     channel05 = detector.get_channel(channel_number=5)

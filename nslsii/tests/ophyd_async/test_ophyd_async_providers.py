@@ -1,14 +1,17 @@
+from __future__ import annotations
+
+import os
 from datetime import datetime
 from enum import Enum
+
 import pytest
-import os
 from ophyd_async.core import StaticFilenameProvider
 
 from nslsii.ophyd_async import (
-    ProposalNumYMDPathProvider,
-    ProposalNumScanNumPathProvider,
-    ShortUUIDFilenameProvider,
     DeviceNameFilenameProvider,
+    ProposalNumScanNumPathProvider,
+    ProposalNumYMDPathProvider,
+    ShortUUIDFilenameProvider,
     YMDGranularity,
 )
 from nslsii.ophyd_async.providers import AcqModeFilenameProvider
@@ -27,12 +30,11 @@ def fp():
 
 @pytest.fixture
 def dummy_re_md_dict():
-    md = {
+    return {
         "data_session": "pass-000000",
         "cycle": "2024-3",
         "scan_id": 0,
     }
-    return md
 
 
 @pytest.mark.parametrize(
@@ -107,7 +109,7 @@ def test_proposal_num_scan_num_path_provider(fp, dummy_re_md_dict):
 
 def test_device_name_filename_provider():
     dev_name_fp = DeviceNameFilenameProvider()
-    assert "test" == dev_name_fp(device_name="test")
+    assert dev_name_fp(device_name="test") == "test"
 
     # Device name filename provider must be called with device_name kwarg
     with pytest.raises(RuntimeError):

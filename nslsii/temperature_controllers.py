@@ -1,9 +1,13 @@
-from ophyd import DeviceStatus, Device, Component as Cpt, EpicsSignal, Signal
+from __future__ import annotations
+
 import threading
+
+from ophyd import Component as Cpt
+from ophyd import Device, DeviceStatus, EpicsSignal, Signal
 
 
 class Eurotherm(Device):
-    '''This class is used for integrating with Eurotherm controllers.
+    """This class is used for integrating with Eurotherm controllers.
 
     This is used for Eurotherm controllers and is designed to ensure that the
     set returns 'done' status only after the temperature has reached
@@ -18,7 +22,7 @@ class Eurotherm(Device):
     ----------
     pv_prefix : str.
         The PV prefix that is common to the readback and setpoint PV's.
-    '''
+    """
 
     def __init__(self, pv_prefix, **kwargs):
         super().__init__(pv_prefix, **kwargs)
@@ -29,20 +33,21 @@ class Eurotherm(Device):
         self._cid = None
 
     # Setup some new signals required for the moving indicator logic
-    equilibrium_time = Cpt(Signal, value=5, kind='config')
-    timeout = Cpt(Signal, value=500, kind='config')
-    tolerance = Cpt(Signal, value=1, kind='config')
+    equilibrium_time = Cpt(Signal, value=5, kind="config")
+    timeout = Cpt(Signal, value=500, kind="config")
+    tolerance = Cpt(Signal, value=1, kind="config")
 
     # Add the readback and setpoint components
-    setpoint = Cpt(EpicsSignal, 'T-SP', kind='normal')
-    readback = Cpt(EpicsSignal, 'T-RB', kind='hinted')
+    setpoint = Cpt(EpicsSignal, "T-SP", kind="normal")
+    readback = Cpt(EpicsSignal, "T-RB", kind="hinted")
 
     # define the new set method with the new moving indicator
     def set(self, value):
         # check that a set is not in progress, and if not set the lock.
         if not self._set_lock.acquire(blocking=False):
-            raise SetInProgress('attempting to set {} '.format(self.name) +
-                                'while a set is in progress')
+            raise SetInProgress(
+                f"attempting to set {self.name} " + "while a set is in progress"
+            )
 
         # define some required values
         set_value = value
@@ -57,8 +62,7 @@ class Eurotherm(Device):
         # setup a cleanup function for the timer, this matches including
         # timeout in `status` but also ensures that the callback is removed.
         def timer_cleanup():
-            print('Set of {} timed out after {} s'.format(self.name,
-                                                          self.timeout.get()))
+            print(f"Set of {self.name} timed out after {self.timeout.get()} s")  # noqa : T201
             self._set_lock.release()
             self.readback.clear_sub(status_indicator)
             status._finished(success=False)
@@ -66,7 +70,7 @@ class Eurotherm(Device):
         self._cb_timer = threading.Timer(self.timeout.get(), timer_cleanup)
 
         # set up the done moving indicator logic
-        def status_indicator(value, timestamp, **kwargs):
+        def status_indicator(value, timestamp, **kwargs):  # noqa : ARG001
             # add a Timer to ensure that timeout occurs.
             if not self._cb_timer.is_alive():
                 self._cb_timer.start()
@@ -93,8 +97,8 @@ class Eurotherm(Device):
         # hand the status object back to the RE
         return status
 
-    def stop(self, success=False):
-        # overide the lock, cancel the timer and remove the subscription on any
+    def stop(self, success=False):  # noqa : ARG002
+        # override the lock, cancel the timer and remove the subscription on any
         # in progress sets
         self._set_lock.release()
         self._cb_timer.cancel()
@@ -103,5 +107,4 @@ class Eurotherm(Device):
         self.set(self.readback.get())
 
 
-class SetInProgress(RuntimeError):
-    ...
+class SetInProgress(RuntimeError): ...

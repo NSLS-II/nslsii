@@ -1,17 +1,7 @@
-from contextlib import contextmanager  # noqa
-
-import redis
+from __future__ import annotations
 
 import pytest
-
-from bluesky.tests.conftest import RE  # noqa
-from bluesky_kafka import BlueskyConsumer  # noqa
-from bluesky_kafka.tests.conftest import (  # noqa
-    kafka_bootstrap_servers,
-    consume_documents_from_kafka_until_first_stop_document,
-    temporary_topics,
-)
-from ophyd.tests.conftest import hw  # noqa
+import redis
 
 from nslsii.md_dict import RunEngineRedisDict
 
@@ -21,35 +11,35 @@ def pytest_addoption(parser):
         "--xs3-root-path",
         action="store",
         default=None,
-        help="path to bluesky 'root' directory where xspress3 writes data files"
+        help="path to bluesky 'root' directory where xspress3 writes data files",
     )
 
     parser.addoption(
         "--xs3-path-template",
         action="store",
         default=None,
-        help="path to directory where xspress3 will write files"
+        help="path to directory where xspress3 will write files",
     )
 
     parser.addoption(
         "--xs3-pv-prefix",
         action="store",
         default=None,
-        help="PV prefix for xspress3, for example `XF:05IDD-ES{Xsp:1}:`"
+        help="PV prefix for xspress3, for example `XF:05IDD-ES{Xsp:1}:`",
     )
 
     parser.addoption(
         "--xs3-channel-numbers",
         action="store",
         default=None,
-        help="comma-separated xspress3 channel numbers, for example `1,2,3`"
+        help="comma-separated xspress3 channel numbers, for example `1,2,3`",
     )
 
     parser.addoption(
         "--xs3-mcaroi-numbers",
         action="store",
         default=None,
-        help="comma-separated xspress3 mcaroi numbers, for example `1,2,3`"
+        help="comma-separated xspress3 mcaroi numbers, for example `1,2,3`",
     )
 
     parser.addoption(
@@ -80,9 +70,7 @@ def xs3_channel_numbers(request):
     comma_separated_numbers = request.config.getoption("--xs3-channel-numbers")
     if comma_separated_numbers is None:
         return None
-    else:
-        number_list = [int(n) for n in comma_separated_numbers.split(",")]
-        return number_list
+    return [int(n) for n in comma_separated_numbers.split(",")]
 
 
 @pytest.fixture
@@ -90,9 +78,7 @@ def xs3_mcaroi_numbers(request):
     comma_separated_numbers = request.config.getoption("--xs3-mcaroi-numbers")
     if comma_separated_numbers is None:
         return None
-    else:
-        number_list = [int(n) for n in comma_separated_numbers.split(",")]
-        return number_list
+    return [int(n) for n in comma_separated_numbers.split(",")]
 
 
 @pytest.fixture
@@ -121,11 +107,9 @@ def redis_dict_factory():
             kwargs.keys()
         )
         if len(disallowed_kwargs_preset) > 0:
-            raise KeyError(
-                f"{disallowed_kwargs_preset} given, but 'host', 'port', and 'db' may not be specified"
-            )
-        else:
-            kwargs.update(redis_server_kwargs)
+            msg = f"{disallowed_kwargs_preset} given, but 'host', 'port', and 'db' may not be specified"
+            raise KeyError(msg)
+        kwargs.update(redis_server_kwargs)
 
         return RunEngineRedisDict(**kwargs)
 

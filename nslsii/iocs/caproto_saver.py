@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from collections import deque
-from io import BytesIO
 import os
 import re
 import textwrap
 import threading
 import time as ttime
 import uuid
+from collections import deque
 from enum import Enum
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -16,14 +16,13 @@ import requests
 from caproto import ChannelType
 from caproto.ioc_examples.mini_beamline import no_reentry
 from caproto.server import PVGroup, pvproperty, run, template_arg_parser
+from event_model import compose_resource
 from ophyd import Component as Cpt
 from ophyd import Device, EpicsSignal, EpicsSignalRO, Kind, Signal
 from ophyd.status import SubscriptionStatus
-from event_model import compose_resource
-
-from .utils import now, save_hdf5_nd, save_image
-
 from PIL import Image
+
+from .utils import now, save_hdf5_nd
 
 
 class AcqStatuses(Enum):
@@ -31,6 +30,7 @@ class AcqStatuses(Enum):
 
     IDLE = "idle"
     ACQUIRING = "acquiring"
+
 
 class DirExistsStatuses(Enum):
     DOES_NOT_EXIST = "does not exist"
@@ -43,9 +43,11 @@ class UIDOptions(Enum):
     SHORT = "short"
     FULL = "full"
 
+
 class OnOffStates(Enum):
     DISABLE = "disable"
     ENABLE = "enable"
+
 
 class CaprotoSaveIOC(PVGroup):
     """Generic Caproto Save IOC"""
@@ -77,21 +79,21 @@ class CaprotoSaveIOC(PVGroup):
         doc="Record specifying whether or not the target directory exists or not",
         dtype=ChannelType.ENUM,
         read_only=True,
-        enum_strings=[x.value for x in DirExistsStatuses]
+        enum_strings=[x.value for x in DirExistsStatuses],
     )
 
     uid_type = pvproperty(
         value=UIDOptions.NONE.value,
         doc="UUID to include automatically in file name",
         dtype=ChannelType.ENUM,
-        enum_strings=[x.value for x in UIDOptions]
+        enum_strings=[x.value for x in UIDOptions],
     )
 
     use_frame_num = pvproperty(
-        value = OnOffStates.DISABLE.value,
-        doc = "Enable auto-incrementing frame counter suffix for filenames",
+        value=OnOffStates.DISABLE.value,
+        doc="Enable auto-incrementing frame counter suffix for filenames",
         dtype=ChannelType.ENUM,
-        enum_strings=[x.value for x in OnOffStates]
+        enum_strings=[x.value for x in OnOffStates],
     )
 
     # TODO: check non-negative value in @frame_num.putter.
@@ -118,7 +120,7 @@ class CaprotoSaveIOC(PVGroup):
     queue = pvproperty(value=0, doc="A PV to facilitate threading-based queue")
 
     @queue.startup
-    async def queue(self, instance, async_lib):
+    async def queue(self, instance, async_lib):  # noqa : ARG002
         """The startup behavior of the count property to set up threading queues."""
         # pylint: disable=unused-argument
         self._request_queue = async_lib.ThreadsafeQueue(maxsize=1)
@@ -135,41 +137,33 @@ class CaprotoSaveIOC(PVGroup):
         )
         thread.start()
 
-    async def _update_full_file_path(self, write_dir=None, file_name=None, use_frame_num=None, uid_type=None):
-        
-        if use_frame_num is None:
-            use_num = self.use_frame_num.value
-        else:
-            use_num = use_frame_num
-        
+    async def _update_full_file_path(
+        self, write_dir=None, file_name=None, use_frame_num=None, uid_type=None
+    ):
+        use_num = self.use_frame_num.value if use_frame_num is None else use_frame_num
+
         frame_num_str = ""
         if use_num == OnOffStates.ENABLE.value:
             frame_num = self.frame_num.value
             frame_num_str = f"_{frame_num:06}"
 
-        if uid_type is None:
-            uid_to_use = self.uid_type.value
-        else:
-            uid_to_use = uid_type
+        uid_to_use = self.uid_type.value if uid_type is None else uid_type
+
         uid_str = ""
         if uid_to_use == UIDOptions.SHORT.value:
             uid_str = f"_{str(uuid.uuid4())[:8]}"
         elif uid_to_use == UIDOptions.FULL.value:
-            uid_str = f"_{str(uuid.uuid4())}"
-
+            uid_str = f"_{uuid.uuid4()!s}"
 
         if write_dir is None:
             local_write_dir = Path(self.write_dir.value)
         else:
             local_write_dir = Path(write_dir)
 
-        if file_name is None:
-            full_file_name = self.file_name.value
-        else:
-            full_file_name = file_name
+        full_file_name = self.file_name.value if file_name is None else file_name
 
         try:
-            filename_and_ext = os.path.splitext(full_file_name)
+            filename_and_ext = Path.splitext(full_file_name)
             base_filename = filename_and_ext[0]
             extension = filename_and_ext[1]
         except IndexError:
@@ -177,47 +171,50 @@ class CaprotoSaveIOC(PVGroup):
             base_filename = full_file_name
             extension = ""
 
-        full_file_path = local_write_dir / f"{base_filename}{frame_num_str}{uid_str}{extension}"
+        full_file_path = (
+            local_write_dir / f"{base_filename}{frame_num_str}{uid_str}{extension}"
+        )
 
         full_file_path = self._sanitizer.sub("_", str(full_file_path))
 
-        print(f"{now()}: {full_file_path = }")
+        print(f"{now()}: {full_file_path = }")  # noqa : T201
 
         await self.full_file_path.write(full_file_path)
 
-
-    async def _use_frame_num_callback(self, instance, value):
+    async def _use_frame_num_callback(self, instance, value):  # noqa : ARG002
         await self._update_full_file_path(use_frame_num=value)
         return value
 
-    async def _uid_type_callback(self, instance, value):
+    async def _uid_type_callback(self, instance, value):  # noqa : ARG002
         await self._update_full_file_path(uid_type=value)
         return value
 
-    async def _file_name_callback(self, instance, value):
+    async def _file_name_callback(self, instance, value):  # noqa : ARG002
         await self._update_full_file_path(file_name=value)
         return value
 
-    async def _write_dir_callback(self, instance, value):
+    async def _write_dir_callback(self, instance, value):  # noqa : ARG002
         """The stage method to perform preparation of a dataset to save the data."""
 
         local_write_dir = Path(value)
 
-        if os.path.exists(local_write_dir):
+        if Path.exists(local_write_dir):
             if os.access(local_write_dir, os.W_OK):
                 await self.directory_exists.write(DirExistsStatuses.EXISTS.value)
                 await self._update_full_file_path(write_dir=value)
             else:
-                await self.directory_exists.write(DirExistsStatuses.PERMISSION_ERROR.value)
+                await self.directory_exists.write(
+                    DirExistsStatuses.PERMISSION_ERROR.value
+                )
         else:
             await self.directory_exists.write(DirExistsStatuses.DOES_NOT_EXIST.value)
 
-
         if self.directory_exists.value == DirExistsStatuses.EXISTS.value:
             return value
-        else:
-            print(f"Directory access error for directory {value}! - {self.directory_exists.value}")
-            return ""
+        print(  # noqa : T201
+            f"Directory access error for directory {value}! - {self.directory_exists.value}"
+        )
+        return ""
 
     @write_dir.putter
     async def write_dir(self, *args, **kwargs):
@@ -228,27 +225,24 @@ class CaprotoSaveIOC(PVGroup):
     async def file_name(self, *args, **kwargs):
         """The file name callback method."""
         return await self._file_name_callback(*args, **kwargs)
-    
 
     @uid_type.putter
     async def uid_type(self, *args, **kwargs):
         """The file name callback method."""
         return await self._uid_type_callback(*args, **kwargs)
-    
 
     @use_frame_num.putter
     async def use_frame_num(self, *args, **kwargs):
         """The file name callback method."""
         return await self._use_frame_num_callback(*args, **kwargs)
 
-    async def _get_current_dataset(self, frame):
+    async def _get_current_dataset(self, frame):  # noqa : ARG002
         """The method to return a desired dataset.
 
         See https://scikit-image.org/docs/stable/auto_examples/data/plot_3d.html
         for details about the dataset returned by the base class' method.
         """
-        return np.random.random((480, 640))
-
+        return np.random.default_rng().random((480, 640))
 
     @acquire.putter
     @no_reentry
@@ -264,13 +258,13 @@ class CaprotoSaveIOC(PVGroup):
             instance.value in [True, AcqStatuses.ACQUIRING.value]
             and value == AcqStatuses.ACQUIRING.value
         ):
-            print(
+            print(  # noqa : T201
                 f"The device is already acquiring. Please wait until the '{AcqStatuses.IDLE.value}' status."
             )
             return True
 
-        if (self.directory_exists.value != DirExistsStatuses.EXISTS.value):
-            print("Target write directory does not exist or cannot be written to!")
+        if self.directory_exists.value != DirExistsStatuses.EXISTS.value:
+            print("Target write directory does not exist or cannot be written to!")  # noqa : T201
             return False
 
         await self.acquire.write(AcqStatuses.ACQUIRING.value)
@@ -295,10 +289,9 @@ class CaprotoSaveIOC(PVGroup):
 
         return False
 
-
-    async def on_startup(self, async_lib):
+    async def on_startup(self, async_lib):  # noqa : ARG002
         for key in self.pvdb:
-            print(key)
+            print(key)  # noqa : T201
 
         await self._write_dir_callback(None, "/tmp")
 
@@ -312,7 +305,7 @@ class CaprotoSaveIOC(PVGroup):
             frame_number = received["frame_number"]
             try:
                 save_hdf5_nd(fname=filename, data=data, mode="x", group_path="enc1")
-                print(
+                print(  # noqa : T201
                     f"{now()}: saved {frame_number=} {data.shape} data into:\n  {filename}"
                 )
 
@@ -321,7 +314,7 @@ class CaprotoSaveIOC(PVGroup):
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
-                print(
+                print(  # noqa : T201
                     f"Cannot save file {filename!r} due to the following exception:\n{exc}"
                 )
 
@@ -339,12 +332,13 @@ class CaprotoSaveIOC(PVGroup):
         ioc_opts, run_opts = split_args(parsed_args)
         return ioc_opts, run_opts
 
+
 class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
     """"""
 
     def __init__(self, *args, camera_host=None, **kwargs):
         self._camera_host = camera_host
-        print(f"{camera_host = }")
+        print(f"{camera_host = }")  # noqa : T201
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -360,17 +354,16 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
 
         ioc_opts, run_opts = split_args(parsed_args)
 
-        ioc_opts['camera_host'] = parsed_args.camera_host
+        ioc_opts["camera_host"] = parsed_args.camera_host
         return ioc_opts, run_opts
 
-
-    async def _get_current_dataset(self, *args, **kwargs):  # pylint: disable=unused-argument
+    async def _get_current_dataset(self, *args, **kwargs):  # noqa : ARG002  # pylint: disable=unused-argument
         url = f"http://{self._camera_host}/axis-cgi/jpg/image.cgi"
         resp = requests.get(url, timeout=10)
         img = Image.open(BytesIO(resp.content))
 
         dataset = np.asarray(img).sum(axis=-1)
-        print(f"{now()}: {dataset.shape}")
+        print(f"{now()}: {dataset.shape}")  # noqa : T201
 
         return dataset
 
@@ -384,15 +377,15 @@ class AxisWebcamCaprotoSaver(CaprotoSaveIOC):
             # 'frame_number' is not used for this exporter.
             try:
                 save_hdf5_nd(fname=filename, data=data, dtype="|u1", mode="a")
-                #TODO: Change all of these prints to use the caproto logger instead
-                print(f"{now()}: saved data into: {filename}")
+                # TODO: Change all of these prints to use the caproto logger instead
+                print(f"{now()}: saved data into: {filename}")  # noqa : T201
 
                 success = True
                 error_message = ""
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 success = False
                 error_message = exc
-                print(
+                print(  # noqa : T201
                     f"Cannot save file {filename!r} due to the following exception:\n{exc}"
                 )
 
@@ -408,10 +401,10 @@ class ExternalFileReference(Signal):
     def describe(self):
         resource_document_data = super().describe()
         resource_document_data[self.name].update(
-            dict(
-                external="FILESTORE:",
-                dtype="array",
-            )
+            {
+                "external": "FILESTORE:",
+                "dtype": "array",
+            }
         )
         return resource_document_data
 
@@ -430,7 +423,15 @@ class CaprotoSaverDevice(Device):
 
     data = Cpt(ExternalFileReference, kind=Kind.normal)
 
-    def __init__(self, *args, md=None, extension='h5', handler_spec="AD_HDF5", root_dir=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        md=None,
+        extension="h5",
+        handler_spec="AD_HDF5",
+        root_dir=None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         if root_dir is None:
             msg = "The 'root_dir' kwarg cannot be None"
@@ -449,19 +450,20 @@ class CaprotoSaverDevice(Device):
 
     @property
     def root_path_str(self):
-        beamline = os.getenv("ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "TST")).lower()
-        # These three beamlines have a -new suffix in their 
+        beamline = os.getenv(
+            "ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "TST")
+        ).lower()
+        # These three beamlines have a -new suffix in their
         if beamline in ["xpd", "fxi", "qas"]:
             beamline = f"{beamline}-new"
-        root_path = f"/nsls2/data/{beamline}/proposals/{self._md.get('cycle', '')}/{self._md.get('data_session', '')}/assets/{self.name}"
-        return root_path
-    
+        return f"/nsls2/data/{beamline}/proposals/{self._md.get('cycle', '')}/{self._md.get('data_session', '')}/assets/{self.name}"
+
     @property
     def shape(self):
         """Property that contains the shape of the data"""
 
         return (1080, 1920)
-    
+
     @property
     def dtype_numpy(self):
         """dtype_str for use in the descriptor"""
@@ -498,23 +500,16 @@ class CaprotoSaverDevice(Device):
 
         # Update caproto IOC parameters:
 
-
     def describe(self):
         res = super().describe()
-        res[self.data.name].update(
-            {"shape": self.shape, "dtype_str": self.dtype_numpy}
-        )
+        res[self.data.name].update({"shape": self.shape, "dtype_str": self.dtype_numpy})
         return res
 
-
     def trigger(self):
-
-        def done_callback(value, old_value, **kwargs):
+        def done_callback(value, old_value, **kwargs):  # noqa : ARG001
             """The callback function used by ophyd's SubscriptionStatus."""
             # print(f"{old_value = } -> {value = }")
-            if old_value == "acquiring" and value == "idle":
-                return True
-            return False
+            return bool(old_value == "acquiring" and value == "idle")
 
         status = SubscriptionStatus(self.acquire, run=False, callback=done_callback)
 
@@ -535,8 +530,6 @@ class CaprotoSaverDevice(Device):
 
 
 class TwoDimCaprotoCam(CaprotoSaverDevice):
-
-
     def __init__(self, *args, shape=(1080, 1920), dtype_numpy="|u1", **kwargs):
         super().__init__(*args, **kwargs)
         self._shape = shape
@@ -552,16 +545,22 @@ class TwoDimCaprotoCam(CaprotoSaverDevice):
 
 
 def start_caproto_ioc(cls, parser, split_args):
-
     ioc_options, run_options = cls.check_args(parser, split_args)
     ioc = cls(**ioc_options)
     run(ioc.pvdb, startup_hook=ioc.on_startup, **run_options)
+
 
 def start_axis_ioc():
     parser, split_args = template_arg_parser(
         default_prefix="", desc=textwrap.dedent(AxisWebcamCaprotoSaver.__doc__)
     )
-    parser.add_argument("-c", "--camera-host", help="URL of the axis camera stream", required=True, type=str)
+    parser.add_argument(
+        "-c",
+        "--camera-host",
+        help="URL of the axis camera stream",
+        required=True,
+        type=str,
+    )
     start_caproto_ioc(AxisWebcamCaprotoSaver, parser, split_args)
 
 

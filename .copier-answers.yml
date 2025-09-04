@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 06352e2
+_src_path: cookie
+backend: setuptools
+email: dssi@bnl.gov
+full_name: NSLS2
+license: BSD
+org: NSLS-II
+project_name: nslsii
+project_short_description: NSLS-II related devices
+url: https://github.com/NSLS-II/nslsii
+vcs: true

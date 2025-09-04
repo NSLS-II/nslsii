@@ -1,37 +1,38 @@
-from __future__ import (absolute_import, division, print_function)
-
-import versioneer
-import setuptools
+from __future__ import annotations
 
 # To use a consistent encoding
 from codecs import open
-from os import path
+from pathlib import Path
 
-here = path.abspath(path.dirname(__file__))
+import setuptools
+
+import versioneer
+
+here = Path(__file__).resolve().parent
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(here.joinpath("README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-with open(path.join(here, 'requirements.txt')) as f:
+with open(here.joinpath("requirements.txt"), encoding="utf-8") as f:
     requirements = f.read().splitlines()
 
 setuptools.setup(
-    name='nslsii',
+    name="nslsii",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     license="BSD (3-clause)",
     packages=setuptools.find_packages(),
     long_description=long_description,
-    long_description_content_type='text/markdown',
-    description='Tools for data collection and analysis at NSLS-II',
-    author='Brookhaven National Laboratory',
+    long_description_content_type="text/markdown",
+    description="Tools for data collection and analysis at NSLS-II",
+    author="Brookhaven National Laboratory",
     install_requires=requirements,
     entry_points={
         "console_scripts": [
             "sync-experiment = nslsii.sync_experiment:main",
             "what-is-ioc = nslsii.epics_utils:main",
-            "axis-saver-ioc = nslsii.iocs.caproto_saver:start_axis_ioc"
+            "axis-saver-ioc = nslsii.iocs.caproto_saver:start_axis_ioc",
         ],
     },
 )

@@ -1,14 +1,16 @@
+from __future__ import annotations
+
+import os
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+
+import shortuuid
 from ophyd_async.core import (
     FilenameProvider,
-    PathProvider,
     PathInfo,
+    PathProvider,
 )
-import os
-import shortuuid
 
 
 class YMDGranularity(int, Enum):
@@ -46,11 +48,10 @@ class ProposalNumYMDPathProvider(PathProvider):
         beamline_tla = os.getenv(
             "ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "")
         ).lower()
-        beamline_proposals_dir = Path(f"/nsls2/data/{beamline_tla}/proposals/")
 
-        return beamline_proposals_dir
+        return Path(f"/nsls2/data/{beamline_tla}/proposals/")
 
-    def generate_directory_path(self, device_name: Optional[str] = None):
+    def generate_directory_path(self, device_name: str | None = None):
         """Helper function that generates ymd path structure"""
 
         current_date_template = ""
@@ -66,12 +67,9 @@ class ProposalNumYMDPathProvider(PathProvider):
         if device_name is None:
             ymd_dir_path = current_date
         else:
-            ymd_dir_path = os.path.join(
-                device_name,
-                current_date,
-            )
+            ymd_dir_path = Path(device_name) / current_date
 
-        directory_path = (
+        return (
             self._beamline_proposals_dir
             / self._metadata_dict["cycle"]
             / self._metadata_dict["data_session"]
@@ -79,9 +77,7 @@ class ProposalNumYMDPathProvider(PathProvider):
             / ymd_dir_path
         )
 
-        return directory_path
-
-    def __call__(self, device_name: str = None) -> PathInfo:
+    def __call__(self, device_name: str | None = None) -> PathInfo:
         directory_path = self.generate_directory_path(device_name=device_name)
 
         return PathInfo(
@@ -110,7 +106,7 @@ class ProposalNumScanNumPathProvider(ProposalNumYMDPathProvider):
             **kwargs,
         )
 
-    def __call__(self, device_name: Optional[str] = None) -> PathInfo:
+    def __call__(self, device_name: str | None = None) -> PathInfo:
         directory_path = self.generate_directory_path(device_name=device_name)
 
         final_dir_path = (
@@ -132,12 +128,11 @@ class ShortUUIDFilenameProvider(FilenameProvider):
         self._separator = separator
         super().__init__(**kwargs)
 
-    def __call__(self, device_name: Optional[str] = None) -> str:
+    def __call__(self, device_name: str | None = None) -> str:
         sid = shortuuid.uuid()
         if device_name is not None:
             return f"{device_name}{self._separator}{sid}"
-        else:
-            return sid
+        return sid
 
 
 class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
@@ -145,7 +140,8 @@ class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
         if not isinstance(initial_mode, Enum) or not isinstance(
             initial_mode.value, str
         ):
-            raise TypeError("Initial acquisition mode type must be a string enum!")
+            msg = "Initial acquisition mode type must be a string enum!"
+            raise TypeError(msg)
 
         self._mode = initial_mode
         self._mode_type = type(initial_mode)
@@ -153,24 +149,21 @@ class AcqModeFilenameProvider(ShortUUIDFilenameProvider):
 
     def switch_mode(self, new_mode):
         if not isinstance(new_mode, self._mode_type):
-            raise RuntimeError(
-                f"{new_mode} is not a valid option for {self._mode_type}!"
-            )
-        else:
-            self._mode = new_mode
+            msg = f"{new_mode} is not a valid option for {self._mode_type}!"
+            raise RuntimeError(msg)
+        self._mode = new_mode
 
-    def __call__(self, **kwargs):
+    def __call__(self, **kwargs):  # noqa : ARG002
         return super().__call__(device_name=self._mode.value)
 
 
 class DeviceNameFilenameProvider(FilenameProvider):
     """Filename provider that uses device name as filename"""
 
-    def __call__(self, device_name: Optional[str] = None) -> str:
+    def __call__(self, device_name: str | None = None) -> str:
         if device_name is None:
-            raise RuntimeError(
-                f"Device name must be passed in when calling {type(self).__name__}!"
-            )
+            msg = f"Device name must be passed in when calling {type(self).__name__}!"
+            raise RuntimeError(msg)
         return device_name
 
 
