@@ -642,7 +642,7 @@ class XspressTrigger(BlueskyInterface):
         for sn in self.read_attrs:
             if sn.startswith('channel') and '.' not in sn:
                 ch = getattr(self, sn)
-                self.dispatch(ch.name, trigger_time)
+                self.generate_datum(ch.name, trigger_time, {})
 
         self._abs_trigger_count += 1
         return self._status
