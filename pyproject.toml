@@ -86,7 +86,6 @@ dev = [
   "area_detector_handlers",
   "pre-commit",
   "ruff", 
-  "versioneer"
 ]
 docs = [
   "sphinx>=7.0",
@@ -174,6 +173,9 @@ isort.required-imports = ["from __future__ import annotations"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T20"]
 "noxfile.py" = ["T20"]
+
+[tool.uv.extra-build-dependencies]
+nslsii = ["versioneer"]
 
 
 [tool.pylint]
