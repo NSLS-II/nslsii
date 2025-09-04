@@ -11,10 +11,10 @@ import versioneer
 here = Path(__file__).resolve().parent
 
 # Get the long description from the README file
-with open(Path.join(here, "README.md"), encoding="utf-8") as f:
+with open(here.joinpath("README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-with open(Path.join(here, "requirements.txt")) as f:
+with open(here.joinpath("requirements.txt"), encoding="utf-8") as f:
     requirements = f.read().splitlines()
 
 setuptools.setup(
