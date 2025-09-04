@@ -56,7 +56,8 @@ dependencies = [
   "redis-json-dict",
   "requests",
   "setuptools",
-  "shortuuid"
+  "shortuuid",
+  "versioneer"
 ]
 
 [project.urls]
