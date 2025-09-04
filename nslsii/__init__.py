@@ -458,7 +458,7 @@ def configure_ipython_logging(
     # if a previous copy exists just overwrite it
     if (
         bluesky_ipython_log_file_path.exists()
-        and Path.getsize(bluesky_ipython_log_file_path) >= rotate_file_size
+        and bluesky_ipython_log_file_path.stat().st_size >= rotate_file_size
     ):
         bluesky_ipython_log_file_path.rename(
             str(bluesky_ipython_log_file_path) + ".old"

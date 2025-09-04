@@ -51,8 +51,8 @@ class BlueskyDocJSONWriter:
     def __call__(self, name: str, doc: dict):
         if self._write_json_file:
             if name == "start":
-                self._output_file_name = Path.join(
-                    self._write_directory, f"{doc['uid']}.json"
+                self._output_file_name = (
+                    Path(self._write_directory) / f"{doc['uid']}.json"
                 )
 
             if self._output_file_name is not None:

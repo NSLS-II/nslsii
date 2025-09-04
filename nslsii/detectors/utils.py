@@ -55,8 +55,8 @@ def make_filename_add_subdirectory(
         Number of characters to use from the hash
     """
     hash_portion = fn[:hash_characters]
-    read_path = Path.join(read_path, hash_portion, "")
-    write_path = Path.join(write_path, hash_portion, "")
+    read_path = Path(read_path) / hash_portion
+    write_path = Path(write_path) / hash_portion
 
     if make_directories:
         makedirs(read_path)
