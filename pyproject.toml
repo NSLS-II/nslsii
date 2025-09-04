@@ -57,7 +57,6 @@ dependencies = [
   "requests",
   "setuptools",
   "shortuuid",
-  "versioneer"
 ]
 
 [project.urls]
