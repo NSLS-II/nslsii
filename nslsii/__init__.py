@@ -162,8 +162,13 @@ def configure_base(
         ns["db"] = db
     else:
         db = broker_name
+
     if db is not None:
-        RE.subscribe(db.insert)
+        if hasattr(db, "insert"):
+            # subscribe using insert if it exists
+            RE.subscribe(db.insert)
+        else:
+            RE.subscribe(db)
 
     if pbar:
         # Add a progress bar.
