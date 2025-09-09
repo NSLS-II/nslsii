@@ -41,6 +41,9 @@ jobs:
           pip install -r requirements-dev.txt
           pip list
 
+      - name: Add src to PYTHONPATH
+        run: echo "PYTHONPATH=$PWD/src" >> $GITHUB_ENV
+
       - name: Test with pytest
         shell: bash -l {0}
         run: |
