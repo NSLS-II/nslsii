@@ -4,6 +4,9 @@ Copyright (c) 2025. All rights reserved.
 nslsii: NSLS-II related devices
 """
 
+from __future__ import annotations
+
+import logging
 import os
 import sys
 import warnings
@@ -12,8 +15,6 @@ from pathlib import Path
 
 import appdirs
 from IPython import get_ipython
-
-from __future__ import annotations
 
 from ._version import version as __version__
 

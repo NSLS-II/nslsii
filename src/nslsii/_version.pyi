@@ -32,10 +32,8 @@ def get_keywords():
     git_date = "$Format:%ci$"
     return {"refnames": git_refnames, "full": git_full, "date": git_date}
 
-
 class VersioneerConfig:
     """Container for Versioneer configuration parameters."""
-
 
 def get_config():
     """Create, populate and return the VersioneerConfig() object."""
@@ -50,14 +48,11 @@ def get_config():
     cfg.verbose = False
     return cfg
 
-
 class NotThisMethod(Exception):
     """Exception raised if a method is not valid for the current scenario."""
 
-
 LONG_VERSION_PY = {}
 HANDLERS = {}
-
 
 def register_vcs_handler(vcs, method):  # decorator
     """Decorator to mark a method as the handler for a particular VCS."""
@@ -70,7 +65,6 @@ def register_vcs_handler(vcs, method):  # decorator
         return f
 
     return decorate
-
 
 def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=None):
     """Call the given command(s)."""
@@ -110,7 +104,6 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
         return None, p.returncode
     return stdout, p.returncode
 
-
 def versions_from_parentdir(parentdir_prefix, root, verbose):
     """Try to determine the version from the parent directory name.
 
@@ -140,7 +133,6 @@ def versions_from_parentdir(parentdir_prefix, root, verbose):
     msg = "rootdir doesn't start with parentdir_prefix"
     raise NotThisMethod(msg)
 
-
 @register_vcs_handler("git", "get_keywords")
 def git_get_keywords(versionfile_abs):
     """Extract version information from the given file."""
@@ -168,7 +160,6 @@ def git_get_keywords(versionfile_abs):
     except OSError:
         pass
     return keywords
-
 
 @register_vcs_handler("git", "keywords")
 def git_versions_from_keywords(keywords, tag_prefix, verbose):
@@ -232,7 +223,6 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         "error": "no suitable tags",
         "date": None,
     }
-
 
 @register_vcs_handler("git", "pieces_from_vcs")
 def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
@@ -335,13 +325,11 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
 
     return pieces
 
-
 def plus_or_dot(pieces):
     """Return a + if we don't already have one, else return a ."""
     if "+" in pieces.get("closest-tag", ""):
         return "."
     return "+"
-
 
 def render_pep440(pieces):
     """Build up version string, with post-release "local version identifier".
@@ -366,7 +354,6 @@ def render_pep440(pieces):
             rendered += ".dirty"
     return rendered
 
-
 def render_pep440_pre(pieces):
     """TAG[.post.devDISTANCE] -- No -dirty.
 
@@ -381,7 +368,6 @@ def render_pep440_pre(pieces):
         # exception #1
         rendered = f"0.post.dev{pieces['distance']}"
     return rendered
-
 
 def render_pep440_post(pieces):
     """TAG[.postDISTANCE[.dev0]+gHEX] .
@@ -409,7 +395,6 @@ def render_pep440_post(pieces):
         rendered += f"+g{pieces['short']}"
     return rendered
 
-
 def render_pep440_old(pieces):
     """TAG[.postDISTANCE[.dev0]] .
 
@@ -431,7 +416,6 @@ def render_pep440_old(pieces):
             rendered += ".dev0"
     return rendered
 
-
 def render_git_describe(pieces):
     """TAG[-DISTANCE-gHEX][-dirty].
 
@@ -451,7 +435,6 @@ def render_git_describe(pieces):
         rendered += "-dirty"
     return rendered
 
-
 def render_git_describe_long(pieces):
     """TAG-DISTANCE-gHEX[-dirty].
 
@@ -470,7 +453,6 @@ def render_git_describe_long(pieces):
     if pieces["dirty"]:
         rendered += "-dirty"
     return rendered
-
 
 def render(pieces, style):
     """Render the given version pieces into the requested style."""
@@ -509,7 +491,6 @@ def render(pieces, style):
         "error": None,
         "date": pieces.get("date"),
     }
-
 
 def get_versions():
     """Get version information or return default if unable to do so."""
