@@ -1,1 +1,2 @@
 nsls-ii-tools/_version.py export-subst
+src/nslsii/_version.pyi export-subst

@@ -642,3 +642,6 @@ def configure_olog(user_ns, *, callback=None, subscribe=True):
 
     user_ns.update(ns)
     return list(ns)
+
+from . import _version
+__version__ = _version.get_versions()['version']
