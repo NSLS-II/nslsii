@@ -32,9 +32,9 @@ v0.10.7 (2024-10-30)
 ====================
 What's Changed
 ..............
-* CI: only use the `published` event for PyPI releases by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/203
+* CI: only use the ``published`` event for PyPI releases by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/203
 * Remove 'finally' that is eating exceptions by `@nmaytan <https://github.com/nmaytan>`_ in https://github.com/NSLS-II/nslsii/pull/200
-* Use a configuration file from `n2sn_user_tools` for `sync-experiment` by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/202
+* Use a configuration file from ``n2sn_user_tools`` for ``sync-experiment`` by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/202
 * Deprecate the webcam class by `@mrakitin <https://github.com/mrakitin>`_ in https://github.com/NSLS-II/nslsii/pull/204
 
 
@@ -68,7 +68,7 @@ v0.10.4 (2024-09-18)
 ====================
 * Add SRX MAIA code
 * Remove distutils
-* Fix sync_experiment for SST 
+* Fix sync_experiment for SST
 * Fix docker compose usage
 
 v0.10.3 (2024-06-28)
@@ -98,7 +98,7 @@ v0.9.1 (2023-06-08)
 
 v0.9.0 (2023-01-20)
 ===================
-* fix incorrect usage of ``prefix=`` keyword argument in tests 
+* fix incorrect usage of ``prefix=`` keyword argument in tests
 * add ``nslsii.areadetector.xspress3.Xspress3ExternalFileReference.dtype_str``
 
 v0.8.0 (2022-12-19)

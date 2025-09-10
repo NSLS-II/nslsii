@@ -1,18 +1,18 @@
-version: '3'
+version: "3"
 
 services:
   zookeeper:
-    image: 'docker.io/bitnami/zookeeper:latest'
+    image: "docker.io/bitnami/zookeeper:latest"
     ports:
-      - '2181:2181'
+      - "2181:2181"
     #volumes:
     #  - 'zookeeper_data:/bitnami'
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
   kafka:
-    image: 'docker.io/bitnami/kafka:latest'
+    image: "docker.io/bitnami/kafka:latest"
     ports:
-      - '9092:9092'
+      - "9092:9092"
       #- '29092:29092'
     #volumes:
     #  - 'kafka_data:/bitnami'
@@ -30,7 +30,6 @@ services:
       #- KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
     depends_on:
       - zookeeper
-
 #volumes:
 #  zookeeper_data:
 #    driver: local
