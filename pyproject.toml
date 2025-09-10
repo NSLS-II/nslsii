@@ -184,7 +184,7 @@ nslsii = ["versioneer"]
 [tool.versioneer]
 VCS = "git"
 style = "pep440"
-versionfile_source = "src/nslsii/_version.pyi"
+versionfile_source = "src/nslsii/_version.py"
 tag_prefix = ""
 parentdir_prefix = ""
 
