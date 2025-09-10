@@ -16,12 +16,16 @@ from pathlib import Path
 import appdirs
 from IPython import get_ipython
 
-from ._version import version as __version__
+# from ._version import version as __version__
 
-__all__ = ["__version__"]
-
-# __version__ = get_versions()["version"]
+# __version__ = _version.get_versions()['version']
+# __all__ = ["__version__"]
 # del get_versions
+
+from ._version import get_versions
+
+__version__ = get_versions()["version"]
+del get_versions
 
 bluesky_log_file_path = None
 
