@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import redis
 
-from .nslsii.md_dict import RunEngineRedisDict
+from nslsii.md_dict import RunEngineRedisDict
 
 
 def pytest_addoption(parser):
