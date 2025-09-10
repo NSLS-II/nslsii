@@ -101,7 +101,7 @@ def test_epstwostate_ioc():
         eps.cls_cmd.put(1)
 
         cls_cmd_val = eps.cls_cmd.get()
-        assert cls_cmd_val == "None"
+        assert cls_cmd_val == "Close"
 
         fail_to_cls_val = eps.fail_to_cls.get()
         assert fail_to_cls_val == "False"
@@ -143,7 +143,7 @@ def test_epstwostate_ioc():
         eps.cls_cmd.put(1)
 
         cls_cmd_val = eps.cls_cmd.get()
-        assert cls_cmd_val == "None"
+        assert cls_cmd_val == "Close"
 
         fail_to_cls_val = eps.fail_to_cls.get()
         assert fail_to_cls_val == "True"
