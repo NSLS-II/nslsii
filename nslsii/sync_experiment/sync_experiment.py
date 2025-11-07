@@ -21,7 +21,7 @@ nslsii_api_client = httpx.Client(base_url="https://api.nsls2.bnl.gov")
 
 def get_current_cycle() -> str:
     cycle_response = nslsii_api_client.get(
-        f"/v1/facility/nsls2/cycles/current"
+        "/v1/facility/nsls2/cycles/current"
     ).raise_for_status()
     return cycle_response.json()["cycle"]
 
@@ -111,7 +111,7 @@ def authenticate(
     server = config.get("common", {}).get("server")
 
     if server is None:
-        raise RuntimeError(f"Server name not found!")
+        raise RuntimeError("Server name not found!")
 
     auth_server = Server(server, use_ssl=True)
 
@@ -195,7 +195,6 @@ def switch_redis_proposal(
         )
 
     else:
-
         if not should_they_be_here(username, new_data_session, beamline):
             raise AuthorizationError(
                 f"User '{username}' is not allowed to take data on proposal {new_data_session}"
@@ -207,14 +206,13 @@ def switch_redis_proposal(
         for user in users:
             if user.get("is_pi"):
                 pi_name = (
-                    f'{user.get("first_name", "")} {user.get("last_name", "")}'.strip()
+                    f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
                 )
         md["data_session"] = new_data_session  # e.g. "pass-123456"
         md["username"] = username
         md["start_datetime"] = datetime.now().isoformat()
-        md["tiled_access_tags"] = (
-            new_data_session  # Used by bluesky-tiled-writer, not metadata
-        )
+        # tiled-access-tags used by bluesky-tiled-writer, not saved to metadata
+        md["tiled_access_tags"] = [new_data_session]
         md["cycle"] = (
             "commissioning"
             if is_commissioning_proposal(str(proposal_number), beamline)
@@ -233,7 +231,6 @@ def switch_redis_proposal(
 
 
 def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
-
     # Authenticate the user
     username = input("Username : ")
     authenticate(username)
