@@ -43,6 +43,29 @@ def sync_experiment(
     endstation: str | None = None,
     verbose: bool = False,
 ) -> RedisJSONDict:
+    """Sync a new experiment (proposal) at the beamline.
+    Authorizes the requested proposals, and activates one of them.
+
+    Parameters
+    ----------
+    proposal_ids : list[int or str]
+        the list of proposal IDs to authorize
+    activate_id : int or str (optional)
+        the ID number of the proposal to activate (defaults to the first proposal in proposal_ids)
+    facility : str (optional)
+        the facility that the beamline belongs to (defaults to "nsls2")
+    beamline : str or None (optional)
+        the TLA of the beamline from which the experiment is running, not case-sensitive
+    endstation : str or None (optional)
+        the endstation at the beamline from which the experiment is running, not case-sensitive
+    verbose : bool (optional)
+        turn on verbose printing
+
+    Returns
+    -------
+    md : RedisJSONDict
+        The updated metadata dictionary
+    """
     env_beamline, env_endstation = get_beamline_env()
     beamline = beamline or env_beamline
     endstation = endstation or env_endstation
@@ -186,6 +209,25 @@ def unsync_experiment(
     endstation: str | None = None,
     verbose: bool = False,
 ) -> RedisJSONDict:
+    """Unsync the currently active experiment (proposal) at the beamline.
+    Also deauthorizes all currently authorized proposals.
+
+    Parameters
+    ----------
+    facility : str (optional)
+        the facility that the beamline belongs to (defaults to "nsls2")
+    beamline : str or None (optional)
+        the TLA of the beamline from which the experiment is running, not case-sensitive
+    endstation : str or None (optional)
+        the endstation at the beamline from which the experiment is running, not case-sensitive
+    verbose : bool (optional)
+        turn on verbose printing
+
+    Returns
+    -------
+    md : RedisJSONDict
+        The updated metadata dictionary
+    """
     env_beamline, env_endstation = get_beamline_env()
     beamline = beamline or env_beamline
     endstation = endstation or env_endstation
@@ -254,16 +296,18 @@ def switch_proposal(
 
     Parameters
     ----------
-    proposal_id: int or str
+    proposal_id : int or str
         the ID number of the proposal to activate
-    username: str or None (optional)
+    username : str or None (optional)
         the current user's username - will prompt if no provided.
-    facility: str (optional)
+    facility : str (optional)
         the facility that the beamline belongs to (defaults to "nsls2")
-    beamline: str or None (optional)
+    beamline : str or None (optional)
         the TLA of the beamline from which the experiment is running, not case-sensitive
     endstation : str or None (optional)
         the endstation at the beamline from which the experiment is running, not case-sensitive
+    verbose : bool (optional)
+        turn on verbose printing
 
     Returns
     -------
