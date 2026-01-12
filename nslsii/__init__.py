@@ -40,6 +40,7 @@ def configure_base(
     publish_documents_with_kafka=False,
     tb_minimize=True,
     redis_url=None,
+    redis_port=6379,
     redis_prefix="",
 ):
     """
@@ -135,7 +136,10 @@ def configure_base(
         from redis import Redis
         from redis_json_dict import RedisJSONDict
 
-        md = RedisJSONDict(Redis(redis_url), prefix=redis_prefix)
+        md = RedisJSONDict(
+            Redis(host=redis_url, port=redis_port, decode_responses=False, ssl=True, password=os.getenv("REDIS_PASSWORD")),
+            prefix=redis_prefix
+        )
 
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine
