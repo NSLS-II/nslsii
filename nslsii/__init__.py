@@ -137,7 +137,7 @@ def configure_base(
         from redis_json_dict import RedisJSONDict
 
         md = RedisJSONDict(
-            Redis(host=redis_url, port=redis_port, decode_responses=True, ssl=True, password=os.getenv("REDIS_PASSWORD")),
+            Redis(host=redis_url, port=redis_port, decode_responses=False, ssl=True, password=os.getenv("REDIS_PASSWORD")),
             prefix=redis_prefix
         )
 
