@@ -109,4 +109,6 @@ ENV/
 .mypy_cache/
 
 #
-.DS_Store
+.DS_Store# pixi environments
+.pixi/*
+!.pixi/config.toml
