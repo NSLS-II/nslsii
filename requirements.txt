@@ -2,12 +2,12 @@ appdirs
 bluesky-kafka>=0.8.0
 bluesky>=1.8.1
 caproto
+cryptography
 databroker
 h5py
 httpx
 ipython
 ipywidgets
-ldap3
 matplotlib
 msgpack >=1.0.0
 msgpack-numpy
@@ -19,9 +19,11 @@ packaging
 pillow
 psutil
 pycryptodome
+pydantic
 pyolog
 redis
 redis-json-dict
 requests
 setuptools
 shortuuid
+tiled
