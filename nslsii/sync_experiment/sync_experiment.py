@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import re
 import warnings
@@ -246,7 +245,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     )
 
     if verbose:
-        print(json.dumps(md, indent=2))
+        print(md)
 
     return md
 
