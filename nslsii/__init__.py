@@ -41,6 +41,7 @@ def configure_base(
     tb_minimize=True,
     redis_url=None,
     redis_port=6379,
+    redis_ssl=False,
     redis_prefix="",
 ):
     """
@@ -104,6 +105,14 @@ def configure_base(
         broker_name is a string. If a string is used, it will override the TLA for the auto-configured topic.
     tb_minimize : boolean, optional
         If IPython should print out 'minimal' tracebacks.
+    redis_url : str | None, optional
+        The Redis URL. If None, no Redis is used. Default is None.
+    redis_port : int, optional
+        The Redis port. 6379 by default.
+    redis_ssl : bool, optional
+        Set to True to use SSL. False by default.
+    redis_prefix : str, optional
+        Set the prefix for the Redis key. Typically the endstation prefix, e.g. "arpes-". "" by default.
 
     Returns
     -------
@@ -137,7 +146,12 @@ def configure_base(
         from redis_json_dict import RedisJSONDict
 
         md = RedisJSONDict(
-            Redis(host=redis_url, port=redis_port, decode_responses=False, ssl=True, password=os.getenv("REDIS_PASSWORD")),
+            Redis(
+                host=redis_url,
+                port=redis_port,
+                ssl=redis_ssl,
+                password=os.getenv("REDIS_PASSWORD") if redis_ssl else None
+            ),
             prefix=redis_prefix
         )
 
