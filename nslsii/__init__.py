@@ -8,6 +8,7 @@ from pathlib import Path
 import appdirs
 from IPython import get_ipython
 
+from .utils import open_redis_client
 from ._version import get_versions
 
 __version__ = get_versions()["version"]
@@ -145,15 +146,8 @@ def configure_base(
         from redis import Redis
         from redis_json_dict import RedisJSONDict
 
-        md = RedisJSONDict(
-            Redis(
-                host=redis_url,
-                port=redis_port,
-                ssl=redis_ssl,
-                password=os.getenv("REDIS_PASSWORD") if redis_ssl else None
-            ),
-            prefix=redis_prefix
-        )
+        redis_client = open_redis_client(redis_ssl=True, redis_url=redis_url, redis_prefix=redis_prefix)
+        md = RedisJSONDict(redis_cliet=redis_client, prefix=redis_prefix)
 
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine
