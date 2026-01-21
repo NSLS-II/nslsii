@@ -176,7 +176,9 @@ def switch_redis_proposal(
         The updated redis dictionary.
     """
     location = prefix if prefix else beamline
-    redis_client = open_redis_client(redis_ssl=True, redis_prefix=location)
+    redis_ssl = os.getenv('REDIS_SSL')
+    redis_ssl = redis_ssl == 'True' if redis_ssl else True
+    redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
     md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
     username = username or md.get("username")
 
