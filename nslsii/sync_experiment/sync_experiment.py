@@ -289,7 +289,6 @@ def main():
         "--disable-ssl",
         dest="redis_ssl",
         action="store_true",
-        type=bool,
         help="Flag to disable ssl connection with redis",
     )
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
