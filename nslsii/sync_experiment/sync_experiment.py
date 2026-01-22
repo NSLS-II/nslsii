@@ -156,6 +156,7 @@ def switch_redis_proposal(
     beamline: str,
     username: Optional[str] = None,
     prefix: str = "",
+    redis_ssl: bool = True,
 ) -> RedisJSONDict:
     """Update information in RedisJSONDict for a specific beamline
 
@@ -169,6 +170,8 @@ def switch_redis_proposal(
         login name of the user assigned to the proposal; if None, current user will be kept
     prefix : str
         optional prefix to identify a specific endstation, e.g. `opls`
+    redis_ssl : bool
+        optional flag to enable/disable ssl connections to redis
 
     Returns
     -------
@@ -176,8 +179,6 @@ def switch_redis_proposal(
         The updated redis dictionary.
     """
     location = prefix if prefix else beamline
-    redis_ssl = os.getenv('REDIS_SSL')
-    redis_ssl = redis_ssl == 'True' if redis_ssl else True
     redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
     md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
     username = username or md.get("username")
@@ -232,7 +233,7 @@ def switch_redis_proposal(
     return md
 
 
-def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
+def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_ssl=True):
     # Authenticate the user
     username = input("Username : ")
     authenticate(username)
@@ -244,7 +245,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
 
     md = switch_redis_proposal(
-        proposal_number, beamline=redis_beamline, username=username, prefix=prefix
+        proposal_number, beamline=redis_beamline, username=username, prefix=prefix, redis_ssl=redis_ssl
     )
 
     if verbose:
@@ -283,6 +284,14 @@ def main():
         help="Which proposal (e.g. 123456)",
         required=True,
     )
+    parser.add_argument(
+        "-s",
+        "--disable-ssl",
+        dest="redis_ssl",
+        action="store_true",
+        type=bool,
+        help="Flag to disable ssl connection with redis",
+    )
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
@@ -291,4 +300,5 @@ def main():
         beamline=args.beamline,
         verbose=args.verbose,
         prefix=args.prefix,
+        redis_ssl=args.redis_ssl,
     )

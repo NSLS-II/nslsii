@@ -51,22 +51,21 @@ def open_redis_client(
     """
     Helper function to get the redis client connection.
     """
+    redis_url = os.getenv("REDIS_HOST", redis_url)
     if not redis_url:
-        redis_url = os.getenv("REDIS_HOST")
-        if not redis_url:
-            client_loc_id = (
-                redis_prefix if redis_prefix else socket.gethostname().split("-")[0]
+        client_loc_id = (
+            redis_prefix if redis_prefix else socket.gethostname().split("-")[0]
+        )
+        client_locations = [
+            location for location in redis_hosts if client_loc_id in location
+        ]
+        if len(client_locations) != 1:
+            raise RuntimeError(
+                "Failed to derive redis server url, please specify using the "
+                "redis_url argument."
             )
-            client_locations = [
-                location for location in redis_hosts if client_loc_id in location
-            ]
-            if len(client_locations) != 1:
-                raise RuntimeError(
-                    "Failed to derive redis server url, please specify using the "
-                    "redis_url argument."
-                )
-            else:
-                redis_url = client_locations[0]
+        else:
+            redis_url = client_locations[0]
 
     if redis_ssl:
         redis_pw = os.getenv("REDIS_PASSWORD")
@@ -75,7 +74,7 @@ def open_redis_client(
                 "REDIS_SECRET_FILE", "/etc/bluesky/redis.secret"
             )
             with open(redis_secret_file, "r", encoding="utf-8") as password_file:
-                redis_password = password_file.read().strip()
+                redis_pw = password_file.read().strip()
     else:
         redis_pw = None
 
