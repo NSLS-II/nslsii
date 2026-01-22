@@ -273,6 +273,7 @@ def main():
         "--endstation",
         dest="prefix",
         type=str,
+        default="",
         help="Prefix for redis keys (e.g. by endstation)",
         required=False,
     )
