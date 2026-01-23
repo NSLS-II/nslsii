@@ -180,7 +180,7 @@ def switch_redis_proposal(
     """
     location = prefix if prefix else beamline
     redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
-    prefix = prefix + '-' if prefix else prefix
+    prefix = f"{prefix}-" if prefix else ""
     md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
     username = username or md.get("username")
 
@@ -234,7 +234,7 @@ def switch_redis_proposal(
     return md
 
 
-def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_ssl=True):
+def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_ssl=False):
     # Authenticate the user
     username = input("Username : ")
     authenticate(username)
