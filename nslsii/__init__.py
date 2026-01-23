@@ -147,7 +147,10 @@ def configure_base(
         from redis_json_dict import RedisJSONDict
 
         redis_client = open_redis_client(redis_ssl=redis_ssl, redis_url=redis_url, redis_prefix=redis_prefix)
-        md = RedisJSONDict(redis_client=redis_client, prefix=redis_prefix)
+        if redis_ssl:
+            md = RedisJSONDict(redis_client=redis_client)
+        else:
+            md = RedisJSONDict(redis_client=redis_client, prefix=redis_prefix)
 
     # if RunEngine already defined grab it
     # useful when users make their own custom RunEngine

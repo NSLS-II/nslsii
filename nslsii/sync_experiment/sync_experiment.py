@@ -156,7 +156,7 @@ def switch_redis_proposal(
     beamline: str,
     username: Optional[str] = None,
     prefix: str = "",
-    redis_ssl: bool = True,
+    redis_ssl: bool = False,
 ) -> RedisJSONDict:
     """Update information in RedisJSONDict for a specific beamline
 
@@ -180,6 +180,7 @@ def switch_redis_proposal(
     """
     location = prefix if prefix else beamline
     redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
+    prefix = prefix + '-' if prefix else prefix
     md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
     username = username or md.get("username")
 
@@ -287,10 +288,10 @@ def main():
     )
     parser.add_argument(
         "-s",
-        "--disable-ssl",
+        "--enable-ssl",
         dest="redis_ssl",
-        action="store_false",
-        help="Flag to disable ssl connection with redis",
+        action="store_true",
+        help="Flag to enable ssl connection with redis",
     )
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
