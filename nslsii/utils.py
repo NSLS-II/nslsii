@@ -78,6 +78,7 @@ def open_redis_client(
     else:
         redis_pw = None
 
+    redis_port = os.getenv("REDIS_PORT", redis_port)
     if not redis_port:
         if not redis_ssl:
             redis_port = 6379
