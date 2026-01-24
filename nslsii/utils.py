@@ -53,19 +53,23 @@ def open_redis_client(
     """
     redis_url = os.getenv("REDIS_HOST", redis_url)
     if not redis_url:
-        client_loc_id = (
-            redis_prefix if redis_prefix else socket.gethostname().split("-")[0]
-        )
-        client_locations = [
-            location for location in redis_hosts if client_loc_id in location
-        ]
-        if len(client_locations) != 1:
-            raise RuntimeError(
-                "Failed to derive redis server url, please specify using the "
-                "redis_url argument."
+        if redis_ssl:
+            client_loc_id = (
+                redis_prefix if redis_prefix else socket.gethostname().split("-")[0]
             )
+            client_locations = [
+                location for location in redis_hosts if client_loc_id in location
+            ]
+            if len(client_locations) != 1:
+                raise RuntimeError(
+                    "Failed to derive redis server url, please specify using the "
+                    "redis_url argument."
+                )
+            else:
+                redis_url = client_locations[0]
         else:
-            redis_url = client_locations[0]
+            tla = os.getenv("BEAMLINE_ACRONYM").lower()
+            redis_url = f"info.{tla}.nsls2.bnl.gov"
 
     if redis_ssl:
         redis_pw = os.getenv("REDIS_PASSWORD")
