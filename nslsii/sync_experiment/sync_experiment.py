@@ -180,7 +180,7 @@ def switch_redis_proposal(
     """
     location = prefix if prefix else beamline
     redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
-    prefix = f"{prefix}-" if prefix else ""
+    prefix = f"{prefix}-" if prefix and not redis_ssl else ""
     md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
     username = username or md.get("username")
 
