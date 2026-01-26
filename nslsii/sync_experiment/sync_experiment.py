@@ -17,6 +17,8 @@ data_session_re = re.compile(r"^pass-(?P<proposal_number>\d+)$")
 
 nslsii_api_client = httpx.Client(base_url="https://api.nsls2.bnl.gov")
 
+from nslsii.utils import open_redis_client
+
 
 def get_current_cycle() -> str:
     cycle_response = nslsii_api_client.get(
@@ -154,6 +156,7 @@ def switch_redis_proposal(
     beamline: str,
     username: Optional[str] = None,
     prefix: str = "",
+    redis_ssl: bool = False,
 ) -> RedisJSONDict:
     """Update information in RedisJSONDict for a specific beamline
 
@@ -167,16 +170,18 @@ def switch_redis_proposal(
         login name of the user assigned to the proposal; if None, current user will be kept
     prefix : str
         optional prefix to identify a specific endstation, e.g. `opls`
+    redis_ssl : bool
+        optional flag to enable/disable ssl connections to redis
 
     Returns
     -------
     md : RedisJSONDict
         The updated redis dictionary.
     """
-
-    redis_client = redis.Redis(host=f"info.{beamline.lower()}.nsls2.bnl.gov")
-    redis_prefix = f"{prefix}-" if prefix else ""
-    md = RedisJSONDict(redis_client=redis_client, prefix=redis_prefix)
+    location = prefix if prefix else beamline
+    redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
+    prefix = f"{prefix}-" if prefix and not redis_ssl else ""
+    md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
     username = username or md.get("username")
 
     new_data_session = f"pass-{proposal_number}"
@@ -229,7 +234,7 @@ def switch_redis_proposal(
     return md
 
 
-def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
+def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_ssl=False):
     # Authenticate the user
     username = input("Username : ")
     authenticate(username)
@@ -241,7 +246,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix=""):
     redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
 
     md = switch_redis_proposal(
-        proposal_number, beamline=redis_beamline, username=username, prefix=prefix
+        proposal_number, beamline=redis_beamline, username=username, prefix=prefix, redis_ssl=redis_ssl
     )
 
     if verbose:
@@ -269,6 +274,7 @@ def main():
         "--endstation",
         dest="prefix",
         type=str,
+        default="",
         help="Prefix for redis keys (e.g. by endstation)",
         required=False,
     )
@@ -280,6 +286,13 @@ def main():
         help="Which proposal (e.g. 123456)",
         required=True,
     )
+    parser.add_argument(
+        "-s",
+        "--enable-ssl",
+        dest="redis_ssl",
+        action="store_true",
+        help="Flag to enable ssl connection with redis",
+    )
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
@@ -288,4 +301,5 @@ def main():
         beamline=args.beamline,
         verbose=args.verbose,
         prefix=args.prefix,
+        redis_ssl=args.redis_ssl,
     )
