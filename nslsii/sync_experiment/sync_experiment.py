@@ -180,7 +180,11 @@ def switch_redis_proposal(
         The updated redis dictionary.
     """
     location = prefix if prefix else beamline
-    redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
+    if redis_ssl:
+        redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
+    else:
+        redis_url=f"info.{beamline}.nsls2.bnl.gov"
+        redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location, redis_url=redis_url)
     if verbose:
         print(f"Redis connection info: {redis_client.client().connection}")
     prefix = f"{prefix}-" if prefix and not redis_ssl else ""
