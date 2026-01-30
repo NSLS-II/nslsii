@@ -5,12 +5,6 @@ import redis
 import pytest
 
 from bluesky.tests.conftest import RE  # noqa
-from bluesky_kafka import BlueskyConsumer  # noqa
-from bluesky_kafka.tests.conftest import (  # noqa
-    kafka_bootstrap_servers,
-    consume_documents_from_kafka_until_first_stop_document,
-    temporary_topics,
-)
 from ophyd.tests.conftest import hw  # noqa
 
 from nslsii.md_dict import RunEngineRedisDict
@@ -50,13 +44,6 @@ def pytest_addoption(parser):
         action="store",
         default=None,
         help="comma-separated xspress3 mcaroi numbers, for example `1,2,3`"
-    )
-
-    parser.addoption(
-        "--kafka-bootstrap-servers",
-        action="store",
-        default="127.0.0.1:9092",
-        help="comma-separated list of address:port for Kafka bootstrap servers",
     )
 
 
