@@ -46,13 +46,6 @@ def pytest_addoption(parser):
         help="comma-separated xspress3 mcaroi numbers, for example `1,2,3`"
     )
 
-    # parser.addoption(
-    #     "--kafka-bootstrap-servers",
-    #     action="store",
-    #     default="127.0.0.1:9092",
-    #     help="comma-separated list of address:port for Kafka bootstrap servers",
-    # )
-
 
 @pytest.fixture
 def xs3_root_path(request):
