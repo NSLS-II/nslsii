@@ -8,6 +8,8 @@ from event_model import sanitize_doc
 import nslsii
 import nslsii.kafka_utils
 
+import pytest
+
 @pytest.mark.skip(reason="bluesky kafka is deprecated.")
 def test_build_and_subscribe_kafka_queue_thread_publisher(
     kafka_bootstrap_servers,
