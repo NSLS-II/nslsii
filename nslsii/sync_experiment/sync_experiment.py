@@ -157,6 +157,7 @@ def switch_redis_proposal(
     username: Optional[str] = None,
     prefix: str = "",
     redis_ssl: bool = False,
+    verbose: bool = False,
 ) -> RedisJSONDict:
     """Update information in RedisJSONDict for a specific beamline
 
@@ -180,6 +181,8 @@ def switch_redis_proposal(
     """
     location = prefix if prefix else beamline
     redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
+    if verbose:
+        print(f"Redis connection info: {redis_client.client().connection}")
     prefix = f"{prefix}-" if prefix and not redis_ssl else ""
     md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
     username = username or md.get("username")
@@ -246,7 +249,7 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_s
     redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
 
     md = switch_redis_proposal(
-        proposal_number, beamline=redis_beamline, username=username, prefix=prefix, redis_ssl=redis_ssl
+        proposal_number, beamline=redis_beamline, username=username, prefix=prefix, redis_ssl=redis_ssl, verbose=verbose
     )
 
     if verbose:
