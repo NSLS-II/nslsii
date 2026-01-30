@@ -14,3 +14,4 @@ area_detector_handlers
 pre-commit
 ruff
 doct
+pims
