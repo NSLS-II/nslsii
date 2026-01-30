@@ -8,7 +8,7 @@ from event_model import sanitize_doc
 import nslsii
 import nslsii.kafka_utils
 
-
+@pytest.mark.skip(reason="bluesky kafka is deprecated.")
 def test_build_and_subscribe_kafka_queue_thread_publisher(
     kafka_bootstrap_servers,
     temporary_topics,
@@ -121,7 +121,7 @@ def test_build_and_subscribe_kafka_queue_thread_publisher(
             == sanitized_published_bluesky_documents
         )
 
-
+@pytest.mark.skip(reason="bluesky kafka is deprecated.")
 def test_no_beamline_topic(kafka_bootstrap_servers, RE):
     """
     If the beamline Kafka topic does not exist then an exception
@@ -163,7 +163,7 @@ def test_no_beamline_topic(kafka_bootstrap_servers, RE):
     finally:
         nslsii_logger.removeHandler(hdlr=logging_test_handler)
 
-
+@pytest.mark.skip(reason="bluesky kafka is deprecated.")
 def test_publisher_with_no_broker(RE, hw):
     """
     Test the case of no Kafka broker.
