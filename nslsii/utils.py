@@ -51,8 +51,9 @@ def open_redis_client(
     """
     Helper function to get the redis client connection.
     """
-    redis_url = os.getenv("REDIS_HOST", redis_url)
-    if not redis_url:
+    if os.getenv("REDIS_HOST"):
+        redis_url = os.getenv("REDIS_HOST")
+    if redis_url is None:
         if redis_ssl:
             client_loc_id = (
                 redis_prefix if redis_prefix else socket.gethostname().split("-")[0]
