@@ -13,3 +13,4 @@ sphinx_rtd_theme
 area_detector_handlers
 pre-commit
 ruff
+doct
