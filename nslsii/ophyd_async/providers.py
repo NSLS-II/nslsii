@@ -1,7 +1,8 @@
 from datetime import date
 from enum import Enum
-from pathlib import Path
+from pathlib import PurePath, PurePosixPath, PureWindowsPath
 from typing import Optional
+from urllib.parse import urlunparse
 from ophyd_async.core import (
     FilenameProvider,
     PathProvider,
@@ -24,19 +25,28 @@ class ProposalNumYMDPathProvider(PathProvider):
         filename_provider: FilenameProvider,
         metadata_dict: dict,
         granularity: YMDGranularity = YMDGranularity.day,
-        separator=os.path.sep,
+        windows_drive_letter: str | None = None,
+        extra_dir_levels_fmt: str | None = None,
         **kwargs,
     ):
         self._filename_provider = filename_provider
         self._metadata_dict = metadata_dict
         self._granularity = granularity
-        self._ymd_separator = separator
-        self._beamline_proposals_dir = self.get_beamline_proposals_dir()
+        self._base_read_directory = self.get_beamline_proposals_dir()
+        self._base_write_directory = self.get_write_directory_path(windows_drive_letter)
+        self._extra_dir_levels_fmt = extra_dir_levels_fmt
+
         super().__init__(filename_provider, **kwargs)
 
     @property
     def filename_provider(self):
         return self._filename_provider
+
+    def get_write_directory_path(self, windows_drive_letter: str | None) -> PurePath:
+        if windows_drive_letter is None:
+            return self.get_beamline_proposals_dir()
+        else:
+            return PureWindowsPath(f"{windows_drive_letter}:\\proposals")
 
     def get_beamline_proposals_dir(self):
         """
@@ -46,46 +56,58 @@ class ProposalNumYMDPathProvider(PathProvider):
         beamline_tla = os.getenv(
             "ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "")
         ).lower()
-        beamline_proposals_dir = Path(f"/nsls2/data/{beamline_tla}/proposals/")
+        beamline_proposals_dir = PurePosixPath(f"/nsls2/data/{beamline_tla}/proposals/")
 
         return beamline_proposals_dir
 
-    def generate_directory_path(self, device_name: Optional[str] = None):
+    def generate_directory_path(self, base_path: PurePath, device_name: Optional[str] = None):
         """Helper function that generates ymd path structure"""
 
-        current_date_template = ""
-        if self._granularity >= YMDGranularity.day:
-            current_date_template = f"%Y{self._ymd_separator}%m{self._ymd_separator}%d"
-        elif self._granularity == YMDGranularity.month:
-            current_date_template = f"%Y{self._ymd_separator}%m"
-        elif self._granularity == YMDGranularity.year:
-            current_date_template = f"%Y{self._ymd_separator}"
+        path_semantics = type(base_path)
 
-        current_date = date.today().strftime(current_date_template)
+        if self._granularity >= YMDGranularity.day:
+            current_date_template = "%Y/%m/%d"
+        elif self._granularity == YMDGranularity.month:
+            current_date_template = "%Y/%m"
+        elif self._granularity == YMDGranularity.year:
+            current_date_template = "%Y/"
+
+        current_date = path_semantics(date.today().strftime(current_date_template))
 
         if device_name is None:
             ymd_dir_path = current_date
         else:
-            ymd_dir_path = os.path.join(
-                device_name,
-                current_date,
-            )
+            ymd_dir_path = path_semantics(device_name) / current_date
 
         directory_path = (
-            self._beamline_proposals_dir
-            / self._metadata_dict["cycle"]
-            / self._metadata_dict["data_session"]
+            base_path
+            / str(self._metadata_dict["cycle"])
+            / str(self._metadata_dict["data_session"])
             / "assets"
             / ymd_dir_path
         )
 
+        if self._extra_dir_levels_fmt is not None:
+            directory_path = directory_path / self._extra_dir_levels_fmt.format(**self._metadata_dict)
+
         return directory_path
 
     def __call__(self, device_name: str = None) -> PathInfo:
-        directory_path = self.generate_directory_path(device_name=device_name)
+        full_write_path = self.generate_directory_path(self._base_write_directory, device_name=device_name)
+        full_read_path = self.generate_directory_path(self._base_read_directory, device_name=device_name)
 
         return PathInfo(
-            directory_path=directory_path,
+            directory_path=full_write_path,
+            directory_uri=urlunparse(
+                (
+                    "file",
+                    "localhost",
+                    f"{full_read_path.as_posix()}/",
+                    "",
+                    "",
+                    None,
+                )
+            ),
             filename=self._filename_provider(),
             create_dir_depth=-self._granularity,
         )
@@ -94,34 +116,13 @@ class ProposalNumYMDPathProvider(PathProvider):
 class ProposalNumScanNumPathProvider(ProposalNumYMDPathProvider):
     def __init__(
         self,
-        filename_provider: FilenameProvider,
-        metadata_dict: dict,
-        base_name: str = "scan",
-        granularity: YMDGranularity = YMDGranularity.none,
-        ymd_separator=os.path.sep,
+        *args,
         **kwargs,
     ):
-        self._base_name = base_name
         super().__init__(
-            filename_provider,
-            metadata_dict,
-            granularity=granularity,
-            ymd_separator=ymd_separator,
+            *args,
+            extra_dir_levels_fmt = "scan_{scan_id:05d}"
             **kwargs,
-        )
-
-    def __call__(self, device_name: Optional[str] = None) -> PathInfo:
-        directory_path = self.generate_directory_path(device_name=device_name)
-
-        final_dir_path = (
-            directory_path / f"{self._base_name}_{self._metadata_dict['scan_id']:06}"
-        )
-
-        return PathInfo(
-            directory_path=final_dir_path,
-            filename=self._filename_provider(),
-            # Add one to dir depth creation level to account for scan dir
-            create_dir_depth=-self._granularity - 1,
         )
 
 
