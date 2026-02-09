@@ -166,7 +166,7 @@ def switch_redis_proposal(
     proposal_number : int or str
         number of the desired proposal, e.g. `123456`
     beamline : str
-        normalized beamline acronym, case-insensitive, e.g. `SMI` or `sst`
+        Beamline acronym, case-insensitive, e.g. `SMI` or `sst1`
     username : str or None
         login name of the user assigned to the proposal; if None, current user will be kept
     prefix : str
@@ -179,11 +179,16 @@ def switch_redis_proposal(
     md : RedisJSONDict
         The updated redis dictionary.
     """
-    location = prefix if prefix else beamline
+    normalized_beamlines = {
+        "sst1": "sst",
+        "sst2": "sst",
+    }
+    redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
+    location = prefix if prefix else redis_beamline
     if redis_ssl:
         redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
     else:
-        redis_url=f"info.{beamline}.nsls2.bnl.gov"
+        redis_url=f"info.{redis_beamline}.nsls2.bnl.gov"
         redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location, redis_url=redis_url)
     if verbose:
         print(f"Redis connection info: {redis_client.client().connection}")
@@ -246,14 +251,8 @@ def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_s
     username = input("Username : ")
     authenticate(username)
 
-    normalized_beamlines = {
-        "sst1": "sst",
-        "sst2": "sst",
-    }
-    redis_beamline = normalized_beamlines.get(beamline.lower(), beamline)
-
     md = switch_redis_proposal(
-        proposal_number, beamline=redis_beamline, username=username, prefix=prefix, redis_ssl=redis_ssl, verbose=verbose
+        proposal_number, beamline=beamline, username=username, prefix=prefix, redis_ssl=redis_ssl, verbose=verbose
     )
 
     if verbose:
