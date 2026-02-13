@@ -44,6 +44,7 @@ def configure_base(
     redis_port=6379,
     redis_ssl=False,
     redis_prefix="",
+    redis_db=0,
 ):
     """
     Perform base setup and instantiation of important objects.
@@ -114,6 +115,8 @@ def configure_base(
         Set to True to use SSL. False by default.
     redis_prefix : str, optional
         Set the prefix for the Redis key. Typically the endstation prefix, e.g. "arpes-". "" by default.
+    redis_db : int, optional
+        Specifies which redis database to connect to.
 
     Returns
     -------
@@ -146,7 +149,7 @@ def configure_base(
         from redis import Redis
         from redis_json_dict import RedisJSONDict
 
-        redis_client = open_redis_client(redis_ssl=redis_ssl, redis_url=redis_url, redis_prefix=redis_prefix)
+        redis_client = open_redis_client(redis_ssl=redis_ssl, redis_url=redis_url, redis_prefix=redis_prefix, redis_db=redis_db)
         prefix = redis_prefix if redis_prefix and not redis_ssl else ""
         md = RedisJSONDict(redis_client=redis_client, prefix=prefix)
 
