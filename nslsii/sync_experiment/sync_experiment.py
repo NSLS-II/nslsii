@@ -157,6 +157,7 @@ def switch_redis_proposal(
     username: Optional[str] = None,
     prefix: str = "",
     redis_ssl: bool = False,
+    redis_db: int = 0,
     verbose: bool = False,
 ) -> RedisJSONDict:
     """Update information in RedisJSONDict for a specific beamline
@@ -173,6 +174,8 @@ def switch_redis_proposal(
         optional prefix to identify a specific endstation, e.g. `opls`
     redis_ssl : bool
         optional flag to enable/disable ssl connections to redis
+    redis_db : int
+        optional integer which determines the database to connect to at the redis instance
 
     Returns
     -------
@@ -189,7 +192,7 @@ def switch_redis_proposal(
         redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location)
     else:
         redis_url=f"info.{redis_beamline}.nsls2.bnl.gov"
-        redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location, redis_url=redis_url)
+        redis_client = open_redis_client(redis_ssl=redis_ssl, redis_prefix=location, redis_url=redis_url, redis_db=redis_db)
     if verbose:
         print(f"Redis connection info: {redis_client.client().connection}")
     prefix = f"{prefix}-" if prefix and not redis_ssl else ""
@@ -246,13 +249,13 @@ def switch_redis_proposal(
     return md
 
 
-def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_ssl=False):
+def sync_experiment(proposal_number, beamline, verbose=False, prefix="", redis_ssl=False, redis_db=0):
     # Authenticate the user
     username = input("Username : ")
     authenticate(username)
 
     md = switch_redis_proposal(
-        proposal_number, beamline=beamline, username=username, prefix=prefix, redis_ssl=redis_ssl, verbose=verbose
+        proposal_number, beamline=beamline, username=username, prefix=prefix, redis_ssl=redis_ssl, redis_db=redis_db, verbose=verbose
     )
 
     if verbose:
@@ -299,6 +302,15 @@ def main():
         action="store_true",
         help="Flag to enable ssl connection with redis",
     )
+    parser.add_argument(
+        "-d",
+        "--database",
+        dest="redis_db",
+        type=int,
+        default=0,
+        help="Redis database to connect to",
+        required=False,
+    )
     parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
@@ -308,4 +320,5 @@ def main():
         verbose=args.verbose,
         prefix=args.prefix,
         redis_ssl=args.redis_ssl,
+        redis_db=args.redis_db,
     )
