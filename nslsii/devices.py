@@ -5,6 +5,9 @@ from ophyd import (Device, Component as Cpt,
 
 _time_fmtstr = '%Y-%m-%d %H:%M:%S'
 
+class Valve(TwoButtonShutter):
+    def stop(self, *, success=False):
+        ...
 
 class TwoButtonShutter(Device):
     # TODO: this needs to be fixed in EPICS as these names make no sense
