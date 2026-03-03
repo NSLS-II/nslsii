@@ -5,10 +5,6 @@ from ophyd import (Device, Component as Cpt,
 
 _time_fmtstr = '%Y-%m-%d %H:%M:%S'
 
-class Valve(TwoButtonShutter):
-    def stop(self, *, success=False):
-        ...
-
 class TwoButtonShutter(Device):
     # TODO: this needs to be fixed in EPICS as these names make no sense
     # the value coming out of the PV does not match what is shown in CSS
@@ -131,3 +127,7 @@ class TwoButtonShutter(Device):
         super().__init__(*args, **kwargs)
         self._set_st = None
         self.read_attrs = ['status']
+
+class Valve(TwoButtonShutter):
+    def stop(self, *, success=False):
+        ...
