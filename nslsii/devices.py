@@ -5,9 +5,7 @@ from ophyd import (Device, Component as Cpt,
 
 _time_fmtstr = '%Y-%m-%d %H:%M:%S'
 
-class TwoButtonShutter(Device):
-    # TODO: this needs to be fixed in EPICS as these names make no sense
-    # the value coming out of the PV does not match what is shown in CSS
+class TwoButtonActuator(Device):
     RETRY_PERIOD = 0.5
     MAX_ATTEMPTS = 10
     open_cmd = Cpt(EpicsSignal, 'Cmd:Opn-Cmd', string=True)
@@ -128,6 +126,11 @@ class TwoButtonShutter(Device):
         self._set_st = None
         self.read_attrs = ['status']
 
-class Valve(TwoButtonShutter):
+
+class TwoButtonActuatorAutoClose(TwoButtonActuator):
     def stop(self, *, success=False):
+        # overide the stop method to always close the shutter
         ...
+
+class TwoButtonShutter(TwoButtonActuatorAutoClose):
+    pass
