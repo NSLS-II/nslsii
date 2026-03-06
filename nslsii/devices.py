@@ -94,17 +94,6 @@ class TwoButtonActuator(Device):
 
         return st
 
-    def stop(self, *, success=False):
-        import time
-        prev_st = self._set_st
-        if prev_st is not None:
-            while not prev_st.done:
-                time.sleep(.1)
-        self._was_open = (self.open_val == self.status.get())
-        st = self.set('Close')
-        while not st.done:
-            time.sleep(.5)
-
     def resume(self):
         import time
         prev_st = self._set_st
@@ -129,8 +118,17 @@ class TwoButtonActuator(Device):
 
 class TwoButtonActuatorAutoClose(TwoButtonActuator):
     def stop(self, *, success=False):
-        # overide the stop method to always close the shutter
-        ...
+        import time
+        prev_st = self._set_st
+        if prev_st is not None:
+            while not prev_st.done:
+                time.sleep(.1)
+        self._was_open = (self.open_val == self.status.get())
+        st = self.set('Close')
+        while not st.done:
+            time.sleep(.5)
 
 class TwoButtonShutter(TwoButtonActuatorAutoClose):
-    pass
+    def stop(self, *, success=False):
+        # overide the stop method to always close the shutter
+        ...
