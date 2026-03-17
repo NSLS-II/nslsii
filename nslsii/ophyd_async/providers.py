@@ -6,6 +6,7 @@ from ophyd_async.core import (
     FilenameProvider,
     PathProvider,
     PathInfo,
+    UUIDFilenameProvider
 )
 import os
 import shortuuid
@@ -25,6 +26,7 @@ class ProposalNumYMDPathProvider(PathProvider):
         metadata_dict: dict,
         granularity: YMDGranularity = YMDGranularity.day,
         separator=os.path.sep,
+        tla_suffix: str = "",
         **kwargs,
     ):
         self._filename_provider = filename_provider
@@ -32,6 +34,7 @@ class ProposalNumYMDPathProvider(PathProvider):
         self._granularity = granularity
         self._ymd_separator = separator
         self._beamline_proposals_dir = self.get_beamline_proposals_dir()
+        self._tla_suffix = tla_suffix
         super().__init__(filename_provider, **kwargs)
 
     @property
@@ -45,7 +48,7 @@ class ProposalNumYMDPathProvider(PathProvider):
 
         beamline_tla = os.getenv(
             "ENDSTATION_ACRONYM", os.getenv("BEAMLINE_ACRONYM", "")
-        ).lower()
+        ).lower() + self._tla_suffix
         beamline_proposals_dir = Path(f"/nsls2/data/{beamline_tla}/proposals/")
 
         return beamline_proposals_dir
@@ -189,7 +192,11 @@ class NSLS2PathProvider(ProposalNumYMDPathProvider):
     ----------
     metadata_dict : dict
         Typically `RE.md`. Used for dynamic save path generation from sync-d experiment
+    filename_provider : FilenameProvider, default UUIDFilenameProvider()
+        Filename provider to use for generating filenames.
+    tla_suffix: str, default ""
+        Suffix to add to TLA when generating path.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(ShortUUIDFilenameProvider(), *args, **kwargs)
+    def __init__(self, *args, filename_provider: Optional[FilenameProvider] = UUIDFilenameProvider(), **kwargs):
+        super().__init__(filename_provider, *args, **kwargs)
