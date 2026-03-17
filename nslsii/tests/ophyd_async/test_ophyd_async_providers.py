@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 import pytest
 import os
-from ophyd_async.core import StaticFilenameProvider
+from ophyd_async.core import StaticFilenameProvider, UUIDFilenameProvider
 
 from nslsii.ophyd_async import (
     ProposalNumYMDPathProvider,
@@ -11,7 +11,7 @@ from nslsii.ophyd_async import (
     DeviceNameFilenameProvider,
     YMDGranularity,
 )
-from nslsii.ophyd_async.providers import AcqModeFilenameProvider
+from nslsii.ophyd_async.providers import AcqModeFilenameProvider, NSLS2PathProvider
 
 
 class TomoFrameType(Enum):
@@ -140,3 +140,23 @@ def test_acq_mode_filename_provider():
 
     with pytest.raises(TypeError):
         am_fp = AcqModeFilenameProvider(0)
+
+
+@pytest.mark.parametrize("with_suffix", [True, False])
+def test_nsls2_path_provider(with_suffix):
+    md = {"data_session": "pass-000000", "cycle": "2024-3", "scan_id": 5}
+    os.environ["BEAMLINE_ACRONYM"] = "TST"
+
+    pp = NSLS2PathProvider(
+        md, create_dir_depth=-3, tla_suffix="-new" if with_suffix else ""
+    )
+
+    # Default NSLS2PathProvider should use UUIDFilenameProvider
+    assert isinstance(pp.filename_provider, UUIDFilenameProvider)
+
+    info = pp(device_name="test")
+
+    assert str(info.directory_path).startswith(
+        f"/nsls2/data/tst{'-new' if with_suffix else ''}/proposals/2024-3/pass-000000/assets/test"
+    )
+    assert info.create_dir_depth == -3
