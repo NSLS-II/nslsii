@@ -9,11 +9,12 @@ from .providers import (
 )
 
 __all__ = [
-    "YMDGranularity"
-    "ProposalNumScanNumPathProvider",
+    "YMDGranularityProposalNumScanNumPathProvider",
     "ProposalNumYMDPathProvider",
     "ShortUUIDFilenameProvider",
     "AcqModeFilenameProvider",
     "DeviceNameFilenameProvider",
+    "YMDGranularity",
+    "ProposalNumScanNumPathProvider",
     "NSLS2PathProvider",
 ]
