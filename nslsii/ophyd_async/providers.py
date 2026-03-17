@@ -29,7 +29,6 @@ class ProposalNumYMDPathProvider(PathProvider):
         tla_suffix: str = "",
         **kwargs,
     ):
-        print(f"{tla_suffix = }")
         self._filename_provider = filename_provider
         self._metadata_dict = metadata_dict
         self._granularity = granularity
